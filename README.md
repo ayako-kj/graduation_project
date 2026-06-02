@@ -197,3 +197,6 @@
 
 ### 画面遷移図
 Figma：<https://www.figma.com/board/GrBSa7qM5SdJca52QNl6TR/LibShiftAI_Pitat?t=R64qmRmndOPiBdAz-6>
+
+### ER図
+[![Image from Gyazo](https://i.gyazo.com/d62335c96d965cbd639931a64276042b.png)](https://gyazo.com/d62335c96d965cbd639931a64276042b)
