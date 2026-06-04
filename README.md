@@ -199,6 +199,5 @@
 Figma：<https://www.figma.com/board/GrBSa7qM5SdJca52QNl6TR/LibShiftAI_Pitat?t=R64qmRmndOPiBdAz-6>
 
 ### ER図
-[![Image from Gyazo](https://i.gyazo.com/f1e8c1b39e175feec2b7cb0e38a21ab3.png)](https://gyazo.com/f1e8c1b39e175feec2b7cb0e38a21ab3)
+[![Image from Gyazo](https://i.gyazo.com/318248982c12e08591a71f5a1e2a1fde.png)](https://gyazo.com/318248982c12e08591a71f5a1e2a1fde)
 
-Figma : <https://www.figma.com/board/GrBSa7qM5SdJca52QNl6TR/LibShiftAI_Pitat?node-id=2136-311&t=2PM4vKUDGQrF4Fcb-0>
