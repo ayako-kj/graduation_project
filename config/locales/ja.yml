@@ -37,3 +37,7 @@ ja:
         staff_type: "職種"
         staff_type_id: "職種"
         min_count: "最低出勤人数"
+      special_date:
+        date: "日付"
+        label: "名称"
+        target_group: "対象グループ"
