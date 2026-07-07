@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_07_165453) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_07_170518) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -49,6 +49,25 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_165453) do
     t.index ["staff_type_id"], name: "index_placement_rules_on_staff_type_id"
   end
 
+  create_table "shift_groups", force: :cascade do |t|
+    t.date "target_month"
+    t.string "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "shifts", force: :cascade do |t|
+    t.bigint "shift_group_id", null: false
+    t.bigint "staff_id", null: false
+    t.date "date"
+    t.boolean "is_working"
+    t.text "validation_errors"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["shift_group_id"], name: "index_shifts_on_shift_group_id"
+    t.index ["staff_id"], name: "index_shifts_on_staff_id"
+  end
+
   create_table "special_dates", force: :cascade do |t|
     t.date "date"
     t.string "label"
@@ -76,6 +95,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_165453) do
 
   add_foreign_key "leave_requests", "staffs"
   add_foreign_key "placement_rules", "staff_types"
+  add_foreign_key "shifts", "shift_groups"
+  add_foreign_key "shifts", "staffs"
   add_foreign_key "staffs", "employment_types"
   add_foreign_key "staffs", "staff_types"
 end
