@@ -1,0 +1,60 @@
+ja:
+  devise:
+    confirmations:
+      confirmed: "メールアドレスの確認が完了しました。"
+      send_instructions: "確認メールを送信しました。"
+      send_paranoid_instructions: "メールアドレスが登録済みの場合、確認メールを送信しました。"
+    failure:
+      already_authenticated: "すでにログインしています。"
+      inactive: "アカウントが有効化されていません。"
+      invalid: "メールアドレスまたはパスワードが正しくありません。"
+      locked: "アカウントがロックされています。"
+      last_attempt: "あと1回失敗するとアカウントがロックされます。"
+      not_found_in_database: "メールアドレスまたはパスワードが正しくありません。"
+      timeout: "セッションの有効期限が切れました。ログインし直してください。"
+      unauthenticated: "ログインしてください。"
+      unconfirmed: "メールアドレスの確認が完了していません。"
+    mailer:
+      confirmation_instructions:
+        subject: "メールアドレス確認のご案内"
+      reset_password_instructions:
+        subject: "パスワード再設定のご案内"
+      unlock_instructions:
+        subject: "アカウントロック解除のご案内"
+      email_changed:
+        subject: "メールアドレス変更のご案内"
+      password_change:
+        subject: "パスワード変更完了のご案内"
+    passwords:
+      no_token: "パスワード再設定URLが不正です。メール内のURLから再度お試しください。"
+      send_instructions: "パスワード再設定メールを送信しました。"
+      send_paranoid_instructions: "メールアドレスが登録済みの場合、パスワード再設定メールを送信しました。"
+      updated: "パスワードを変更しました。"
+      updated_not_active: "パスワードを変更しました。"
+    registrations:
+      destroyed: "アカウントを削除しました。"
+      signed_up: "アカウント登録が完了しました。"
+      signed_up_but_inactive: "アカウントが有効化されていないため、ログインできません。"
+      signed_up_but_locked: "アカウントがロックされているため、ログインできません。"
+      signed_up_but_unconfirmed: "確認メールを送信しました。メール内のリンクからアカウントを有効化してください。"
+      update_needs_confirmation: "アカウント情報を更新しました。新しいメールアドレスの確認が必要です。"
+      updated: "アカウント情報を更新しました。"
+      updated_but_not_signed_in: "パスワードが変更されたため、再度ログインしてください。"
+    sessions:
+      signed_in: "ログインしました。"
+      signed_out: "ログアウトしました。"
+      already_signed_out: "ログアウト済みです。"
+    unlocks:
+      send_instructions: "ロック解除メールを送信しました。"
+      send_paranoid_instructions: "アカウントが存在する場合、ロック解除メールを送信しました。"
+      unlocked: "アカウントのロックを解除しました。"
+  errors:
+    messages:
+      already_confirmed: "は既に確認済みです。"
+      confirmation_period_expired: "の確認期限が切れました。再度お試しください。"
+      expired: "の有効期限が切れました。再度お試しください。"
+      not_found: "が見つかりません。"
+      not_locked: "はロックされていません。"
+      not_saved:
+        one: "エラーが1件あります："
+        other: "エラーが%{count}件あります："
