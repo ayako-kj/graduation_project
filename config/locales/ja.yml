@@ -41,3 +41,8 @@ ja:
         date: "日付"
         label: "名称"
         target_group: "対象グループ"
+      leave_request:
+        staff: "職員"
+        staff_id: "職員"
+        date: "日付"
+        reason: "理由"
