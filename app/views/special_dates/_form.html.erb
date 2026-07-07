@@ -1,0 +1,35 @@
+<% if special_date.errors.any? %>
+  <div class="alert alert-danger rounded-3 mb-4">
+    <p class="fw-semibold mb-2"><i class="bi bi-exclamation-circle me-1"></i>入力内容を確認してください</p>
+    <ul class="mb-0 ps-3">
+      <% special_date.errors.full_messages.each do |msg| %>
+        <li class="small"><%= msg %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<%= form_with model: special_date do |f| %>
+
+  <div class="mb-3">
+    <%= f.label :date, "日付", class: "form-label fw-semibold small" %>
+    <%= f.date_field :date, class: "form-control" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :label, "名称", class: "form-label fw-semibold small" %>
+    <%= f.text_field :label, class: "form-control", placeholder: "例：全員会議日" %>
+  </div>
+
+  <div class="mb-4">
+    <%= f.label :target_group, "対象グループ", class: "form-label fw-semibold small" %>
+    <%= f.select :target_group,
+        options_for_select(SpecialDatesController::TARGET_GROUPS, special_date.target_group),
+        { prompt: "選択してください（任意）", include_blank: true },
+        { class: "form-select" } %>
+    <div class="form-text text-muted">指定がない場合は全職員が対象になります</div>
+  </div>
+
+  <%= f.submit special_date.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>
+
+<% end %>
