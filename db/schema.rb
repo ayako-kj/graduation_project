@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_07_120846) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_07_153140) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -25,4 +25,30 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_120846) do
     t.index ["email"], name: "index_admins_on_email", unique: true
     t.index ["reset_password_token"], name: "index_admins_on_reset_password_token", unique: true
   end
+
+  create_table "employment_types", force: :cascade do |t|
+    t.string "name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "staff_types", force: :cascade do |t|
+    t.string "name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "staffs", force: :cascade do |t|
+    t.string "name"
+    t.bigint "staff_type_id", null: false
+    t.bigint "employment_type_id", null: false
+    t.integer "weekly_work_days"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["employment_type_id"], name: "index_staffs_on_employment_type_id"
+    t.index ["staff_type_id"], name: "index_staffs_on_staff_type_id"
+  end
+
+  add_foreign_key "staffs", "employment_types"
+  add_foreign_key "staffs", "staff_types"
 end
