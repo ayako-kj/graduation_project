@@ -1,0 +1,44 @@
+<% content_for :title, "特定日一覧 | LibShiftAI_Pitat" %>
+
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fs-4 fw-bold mb-0">特定日一覧</h1>
+    <%= link_to "＋ 特定日を登録する", new_special_date_path, class: "btn btn-pitat rounded-pill px-4" %>
+  </div>
+
+  <% if @special_dates.empty? %>
+    <div class="pitat-card p-5 text-center text-muted">
+      <i class="bi bi-calendar-event fs-1 d-block mb-3"></i>
+      <p class="mb-3">まだ特定日が登録されていません。</p>
+      <%= link_to "特定日を登録する", new_special_date_path, class: "btn btn-pitat rounded-pill px-4" %>
+    </div>
+  <% else %>
+    <div class="pitat-card p-0 overflow-hidden">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4 py-3 text-muted small fw-semibold">日付</th>
+            <th class="py-3 text-muted small fw-semibold">名称</th>
+            <th class="py-3 text-muted small fw-semibold">対象グループ</th>
+            <th class="py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @special_dates.each do |special_date| %>
+            <tr>
+              <td class="ps-4 py-3 fw-semibold"><%= special_date.date.strftime("%Y年%m月%d日") %></td>
+              <td class="py-3"><%= special_date.label %></td>
+              <td class="py-3"><%= special_date.target_group.presence || "全職員" %></td>
+              <td class="py-3 pe-4 text-end">
+                <%= link_to "編集", edit_special_date_path(special_date), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
+                <%= link_to "削除", special_date_path(special_date),
+                    data: { turbo_method: :delete, turbo_confirm: "#{special_date.label}を削除しますか？" },
+                    class: "btn btn-sm btn-outline-danger rounded-pill px-3" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>
