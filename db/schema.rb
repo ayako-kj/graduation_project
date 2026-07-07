@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_07_153140) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_07_162322) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -32,6 +32,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_153140) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "placement_rules", force: :cascade do |t|
+    t.bigint "staff_type_id", null: false
+    t.integer "min_count"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["staff_type_id"], name: "index_placement_rules_on_staff_type_id"
+  end
+
   create_table "staff_types", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
@@ -49,6 +57,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_153140) do
     t.index ["staff_type_id"], name: "index_staffs_on_staff_type_id"
   end
 
+  add_foreign_key "placement_rules", "staff_types"
   add_foreign_key "staffs", "employment_types"
   add_foreign_key "staffs", "staff_types"
 end
