@@ -1,2 +1,81 @@
 @import 'bootstrap/scss/bootstrap';
 @import 'bootstrap-icons/font/bootstrap-icons';
+
+// カラー変数
+$pitat-green: #2D5A47;
+$pitat-cream: #FAF6F0;
+
+// 背景
+.pitat-bg {
+  background-color: $pitat-cream;
+}
+
+// ブランド名
+.pitat-brand {
+  color: $pitat-green;
+  letter-spacing: 0.02em;
+}
+
+// プライマリボタン（グリーン塗りつぶし）
+.btn-pitat {
+  background-color: $pitat-green;
+  color: #fff;
+  border: none;
+
+  &:hover {
+    background-color: darken($pitat-green, 8%);
+    color: #fff;
+  }
+}
+
+// アウトラインボタン（ナビバー用）
+.btn-pitat-outline {
+  color: $pitat-green;
+  border: 1.5px solid $pitat-green;
+  background-color: transparent;
+
+  &:hover {
+    background-color: $pitat-green;
+    color: #fff;
+  }
+}
+
+// ヒーロー画像
+.hero-image-wrapper {
+  width: 100%;
+  max-width: 560px;
+}
+
+.hero-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+// ステップ番号バッジ
+.step-number {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  background-color: $pitat-green;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+// カード
+.pitat-card {
+  background-color: #fff;
+  border: none;
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+// フッター
+.pitat-footer {
+  background-color: $pitat-cream;
+}

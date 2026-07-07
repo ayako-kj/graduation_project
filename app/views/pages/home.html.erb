@@ -1,0 +1,85 @@
+<% content_for :title, "LibShiftAI_Pitat" %>
+
+<%# ヒーローセクション %>
+<section class="container text-center py-5">
+  <div class="hero-image-wrapper mx-auto mb-4">
+    <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=800&q=80"
+         alt="図書館の写真"
+         class="hero-image rounded-3">
+  </div>
+
+  <h1 class="display-6 fw-bold mb-3">図書館のシフト作成を、もっと軽やかに。</h1>
+  <p class="text-muted mb-4 mx-auto" style="max-width: 480px;">
+    複雑な条件設定も、AIがスマートに解決。現場の負担を減らし、より良いサービスへ集中できる環境を整えます。
+  </p>
+
+  <%= link_to "今すぐ開始する（Start now）", new_admin_registration_path, class: "btn btn-pitat rounded-pill px-5 py-2 mb-2" %>
+  <p class="text-muted small">
+    すでにアカウントをお持ちの方は<%= link_to "ログインはこちら", new_admin_session_path, class: "text-muted" %>
+  </p>
+</section>
+
+<%# 5ステップセクション %>
+<section class="container mb-5">
+  <div class="card pitat-card mx-auto p-4" style="max-width: 560px;">
+    <h2 class="text-center fw-bold mb-4">5つのステップで完了</h2>
+
+    <div class="d-flex flex-column gap-3">
+      <div class="d-flex align-items-start gap-3">
+        <span class="step-number flex-shrink-0">1</span>
+        <div>
+          <p class="fw-semibold mb-0">
+            <i class="bi bi-calendar-check me-1"></i>基本設定
+          </p>
+          <p class="text-muted small mb-0">対象月と開館時間、特別休日などを設定します。</p>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-start gap-3">
+        <span class="step-number flex-shrink-0">2</span>
+        <div>
+          <p class="fw-semibold mb-0">
+            <i class="bi bi-people me-1"></i>スタッフ登録
+          </p>
+          <p class="text-muted small mb-0">役割やスキルレベル、月間の最低出勤時間を入力します。</p>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-start gap-3">
+        <span class="step-number flex-shrink-0">3</span>
+        <div>
+          <p class="fw-semibold mb-0">
+            <i class="bi bi-calendar3 me-1"></i>希望休の入力
+          </p>
+          <p class="text-muted small mb-0">スタッフの休暇希望や特定の勤務希望を反映させます。</p>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-start gap-3">
+        <span class="step-number flex-shrink-0">4</span>
+        <div>
+          <p class="fw-semibold mb-0">
+            <i class="bi bi-robot me-1"></i>AI自動生成
+          </p>
+          <p class="text-muted small mb-0">条件を元にAIが最適な配置を数秒で算出します。</p>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-start gap-3">
+        <span class="step-number flex-shrink-0">5</span>
+        <div>
+          <p class="fw-semibold mb-0">
+            <i class="bi bi-check-circle me-1"></i>確認・出力
+          </p>
+          <p class="text-muted small mb-0">完成したシフトをプレビュー、PDFやCSVで出力します。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<%# 下部CTAセクション %>
+<section class="container text-center mb-5 pb-3">
+  <p class="fw-semibold mb-3">まずは基本設定からはじめましょう</p>
+  <%= link_to "今すぐ始める（Start now）", new_admin_registration_path, class: "btn btn-pitat rounded-pill px-5 py-2" %>
+</section>
