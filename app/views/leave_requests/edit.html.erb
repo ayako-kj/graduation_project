@@ -1,0 +1,20 @@
+<% content_for :title, "希望休編集 | LibShiftAI_Pitat" %>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+
+      <div class="d-flex align-items-center mb-4">
+        <%= link_to leave_requests_path, class: "text-muted text-decoration-none me-3" do %>
+          <i class="bi bi-arrow-left"></i>
+        <% end %>
+        <h1 class="fs-4 fw-bold mb-0">希望休編集</h1>
+      </div>
+
+      <div class="pitat-card p-4">
+        <%= render "form", leave_request: @leave_request %>
+      </div>
+
+    </div>
+  </div>
+</div>

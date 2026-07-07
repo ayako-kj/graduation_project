@@ -13,6 +13,7 @@ Rails.application.routes.draw do
   resources :staffs
   resources :placement_rules
   resources :special_dates
+  resources :leave_requests
 
   root "pages#home"
 end
