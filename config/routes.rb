@@ -11,6 +11,7 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
 
   resources :staffs
+  resources :placement_rules
 
   root "pages#home"
 end

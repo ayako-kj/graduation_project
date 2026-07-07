@@ -33,3 +33,7 @@ ja:
         name: "職種名"
       employment_type:
         name: "雇用形態名"
+      placement_rule:
+        staff_type: "職種"
+        staff_type_id: "職種"
+        min_count: "最低出勤人数"

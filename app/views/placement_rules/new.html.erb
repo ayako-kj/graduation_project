@@ -1,0 +1,50 @@
+<% content_for :title, "配置ルール登録 | LibShiftAI_Pitat" %>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+
+      <div class="d-flex align-items-center mb-4">
+        <h1 class="fs-4 fw-bold mb-0">配置ルール登録</h1>
+      </div>
+
+      <div class="pitat-card p-4">
+
+        <% if @placement_rule.errors.any? %>
+          <div class="alert alert-danger rounded-3 mb-4">
+            <p class="fw-semibold mb-2"><i class="bi bi-exclamation-circle me-1"></i>入力内容を確認してください</p>
+            <ul class="mb-0 ps-3">
+              <% @placement_rule.errors.full_messages.each do |msg| %>
+                <li class="small"><%= msg %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <%= form_with model: @placement_rule do |f| %>
+
+          <div class="mb-3">
+            <%= f.label :staff_type_id, "職種", class: "form-label fw-semibold small" %>
+            <%= f.select :staff_type_id,
+                options_from_collection_for_select(@staff_types, :id, :name, @placement_rule.staff_type_id),
+                { prompt: "選択してください" },
+                { class: "form-select" } %>
+          </div>
+
+          <div class="mb-4">
+            <%= f.label :min_count, "1日の最低出勤人数", class: "form-label fw-semibold small" %>
+            <div class="input-group">
+              <%= f.number_field :min_count, class: "form-control", min: 1, placeholder: "例：2" %>
+              <span class="input-group-text">名</span>
+            </div>
+            <div class="form-text text-muted">例：司書は1日に最低2名出勤が必要</div>
+          </div>
+
+          <%= f.submit "登録する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>
+
+        <% end %>
+
+      </div>
+    </div>
+  </div>
+</div>
