@@ -1,6 +1,6 @@
 class StaffsController < ApplicationController
   before_action :authenticate_admin!
-  before_action :set_staff, only: %i[edit update]
+  before_action :set_staff, only: %i[edit update destroy]
 
   def index
     @staffs = Staff.includes(:staff_type, :employment_type).order(:id)
@@ -32,6 +32,11 @@ class StaffsController < ApplicationController
       set_form_options
       render :edit, status: :unprocessable_entity
     end
+  end
+
+  def destroy
+    @staff.destroy
+    redirect_to staffs_path, notice: "#{@staff.name}を削除しました。"
   end
 
   private
