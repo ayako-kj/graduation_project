@@ -29,6 +29,9 @@
               <td class="py-3"><%= rule.min_count %>名</td>
               <td class="py-3 pe-4 text-end">
                 <%= link_to "編集", edit_placement_rule_path(rule), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
+                <%= link_to "削除", placement_rule_path(rule),
+                    data: { turbo_method: :delete, turbo_confirm: "#{rule.staff_type.name}の配置ルールを削除しますか？" },
+                    class: "btn btn-sm btn-outline-danger rounded-pill px-3" %>
               </td>
             </tr>
           <% end %>

@@ -1,6 +1,6 @@
 class PlacementRulesController < ApplicationController
   before_action :authenticate_admin!
-  before_action :set_placement_rule, only: %i[edit update]
+  before_action :set_placement_rule, only: %i[edit update destroy]
 
   def index
     @placement_rules = PlacementRule.includes(:staff_type).order(:id)
@@ -32,6 +32,11 @@ class PlacementRulesController < ApplicationController
       set_form_options
       render :edit, status: :unprocessable_entity
     end
+  end
+
+  def destroy
+    @placement_rule.destroy
+    redirect_to placement_rules_path, notice: "#{@placement_rule.staff_type.name}の配置ルールを削除しました。"
   end
 
   private
