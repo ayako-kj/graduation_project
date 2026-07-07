@@ -1,8 +1,9 @@
 services:
   - type: web
     name: pitat
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    runtime: ruby
+    buildCommand: "./bin/render-build.sh"
+    startCommand: "bundle exec rails server -p $PORT"
     envVars:
       - key: RAILS_MASTER_KEY
         sync: false
@@ -10,3 +11,7 @@ services:
         sync: false
       - key: RAILS_ENV
         value: production
+      - key: RAILS_LOG_TO_STDOUT
+        value: enabled
+      - key: RAILS_SERVE_STATIC_FILES
+        value: enabled
