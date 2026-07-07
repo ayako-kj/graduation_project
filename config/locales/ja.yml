@@ -1,0 +1,35 @@
+ja:
+  activerecord:
+    errors:
+      messages:
+        blank: "を入力してください"
+        empty: "を入力してください"
+        invalid: "は不正な値です"
+        too_short: "は%{count}文字以上で入力してください"
+        too_long: "は%{count}文字以内で入力してください"
+        taken: "はすでに使用されています"
+        not_a_number: "は数値で入力してください"
+        greater_than: "は%{count}より大きい値にしてください"
+        less_than: "は%{count}より小さい値にしてください"
+        required: "を選択してください"
+      models:
+        staff:
+          attributes:
+            name:
+              blank: "を入力してください"
+            staff_type:
+              required: "を選択してください"
+            employment_type:
+              required: "を選択してください"
+    attributes:
+      staff:
+        name: "氏名"
+        staff_type: "職種"
+        staff_type_id: "職種"
+        employment_type: "雇用形態"
+        employment_type_id: "雇用形態"
+        weekly_work_days: "週勤務日数"
+      staff_type:
+        name: "職種名"
+      employment_type:
+        name: "雇用形態名"
