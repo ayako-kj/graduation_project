@@ -1,0 +1,37 @@
+<% content_for :title, "ログイン | LibShiftAI_Pitat" %>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="pitat-card p-5" style="width: 100%; max-width: 440px;">
+
+    <div class="text-center mb-4">
+      <h1 class="pitat-brand fw-bold fs-4">LibShiftAI_Pitat</h1>
+      <p class="text-muted small mt-1">管理者ログイン</p>
+    </div>
+
+    <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+
+      <div class="mb-3">
+        <%= f.label :email, "メールアドレス", class: "form-label fw-semibold small" %>
+        <%= f.email_field :email, autofocus: true, autocomplete: "email",
+            class: "form-control", placeholder: "admin@example.com" %>
+      </div>
+
+      <div class="mb-4">
+        <%= f.label :password, "パスワード", class: "form-label fw-semibold small" %>
+        <%= f.password_field :password, autocomplete: "current-password",
+            class: "form-control", placeholder: "••••••••" %>
+      </div>
+
+      <% if devise_mapping.rememberable? %>
+        <div class="mb-3 d-flex align-items-center gap-2">
+          <%= f.check_box :remember_me, class: "form-check-input" %>
+          <%= f.label :remember_me, "ログイン状態を保持する", class: "form-check-label small text-muted" %>
+        </div>
+      <% end %>
+
+      <%= f.submit "ログイン", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>
+
+    <% end %>
+
+  </div>
+</div>
