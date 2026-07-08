@@ -36,6 +36,12 @@ gem "bootsnap", require: false
 # 認証
 gem "devise"
 
+# OpenAI API
+gem "ruby-openai"
+
+# 環境変数管理
+gem "dotenv-rails"
+
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
 
