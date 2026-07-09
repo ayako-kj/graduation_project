@@ -7,6 +7,12 @@ class ShiftsController < ApplicationController
     @staffs = Staff.includes(:staff_type).order(:staff_type_id, :name)
     @shift_group = ShiftGroup.find_by(target_month: @target_month.beginning_of_month)
 
+    holidays = HolidayFetcher.fetch(@target_month.year)
+    closed_calc = ClosedDayCalculator.new(@target_month, holidays)
+    working_calc = WorkingDayCalculator.new(@target_month, holidays)
+    @closed_days = closed_calc.closed_days_with_labels
+    @working_days = { regular: working_calc.regular_staff_days, hourly: working_calc.hourly_staff_days }
+
     if @shift_group
       shifts = @shift_group.shifts.includes(:staff)
       @shifts_map = shifts.each_with_object({}) do |shift, hash|
