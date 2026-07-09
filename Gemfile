@@ -42,6 +42,10 @@ gem "ruby-openai"
 # 環境変数管理
 gem "dotenv-rails"
 
+# Excel出力
+gem "caxlsx"
+gem "caxlsx_rails"
+
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
 
