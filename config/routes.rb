@@ -24,6 +24,7 @@ Rails.application.routes.draw do
   resources :shifts, only: [:index] do
     collection do
       post :generate
+      get :download
     end
   end
 

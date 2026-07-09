@@ -1,0 +1,51 @@
+wb = xlsx_package.workbook
+
+day_names = %w[日 月 火 水 木 金 土]
+
+wb.add_worksheet(name: @target_month.strftime("%Y年%m月")) do |sheet|
+  # スタイル定義
+  header_style   = wb.styles.add_style bg_color: "4A90D9", fg_color: "FFFFFF", b: true, alignment: { horizontal: :center }
+  weekend_style  = wb.styles.add_style bg_color: "DBEAFE", alignment: { horizontal: :center }
+  closed_style   = wb.styles.add_style bg_color: "DEE2E6", fg_color: "6C757D", alignment: { horizontal: :center }
+  working_style  = wb.styles.add_style fg_color: "198754", b: true, alignment: { horizontal: :center }
+  off_style      = wb.styles.add_style fg_color: "6C757D", alignment: { horizontal: :center }
+  name_style     = wb.styles.add_style b: true
+  center_style   = wb.styles.add_style alignment: { horizontal: :center }
+
+  # ヘッダー行（職員名・職種 + 各日付）
+  header_row = ["職員名", "職種"] + @dates.map { |d| "#{d.day}\n(#{day_names[d.wday]})" }
+  header_styles = [header_style, header_style] + @dates.map do |d|
+    @closed_days.key?(d) ? closed_style : (d.saturday? || d.sunday? ? weekend_style : header_style)
+  end
+  sheet.add_row header_row, style: header_styles, height: 30
+
+  # 職員ごとの行
+  @staffs.each do |staff|
+    row_data   = [staff.name, staff.staff_type.name]
+    row_styles = [name_style, center_style]
+
+    @dates.each do |date|
+      if @closed_days.key?(date)
+        row_data   << "休館"
+        row_styles << closed_style
+      else
+        shift = @shifts_map.dig(staff.id, date)
+        if shift.nil?
+          row_data   << ""
+          row_styles << center_style
+        elsif shift.is_working
+          row_data   << "○"
+          row_styles << working_style
+        else
+          row_data   << "－"
+          row_styles << off_style
+        end
+      end
+    end
+
+    sheet.add_row row_data, style: row_styles, height: 18
+  end
+
+  # 列幅の調整
+  sheet.column_widths 14, 10, *Array.new(@dates.size, 4.5)
+end
