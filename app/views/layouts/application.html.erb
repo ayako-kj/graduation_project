@@ -33,6 +33,9 @@
               <li class="nav-item">
                 <%= link_to "職員管理", staffs_path, class: "nav-link px-3 rounded-pill #{controller_name == 'staffs' ? 'fw-bold pitat-brand' : 'text-muted'}" %>
               </li>
+              <li class="nav-item">
+                <%= link_to "年間サマリー", working_day_summaries_path, class: "nav-link px-3 rounded-pill #{controller_name == 'working_day_summaries' ? 'fw-bold pitat-brand' : 'text-muted'}" %>
+              </li>
               <li class="nav-item dropdown">
                 <a class="nav-link px-3 rounded-pill text-muted dropdown-toggle" href="#" data-bs-toggle="dropdown">マスタ設定</a>
                 <ul class="dropdown-menu">
