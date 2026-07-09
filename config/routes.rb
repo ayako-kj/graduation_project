@@ -11,6 +11,11 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
 
   resources :working_day_summaries, only: [:index]
+  resources :workday_manual_entries, only: [:index] do
+    collection do
+      post :save
+    end
+  end
   resources :staffs
   resources :placement_rules
   resources :special_dates

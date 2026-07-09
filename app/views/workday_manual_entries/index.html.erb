@@ -1,0 +1,62 @@
+<% content_for :title, "勤務実績の手入力 | LibShiftAI_Pitat" %>
+
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h1 class="fs-4 fw-bold mb-0">勤務実績の手入力</h1>
+  </div>
+
+  <div class="pitat-card p-3 mb-4 small text-muted">
+    <i class="bi bi-info-circle me-1"></i>
+    Pitat導入前（令和8年4〜6月など）の実績勤務日数を月単位で入力できます。
+    年間サマリーページで手入力データとPitatのシフトデータを統合して表示します。
+  </div>
+
+  <%# 月選択 %>
+  <%= form_with url: workday_manual_entries_path, method: :get, class: "pitat-card p-3 mb-4 d-flex align-items-center gap-2" do |f| %>
+    <%= f.month_field :month, value: @target_month.strftime("%Y-%m"), class: "form-control form-control-sm", style: "width: auto;" %>
+    <%= f.submit "表示", class: "btn btn-sm btn-outline-secondary rounded-pill px-3" %>
+  <% end %>
+
+  <%# 入力フォーム %>
+  <%= form_with url: save_workday_manual_entries_path(month: @target_month.strftime("%Y-%m")), method: :post do |f| %>
+    <div class="pitat-card p-0 overflow-hidden mb-4">
+      <table class="table table-hover table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4 py-3 text-muted small fw-semibold">職員名</th>
+            <th class="py-3 text-muted small fw-semibold">職種</th>
+            <th class="py-3 text-muted small fw-semibold">雇用形態</th>
+            <th class="py-3 text-muted small fw-semibold" style="width: 120px;">実績勤務日数</th>
+            <th class="py-3 text-muted small fw-semibold">備考</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @staffs.each do |staff| %>
+            <% entry = @entries_map[staff.id] %>
+            <tr>
+              <td class="ps-4 py-2 fw-semibold"><%= staff.name %></td>
+              <td class="py-2"><%= staff.staff_type.name %></td>
+              <td class="py-2"><%= staff.employment_type.name %></td>
+              <td class="py-2">
+                <input type="number" name="entries[<%= staff.id %>][working_days]"
+                       value="<%= entry&.working_days || 0 %>"
+                       min="0" max="31" class="form-control form-control-sm text-center">
+              </td>
+              <td class="py-2">
+                <input type="text" name="entries[<%= staff.id %>][note]"
+                       value="<%= entry&.note %>"
+                       placeholder="任意" class="form-control form-control-sm">
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-end">
+      <%= f.submit "#{@target_month.strftime('%Y年%-m月')}の実績を保存する",
+          class: "btn btn-pitat rounded-pill px-4 fw-semibold",
+          data: { turbo_confirm: "#{@target_month.strftime('%Y年%-m月')}の実績を保存しますか？" } %>
+    </div>
+  <% end %>
+</div>

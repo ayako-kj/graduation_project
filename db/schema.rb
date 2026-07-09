@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_09_144638) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_09_170257) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -102,6 +102,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_09_144638) do
     t.index ["staff_type_id"], name: "index_staffs_on_staff_type_id"
   end
 
+  create_table "workday_manual_entries", force: :cascade do |t|
+    t.bigint "staff_id", null: false
+    t.date "year_month", null: false
+    t.integer "working_days", default: 0, null: false
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["staff_id", "year_month"], name: "index_workday_manual_entries_on_staff_id_and_year_month", unique: true
+    t.index ["staff_id"], name: "index_workday_manual_entries_on_staff_id"
+  end
+
   add_foreign_key "leave_requests", "staffs"
   add_foreign_key "placement_rules", "staff_types"
   add_foreign_key "shifts", "shift_groups"
@@ -110,4 +121,5 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_09_144638) do
   add_foreign_key "special_date_staffs", "staffs"
   add_foreign_key "staffs", "employment_types"
   add_foreign_key "staffs", "staff_types"
+  add_foreign_key "workday_manual_entries", "staffs"
 end
