@@ -1,0 +1,161 @@
+<% content_for :title, "年間勤務日数サマリー | LibShiftAI_Pitat" %>
+
+<div class="container py-5">
+  <div class="mb-4">
+    <h1 class="fs-4 fw-bold mb-0">年間勤務日数・時間サマリー</h1>
+  </div>
+
+  <%# 年度選択 %>
+  <div class="pitat-card p-3 mb-4">
+    <%= form_with url: working_day_summaries_path, method: :get, class: "d-flex align-items-center gap-2" do |f| %>
+      <%= f.hidden_field :tab, value: @active_tab %>
+      <%= f.select :fiscal_year,
+          options_for_select((Date.today.year - 2..Date.today.year + 1).map { |y| ["#{y}年度（#{y}/4〜#{y+1}/3）", y] }, @fiscal_year),
+          {},
+          { class: "form-select form-select-sm", style: "width: auto;", onchange: "this.form.submit()" } %>
+    <% end %>
+  </div>
+
+  <%# タブ %>
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+      <%= link_to "月別・全職員一覧", working_day_summaries_path(fiscal_year: @fiscal_year, tab: "monthly"),
+          class: "nav-link #{'active fw-semibold' if @active_tab == 'monthly'}" %>
+    </li>
+    <li class="nav-item">
+      <%= link_to "職員別・年間詳細", working_day_summaries_path(fiscal_year: @fiscal_year, tab: "staff"),
+          class: "nav-link #{'active fw-semibold' if @active_tab == 'staff'}" %>
+    </li>
+  </ul>
+
+  <% if @active_tab == "staff" %>
+    <%# ---- 職員別タブ ---- %>
+    <%= form_with url: working_day_summaries_path, method: :get, class: "mb-4" do |f| %>
+      <%= f.hidden_field :fiscal_year, value: @fiscal_year %>
+      <%= f.hidden_field :tab, value: "staff" %>
+      <div class="d-flex align-items-center gap-2">
+        <%= f.select :staff_id,
+            options_for_select([["職員を選択してください", ""]] + @staffs.map { |s| ["#{s.name}（#{s.staff_type.name}・#{s.employment_type.name}）", s.id] }, @selected_staff&.id),
+            {},
+            { class: "form-select form-select-sm", style: "width: auto;" } %>
+        <%= f.submit "表示", class: "btn btn-sm btn-pitat rounded-pill px-3" %>
+      </div>
+    <% end %>
+
+    <% if @selected_staff.nil? %>
+      <div class="pitat-card p-5 text-center text-muted">
+        <i class="bi bi-person-lines-fill fs-1 d-block mb-3"></i>
+        <p class="mb-0">職員を選択すると年間サマリーが表示されます。</p>
+      </div>
+    <% else %>
+      <div class="pitat-card p-3 mb-3 small">
+        <div class="d-flex gap-4 flex-wrap">
+          <div><span class="text-muted">職員名：</span><span class="fw-bold"><%= @selected_staff.name %></span></div>
+          <div><span class="text-muted">職種：</span><%= @selected_staff.staff_type.name %></div>
+          <div><span class="text-muted">雇用形態：</span><%= @selected_staff.employment_type.name %></div>
+          <div><span class="text-muted">週勤務日数：</span><%= @selected_staff.weekly_work_days %>日</div>
+          <div><span class="text-muted">1日の勤務時間：</span><%= @selected_staff.employment_type.name == "正規職員" ? "7時間45分" : "7時間30分" %></div>
+        </div>
+      </div>
+
+      <div class="pitat-card p-0 overflow-hidden">
+        <table class="table table-bordered table-sm text-center align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3 py-2 text-start">月</th>
+              <th class="py-2">市役所実働日数(N)</th>
+              <th class="py-2">目標勤務日数</th>
+              <th class="py-2">目標勤務時間</th>
+              <th class="py-2">市役所換算時間</th>
+              <th class="py-2">月の差（時間）</th>
+              <th class="py-2">累計差（時間）</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @summary.each do |row| %>
+              <tr class="<%= row[:monthly_diff] != 0 ? 'table-warning' : '' %>">
+                <td class="ps-3 text-start fw-semibold"><%= row[:month].strftime("%Y年%-m月") %></td>
+                <td><%= row[:n] %>日</td>
+                <td><%= row[:target_days] %>日</td>
+                <td><%= row[:target_hours] %>時間</td>
+                <td><%= row[:city_hall_hours] %>時間</td>
+                <td class="<%= row[:monthly_diff] < 0 ? 'text-danger' : (row[:monthly_diff] > 0 ? 'text-primary' : '') %>">
+                  <%= row[:monthly_diff] >= 0 ? "+#{row[:monthly_diff]}" : row[:monthly_diff] %>時間
+                </td>
+                <td class="<%= row[:cumulative_diff] < 0 ? 'text-danger' : (row[:cumulative_diff] > 0 ? 'text-primary' : 'text-success') %> fw-semibold">
+                  <%= row[:cumulative_diff] >= 0 ? "+#{row[:cumulative_diff]}" : row[:cumulative_diff] %>時間
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot class="table-light fw-bold">
+            <tr>
+              <td class="ps-3 text-start">年度合計</td>
+              <td><%= @summary.sum { |r| r[:n] } %>日</td>
+              <td><%= @summary.sum { |r| r[:target_days] } %>日</td>
+              <td><%= @summary.sum { |r| r[:target_hours] }.round(2) %>時間</td>
+              <td><%= @summary.sum { |r| r[:city_hall_hours] }.round(2) %>時間</td>
+              <td></td>
+              <td class="<%= @summary.last[:cumulative_diff] < 0 ? 'text-danger' : (@summary.last[:cumulative_diff] > 0 ? 'text-primary' : 'text-success') %>">
+                <%= @summary.last[:cumulative_diff] >= 0 ? "+#{@summary.last[:cumulative_diff]}" : @summary.last[:cumulative_diff] %>時間
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    <% end %>
+
+  <% else %>
+    <%# ---- 月別・全職員タブ ---- %>
+    <%= form_with url: working_day_summaries_path, method: :get, class: "mb-4" do |f| %>
+      <%= f.hidden_field :fiscal_year, value: @fiscal_year %>
+      <%= f.hidden_field :tab, value: "monthly" %>
+      <div class="d-flex align-items-center gap-2">
+        <label class="form-label small fw-semibold mb-0">表示月（その月までの累計）：</label>
+        <%= f.select :view_month,
+            options_for_select(@fiscal_months.map { |m| [m.strftime("%Y年%-m月"), m.strftime("%Y-%m")] }, @view_month.strftime("%Y-%m")),
+            {},
+            { class: "form-select form-select-sm", style: "width: auto;" } %>
+        <%= f.submit "表示", class: "btn btn-sm btn-pitat rounded-pill px-3" %>
+      </div>
+    <% end %>
+
+    <div class="pitat-card p-3 mb-4 small text-muted">
+      <i class="bi bi-info-circle me-1"></i>
+      <%= @view_month.strftime("%Y年%-m月") %>末時点の累計差を全職員で一覧表示します。
+      累計差がマイナスの場合は市役所より少ない勤務時間です。
+    </div>
+
+    <div class="pitat-card p-0 overflow-hidden">
+      <table class="table table-bordered table-sm text-center align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3 py-2 text-start">職員名</th>
+            <th class="py-2">職種</th>
+            <th class="py-2">雇用形態</th>
+            <th class="py-2">週勤務日数</th>
+            <th class="py-2">累計目標時間</th>
+            <th class="py-2">市役所換算時間</th>
+            <th class="py-2">累計差（時間）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @staff_summaries.each do |row| %>
+            <% has_diff = row[:cumulative_diff] != 0 %>
+            <tr class="<%= has_diff ? 'table-warning' : '' %>">
+              <td class="ps-3 text-start fw-semibold"><%= row[:staff].name %></td>
+              <td><%= row[:staff].staff_type.name %></td>
+              <td><%= row[:staff].employment_type.name %></td>
+              <td><%= row[:staff].weekly_work_days %>日</td>
+              <td><%= row[:cumulative_target] %>時間</td>
+              <td><%= row[:cumulative_city_hall] %>時間</td>
+              <td class="<%= row[:cumulative_diff] < 0 ? 'text-danger' : (row[:cumulative_diff] > 0 ? 'text-primary' : 'text-success') %> fw-semibold">
+                <%= row[:cumulative_diff] >= 0 ? "+#{row[:cumulative_diff]}" : row[:cumulative_diff] %>時間
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>
