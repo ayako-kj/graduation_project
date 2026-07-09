@@ -1,0 +1,83 @@
+<% content_for :title, "シフト表 | LibShiftAI_Pitat" %>
+
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h1 class="fs-4 fw-bold mb-0">シフト表</h1>
+
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <%# 月選択 %>
+      <%= form_with url: shifts_path, method: :get, class: "d-flex align-items-center gap-2" do |f| %>
+        <%= f.month_field :month, value: @target_month.strftime("%Y-%m"), class: "form-control form-control-sm" %>
+        <%= f.submit "表示", class: "btn btn-sm btn-outline-secondary rounded-pill px-3" %>
+      <% end %>
+
+      <%# シフト生成ボタン %>
+      <%= button_to "AIでシフトを生成する",
+          generate_shifts_path(month: @target_month.strftime("%Y-%m")),
+          method: :post,
+          data: { turbo_confirm: "#{@target_month.strftime('%Y年%m月')}のシフトをAIで生成しますか？既存のシフトは上書きされます。" },
+          class: "btn btn-pitat rounded-pill px-4 fw-semibold" %>
+    </div>
+  </div>
+
+  <% if @shift_group.nil? %>
+    <div class="pitat-card p-5 text-center text-muted">
+      <i class="bi bi-calendar2-week fs-1 d-block mb-3"></i>
+      <p class="mb-3"><%= @target_month.strftime("%Y年%m月") %>のシフトはまだ生成されていません。</p>
+    </div>
+  <% else %>
+    <div class="mb-3 d-flex gap-3 small">
+      <span><span class="badge bg-success me-1">○</span>出勤</span>
+      <span><span class="badge bg-secondary me-1">－</span>休み</span>
+      <span><span class="badge bg-danger me-1">!</span>バリデーションエラー</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm text-center align-middle shift-table" style="font-size: 0.8rem; min-width: 1200px;">
+        <thead class="table-light">
+          <tr>
+            <th class="text-start ps-3 py-2" style="min-width: 120px;">職員名</th>
+            <% @dates.each do |date| %>
+              <th class="py-2 <%= date.saturday? || date.sunday? ? 'table-info' : '' %>" style="min-width: 36px;">
+                <div><%= date.day %></div>
+                <div class="text-muted" style="font-size: 0.7rem;"><%= %w[日 月 火 水 木 金 土][date.wday] %></div>
+              </th>
+            <% end %>
+          </tr>
+        </thead>
+        <tbody>
+          <% @staffs.each do |staff| %>
+            <tr>
+              <td class="text-start ps-3 fw-semibold"><%= staff.name %><br><span class="text-muted fw-normal" style="font-size: 0.75rem;"><%= staff.staff_type.name %></span></td>
+              <% @dates.each do |date| %>
+                <% shift = @shifts_map.dig(staff.id, date) %>
+                <% errors = shift && shift.validation_errors.present? ? JSON.parse(shift.validation_errors) : [] %>
+                <% has_error = errors.any? %>
+                <td class="<%= has_error ? 'table-danger' : '' %>">
+                  <% if shift.nil? %>
+                    <span class="text-muted">－</span>
+                  <% elsif shift.is_working %>
+                    <% if has_error %>
+                      <span class="text-danger fw-bold" title="<%= errors.join("\n") %>" data-bs-toggle="tooltip" data-bs-placement="top">!</span>
+                    <% else %>
+                      <span class="text-success fw-bold">○</span>
+                    <% end %>
+                  <% else %>
+                    <span class="text-muted">－</span>
+                  <% end %>
+                </td>
+              <% end %>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    var tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltips.forEach(function(el) { new bootstrap.Tooltip(el); });
+  });
+</script>
