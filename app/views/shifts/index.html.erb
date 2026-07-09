@@ -20,6 +20,23 @@
     </div>
   </div>
 
+  <div class="pitat-card p-3 mb-4">
+    <div class="d-flex flex-wrap gap-4 align-items-start">
+      <div>
+        <div class="text-muted small fw-semibold mb-1"><i class="bi bi-calendar-check me-1"></i>月の勤務日数目標</div>
+        <div class="small">正規職員：<span class="fw-bold"><%= @working_days[:regular] %>日</span>　会計年度任用職員：<span class="fw-bold"><%= @working_days[:hourly] %>日</span></div>
+      </div>
+      <div>
+        <div class="text-muted small fw-semibold mb-1"><i class="bi bi-door-closed me-1"></i>休館日（<%= @closed_days.size %>日）</div>
+        <div class="small text-muted">
+          <% @closed_days.each_slice(7) do |slice| %>
+            <%= slice.map { |date, label| "#{date.strftime('%-m/%-d')}(#{label})" }.join("　") %><br>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <% if @shift_group.nil? %>
     <div class="pitat-card p-5 text-center text-muted">
       <i class="bi bi-calendar2-week fs-1 d-block mb-3"></i>
@@ -30,6 +47,7 @@
       <span><span class="badge bg-success me-1">○</span>出勤</span>
       <span><span class="badge bg-secondary me-1">－</span>休み</span>
       <span><span class="badge bg-danger me-1">!</span>バリデーションエラー</span>
+      <span><span class="badge me-1" style="background-color:#adb5bd;">閉</span>休館日</span>
     </div>
 
     <div class="table-responsive">
@@ -38,7 +56,10 @@
           <tr>
             <th class="text-start ps-3 py-2" style="min-width: 120px;">職員名</th>
             <% @dates.each do |date| %>
-              <th class="py-2 <%= date.saturday? || date.sunday? ? 'table-info' : '' %>" style="min-width: 36px;">
+              <% is_closed = @closed_days.key?(date) %>
+              <th class="py-2 <%= is_closed ? '' : (date.saturday? || date.sunday? ? 'table-info' : '') %>"
+                  style="min-width: 36px; <%= is_closed ? 'background-color:#dee2e6;' : '' %>"
+                  <% if is_closed %> title="<%= @closed_days[date] %>" data-bs-toggle="tooltip" <% end %>>
                 <div><%= date.day %></div>
                 <div class="text-muted" style="font-size: 0.7rem;"><%= %w[日 月 火 水 木 金 土][date.wday] %></div>
               </th>
@@ -50,22 +71,29 @@
             <tr>
               <td class="text-start ps-3 fw-semibold"><%= staff.name %><br><span class="text-muted fw-normal" style="font-size: 0.75rem;"><%= staff.staff_type.name %></span></td>
               <% @dates.each do |date| %>
-                <% shift = @shifts_map.dig(staff.id, date) %>
-                <% errors = shift && shift.validation_errors.present? ? JSON.parse(shift.validation_errors) : [] %>
-                <% has_error = errors.any? %>
-                <td class="<%= has_error ? 'table-danger' : '' %>">
-                  <% if shift.nil? %>
-                    <span class="text-muted">－</span>
-                  <% elsif shift.is_working %>
-                    <% if has_error %>
-                      <span class="text-danger fw-bold" title="<%= errors.join("\n") %>" data-bs-toggle="tooltip" data-bs-placement="top">!</span>
+                <% is_closed = @closed_days.key?(date) %>
+                <% if is_closed %>
+                  <td style="background-color:#dee2e6;">
+                    <span class="text-muted" style="font-size:0.75rem;">閉</span>
+                  </td>
+                <% else %>
+                  <% shift = @shifts_map.dig(staff.id, date) %>
+                  <% errors = shift && shift.validation_errors.present? ? JSON.parse(shift.validation_errors) : [] %>
+                  <% has_error = errors.any? %>
+                  <td class="<%= has_error ? 'table-danger' : '' %>">
+                    <% if shift.nil? %>
+                      <span class="text-muted">－</span>
+                    <% elsif shift.is_working %>
+                      <% if has_error %>
+                        <span class="text-danger fw-bold" title="<%= errors.join("\n") %>" data-bs-toggle="tooltip" data-bs-placement="top">!</span>
+                      <% else %>
+                        <span class="text-success fw-bold">○</span>
+                      <% end %>
                     <% else %>
-                      <span class="text-success fw-bold">○</span>
+                      <span class="text-muted">－</span>
                     <% end %>
-                  <% else %>
-                    <span class="text-muted">－</span>
-                  <% end %>
-                </td>
+                  </td>
+                <% end %>
               <% end %>
             </tr>
           <% end %>

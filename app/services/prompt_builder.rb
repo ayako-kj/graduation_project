@@ -20,8 +20,9 @@ class PromptBuilder
       }
 
       【ルール】
-      - 各職員の週勤務日数を守ること
-      - 職種ごとの最低出勤人数を毎日満たすこと
+      - 各雇用形態の月の勤務日数目標を守ること（週勤務日数は参考情報）
+      - 休館日は全職員を休みにすること（出勤させないこと）
+      - 職種ごとの最低出勤人数を毎日満たすこと（休館日を除く）
       - 希望休は必ず反映すること
       - 特定日（全員会議日など）は対象グループ全員を出勤にすること
       - 土日の連続勤務は避けること（土曜・日曜を連続して出勤させないこと）
@@ -33,10 +34,15 @@ class PromptBuilder
     lines << "【対象月】#{@target_month.strftime('%Y年%m月')}"
     lines << ""
 
+    lines << "【月の勤務日数目標】"
+    lines << "- 正規職員：#{@constraints.dig(:working_days, :regular)}日"
+    lines << "- 会計年度任用職員：#{@constraints.dig(:working_days, :hourly)}日"
+    lines << ""
+
     lines << "【職員一覧】"
     @constraints[:staffs].each do |staff|
       identifier = @masker.mask(staff[:name])
-      weekly = staff[:weekly_work_days] ? "週#{staff[:weekly_work_days]}日" : "週勤務日数未設定"
+      weekly = staff[:weekly_work_days] ? "週#{staff[:weekly_work_days]}日（参考）" : ""
       lines << "- #{identifier}：#{staff[:staff_type]}（#{staff[:employment_type]}）#{weekly}"
     end
     lines << ""
@@ -66,6 +72,16 @@ class PromptBuilder
         end
         parts << "全職員出勤" if parts.empty?
         lines << "- #{sd[:date]}（#{sd[:label]}）：#{parts.join('、')}"
+      end
+    end
+    lines << ""
+
+    lines << "【休館日】"
+    if @constraints[:closed_days].empty?
+      lines << "- なし"
+    else
+      @constraints[:closed_days].each do |date, label|
+        lines << "- #{date.strftime('%Y-%m-%d')}（#{label}）"
       end
     end
     lines << ""

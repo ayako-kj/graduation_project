@@ -6,11 +6,20 @@ class ConstraintExtractor
   end
 
   def extract
+    holidays = HolidayFetcher.fetch(@target_month.year)
+    closed_calc = ClosedDayCalculator.new(@target_month, holidays)
+    working_calc = WorkingDayCalculator.new(@target_month, holidays)
+
     {
       staffs: staffs_data,
       placement_rules: placement_rules_data,
       special_dates: special_dates_data,
-      leave_requests: leave_requests_data
+      leave_requests: leave_requests_data,
+      closed_days: closed_calc.closed_days_with_labels,
+      working_days: {
+        regular: working_calc.regular_staff_days,
+        hourly: working_calc.hourly_staff_days
+      }
     }
   end
 
