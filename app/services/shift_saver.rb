@@ -19,7 +19,10 @@ class ShiftSaver
         shift_group.shifts.create!(
           staff: staff,
           date: shift_data[:date],
-          is_working: shift_data[:is_working]
+          is_working: shift_data[:is_working],
+          is_early: shift_data[:is_early] || false,
+          is_post_duty: shift_data[:is_post_duty] || false,
+          is_holiday_post_duty: shift_data[:is_holiday_post_duty] || false
         )
       end
 

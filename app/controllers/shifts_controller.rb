@@ -24,6 +24,31 @@ class ShiftsController < ApplicationController
     end
   end
 
+  def download
+    @target_month = parse_target_month
+    @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
+    @staffs = Staff.includes(:staff_type).order(:staff_type_id, :name)
+    @shift_group = ShiftGroup.find_by(target_month: @target_month.beginning_of_month)
+
+    holidays = HolidayFetcher.fetch(@target_month.year)
+    closed_calc = ClosedDayCalculator.new(@target_month, holidays)
+    @closed_days = closed_calc.closed_days_with_labels
+
+    if @shift_group
+      shifts = @shift_group.shifts.includes(:staff)
+      @shifts_map = shifts.each_with_object({}) do |shift, hash|
+        hash[shift.staff_id] ||= {}
+        hash[shift.staff_id][shift.date] = shift
+      end
+    else
+      @shifts_map = {}
+    end
+
+    filename = "シフト表_#{@target_month.strftime('%Y年%m月')}.xlsx"
+    response.headers["Content-Disposition"] = "attachment; filename*=UTF-8''#{ERB::Util.url_encode(filename)}"
+    render "download", formats: [:xlsx]
+  end
+
   def generate
     target_month = parse_target_month
 
@@ -46,7 +71,8 @@ class ShiftsController < ApplicationController
       redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: parsed[:error] and return
     end
 
-    saver = ShiftSaver.new(target_month, parsed[:shifts])
+    assigned_shifts = DutyAssigner.new(parsed[:shifts], constraints, target_month).assign
+    saver = ShiftSaver.new(target_month, assigned_shifts)
     saved = saver.save
 
     unless saved[:success]

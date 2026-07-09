@@ -17,6 +17,14 @@
           method: :post,
           data: { turbo_confirm: "#{@target_month.strftime('%Y年%m月')}のシフトをAIで生成しますか？既存のシフトは上書きされます。" },
           class: "btn btn-pitat rounded-pill px-4 fw-semibold" %>
+
+      <%# Excelダウンロードボタン %>
+      <% if @shift_group %>
+        <%= link_to download_shifts_path(month: @target_month.strftime("%Y-%m")),
+            class: "btn btn-outline-success rounded-pill px-4 fw-semibold" do %>
+          <i class="bi bi-file-earmark-excel me-1"></i>Excelダウンロード
+        <% end %>
+      <% end %>
     </div>
   </div>
 
@@ -43,11 +51,14 @@
       <p class="mb-3"><%= @target_month.strftime("%Y年%m月") %>のシフトはまだ生成されていません。</p>
     </div>
   <% else %>
-    <div class="mb-3 d-flex gap-3 small">
+    <div class="mb-3 d-flex gap-3 small flex-wrap">
       <span><span class="badge bg-success me-1">○</span>出勤</span>
       <span><span class="badge bg-secondary me-1">－</span>休み</span>
       <span><span class="badge bg-danger me-1">!</span>バリデーションエラー</span>
       <span><span class="badge me-1" style="background-color:#adb5bd;">閉</span>休館日</span>
+      <span><span class="badge me-1" style="background-color:#f59e0b;">早</span>早番</span>
+      <span><span class="badge me-1" style="background-color:#3b82f6;">p</span>ポスト当番</span>
+      <span><span class="badge me-1" style="background-color:#ef4444;">P</span>祝日ポスト当番</span>
     </div>
 
     <div class="table-responsive">
@@ -86,6 +97,12 @@
                     <% elsif shift.is_working %>
                       <% if has_error %>
                         <span class="text-danger fw-bold" title="<%= errors.join("\n") %>" data-bs-toggle="tooltip" data-bs-placement="top">!</span>
+                      <% elsif shift.is_early %>
+                        <span class="fw-bold" style="color:#d97706;">早</span>
+                      <% elsif shift.is_holiday_post_duty %>
+                        <span class="fw-bold" style="color:#ef4444;">P</span>
+                      <% elsif shift.is_post_duty %>
+                        <span class="fw-bold" style="color:#3b82f6;">p</span>
                       <% else %>
                         <span class="text-success fw-bold">○</span>
                       <% end %>

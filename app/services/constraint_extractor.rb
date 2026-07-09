@@ -6,24 +6,54 @@ class ConstraintExtractor
   end
 
   def extract
-    holidays = HolidayFetcher.fetch(@target_month.year)
-    closed_calc = ClosedDayCalculator.new(@target_month, holidays)
-    working_calc = WorkingDayCalculator.new(@target_month, holidays)
+    @holidays = HolidayFetcher.fetch(@target_month.year)
+    @closed_calc = ClosedDayCalculator.new(@target_month, @holidays)
+    working_calc = WorkingDayCalculator.new(@target_month, @holidays)
+    @closed_days_with_labels = @closed_calc.closed_days_with_labels
 
     {
       staffs: staffs_data,
       placement_rules: placement_rules_data,
       special_dates: special_dates_data,
       leave_requests: leave_requests_data,
-      closed_days: closed_calc.closed_days_with_labels,
+      closed_days: @closed_days_with_labels,
       working_days: {
         regular: working_calc.regular_staff_days,
         hourly: working_calc.hourly_staff_days
-      }
+      },
+      duty_constraints: duty_constraints_data
     }
   end
 
   private
+
+  def duty_constraints_data
+    {
+      early_shift_dates: early_shift_dates,
+      post_duty_dates: post_duty_dates,
+      holiday_post_duty_dates: holiday_post_duty_dates
+    }
+  end
+
+  def early_shift_dates
+    (@start_date..@end_date).select do |date|
+      !@closed_days_with_labels.key?(date) && !last_wednesday_of_month?(date)
+    end
+  end
+
+  def post_duty_dates
+    (@start_date..@end_date).select do |date|
+      date.wednesday? && !last_wednesday_of_month?(date) && !@holidays.key?(date)
+    end
+  end
+
+  def holiday_post_duty_dates
+    @holidays.select { |d, _| d >= @start_date && d <= @end_date }
+  end
+
+  def last_wednesday_of_month?(date)
+    date.wednesday? && (date + 7).month != date.month
+  end
 
   def staffs_data
     Staff.includes(:staff_type, :employment_type).map do |staff|
