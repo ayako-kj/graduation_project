@@ -20,6 +20,7 @@
             <th class="ps-4 py-3 text-muted small fw-semibold">日付</th>
             <th class="py-3 text-muted small fw-semibold">名称</th>
             <th class="py-3 text-muted small fw-semibold">対象グループ</th>
+            <th class="py-3 text-muted small fw-semibold">個別指定職員</th>
             <th class="py-3"></th>
           </tr>
         </thead>
@@ -28,7 +29,14 @@
             <tr>
               <td class="ps-4 py-3 fw-semibold"><%= special_date.date.strftime("%Y年%m月%d日") %></td>
               <td class="py-3"><%= special_date.label %></td>
-              <td class="py-3"><%= special_date.target_group.presence || "全職員" %></td>
+              <td class="py-3"><%= special_date.target_group.presence || "－" %></td>
+              <td class="py-3">
+                <% if special_date.designated_staffs.any? %>
+                  <%= special_date.designated_staffs.map(&:name).join("・") %>
+                <% else %>
+                  <span class="text-muted">－</span>
+                <% end %>
+              </td>
               <td class="py-3 pe-4 text-end">
                 <%= link_to "編集", edit_special_date_path(special_date), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
                 <%= link_to "削除", special_date_path(special_date),

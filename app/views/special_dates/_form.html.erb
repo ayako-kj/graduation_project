@@ -21,13 +21,34 @@
     <%= f.text_field :label, class: "form-control", placeholder: "例：全員会議日" %>
   </div>
 
-  <div class="mb-4">
+  <div class="mb-3">
     <%= f.label :target_group, "対象グループ", class: "form-label fw-semibold small" %>
     <%= f.select :target_group,
         options_for_select(SpecialDatesController::TARGET_GROUPS, special_date.target_group),
         { prompt: "選択してください（任意）", include_blank: true },
         { class: "form-select" } %>
-    <div class="form-text text-muted">指定がない場合は全職員が対象になります</div>
+    <div class="form-text text-muted">職種グループ単位で指定する場合に使用します</div>
+  </div>
+
+  <div class="mb-4">
+    <label class="form-label fw-semibold small">個別指定（特定の職員を出勤させる場合）</label>
+    <div class="border rounded-3 p-3" style="max-height: 200px; overflow-y: auto;">
+      <% if @staffs.empty? %>
+        <p class="text-muted small mb-0">職員が登録されていません</p>
+      <% else %>
+        <% @staffs.each do |staff| %>
+          <div class="form-check">
+            <%= check_box_tag "special_date[designated_staff_ids][]", staff.id,
+                special_date.designated_staffs.include?(staff),
+                id: "staff_#{staff.id}", class: "form-check-input" %>
+            <label class="form-check-label small" for="staff_<%= staff.id %>">
+              <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span>
+            </label>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+    <div class="form-text text-muted">対象グループと個別指定は併用できます</div>
   </div>
 
   <%= f.submit special_date.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>

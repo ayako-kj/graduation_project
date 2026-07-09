@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_07_170518) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_09_144638) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -68,6 +68,15 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_170518) do
     t.index ["staff_id"], name: "index_shifts_on_staff_id"
   end
 
+  create_table "special_date_staffs", force: :cascade do |t|
+    t.bigint "special_date_id", null: false
+    t.bigint "staff_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["special_date_id"], name: "index_special_date_staffs_on_special_date_id"
+    t.index ["staff_id"], name: "index_special_date_staffs_on_staff_id"
+  end
+
   create_table "special_dates", force: :cascade do |t|
     t.date "date"
     t.string "label"
@@ -97,6 +106,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_07_170518) do
   add_foreign_key "placement_rules", "staff_types"
   add_foreign_key "shifts", "shift_groups"
   add_foreign_key "shifts", "staffs"
+  add_foreign_key "special_date_staffs", "special_dates"
+  add_foreign_key "special_date_staffs", "staffs"
   add_foreign_key "staffs", "employment_types"
   add_foreign_key "staffs", "staff_types"
 end

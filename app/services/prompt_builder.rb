@@ -56,8 +56,16 @@ class PromptBuilder
       lines << "- なし"
     else
       @constraints[:special_dates].each do |sd|
-        group = sd[:target_group].presence || "全職員"
-        lines << "- #{sd[:date]}（#{sd[:label]}）：#{group}全員出勤"
+        parts = []
+        if sd[:target_group].present?
+          parts << "#{sd[:target_group]}全員出勤"
+        end
+        if sd[:designated_staffs].any?
+          masked_names = sd[:designated_staffs].map { |name| @masker.mask(name) }.join("・")
+          parts << "#{masked_names}を出勤させること"
+        end
+        parts << "全職員出勤" if parts.empty?
+        lines << "- #{sd[:date]}（#{sd[:label]}）：#{parts.join('、')}"
       end
     end
     lines << ""
