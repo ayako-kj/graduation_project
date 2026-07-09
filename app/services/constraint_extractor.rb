@@ -37,11 +37,12 @@ class ConstraintExtractor
   end
 
   def special_dates_data
-    SpecialDate.where(date: @start_date..@end_date).map do |sd|
+    SpecialDate.includes(:designated_staffs).where(date: @start_date..@end_date).map do |sd|
       {
         date: sd.date.strftime("%Y-%m-%d"),
         label: sd.label,
-        target_group: sd.target_group
+        target_group: sd.target_group,
+        designated_staffs: sd.designated_staffs.map(&:name)
       }
     end
   end
