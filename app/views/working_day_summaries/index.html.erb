@@ -63,12 +63,14 @@
           <thead class="table-light">
             <tr>
               <th class="ps-3 py-2 text-start">月</th>
-              <th class="py-2">市役所実働日数(N)</th>
-              <th class="py-2">目標勤務日数</th>
-              <th class="py-2">目標勤務時間</th>
-              <th class="py-2">市役所換算時間</th>
-              <th class="py-2">月の差（時間）</th>
-              <th class="py-2">累計差（時間）</th>
+              <th class="py-2">N</th>
+              <th class="py-2">目標日数</th>
+              <th class="py-2">実績日数</th>
+              <th class="py-2">データ元</th>
+              <th class="py-2">実績時間</th>
+              <th class="py-2">市役所時間</th>
+              <th class="py-2">月の差</th>
+              <th class="py-2">累計差</th>
             </tr>
           </thead>
           <tbody>
@@ -76,8 +78,21 @@
               <tr class="<%= row[:monthly_diff] != 0 ? 'table-warning' : '' %>">
                 <td class="ps-3 text-start fw-semibold"><%= row[:month].strftime("%Y年%-m月") %></td>
                 <td><%= row[:n] %>日</td>
-                <td><%= row[:target_days] %>日</td>
-                <td><%= row[:target_hours] %>時間</td>
+                <td class="text-muted"><%= row[:target_days] %>日</td>
+                <td class="fw-semibold">
+                  <%= row[:actual_days].nil? ? "－" : "#{row[:actual_days]}日" %>
+                </td>
+                <td>
+                  <% case row[:source]
+                     when "手入力" %>
+                    <span class="badge bg-warning text-dark">手入力</span>
+                  <% when "自動生成" %>
+                    <span class="badge bg-success">自動生成</span>
+                  <% else %>
+                    <span class="badge bg-light text-muted border">未入力</span>
+                  <% end %>
+                </td>
+                <td><%= row[:used_hours] %>時間</td>
                 <td><%= row[:city_hall_hours] %>時間</td>
                 <td class="<%= row[:monthly_diff] < 0 ? 'text-danger' : (row[:monthly_diff] > 0 ? 'text-primary' : '') %>">
                   <%= row[:monthly_diff] >= 0 ? "+#{row[:monthly_diff]}" : row[:monthly_diff] %>時間
@@ -90,10 +105,8 @@
           </tbody>
           <tfoot class="table-light fw-bold">
             <tr>
-              <td class="ps-3 text-start">年度合計</td>
-              <td><%= @summary.sum { |r| r[:n] } %>日</td>
-              <td><%= @summary.sum { |r| r[:target_days] } %>日</td>
-              <td><%= @summary.sum { |r| r[:target_hours] }.round(2) %>時間</td>
+              <td class="ps-3 text-start" colspan="5">年度合計</td>
+              <td><%= @summary.sum { |r| r[:used_hours] }.round(2) %>時間</td>
               <td><%= @summary.sum { |r| r[:city_hall_hours] }.round(2) %>時間</td>
               <td></td>
               <td class="<%= @summary.last[:cumulative_diff] < 0 ? 'text-danger' : (@summary.last[:cumulative_diff] > 0 ? 'text-primary' : 'text-success') %>">
@@ -147,7 +160,7 @@
               <td><%= row[:staff].staff_type.name %></td>
               <td><%= row[:staff].employment_type.name %></td>
               <td><%= row[:staff].weekly_work_days %>日</td>
-              <td><%= row[:cumulative_target] %>時間</td>
+              <td><%= row[:cumulative_actual] %>時間</td>
               <td><%= row[:cumulative_city_hall] %>時間</td>
               <td class="<%= row[:cumulative_diff] < 0 ? 'text-danger' : (row[:cumulative_diff] > 0 ? 'text-primary' : 'text-success') %> fw-semibold">
                 <%= row[:cumulative_diff] >= 0 ? "+#{row[:cumulative_diff]}" : row[:cumulative_diff] %>時間
