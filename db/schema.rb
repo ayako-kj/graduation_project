@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_09_170257) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_09_175405) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -64,6 +64,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_09_170257) do
     t.text "validation_errors"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "is_early", default: false, null: false
+    t.boolean "is_post_duty", default: false, null: false
+    t.boolean "is_holiday_post_duty", default: false, null: false
     t.index ["shift_group_id"], name: "index_shifts_on_shift_group_id"
     t.index ["staff_id"], name: "index_shifts_on_staff_id"
   end
