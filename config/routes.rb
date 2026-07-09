@@ -15,5 +15,11 @@ Rails.application.routes.draw do
   resources :special_dates
   resources :leave_requests
 
+  resources :shifts, only: [:index] do
+    collection do
+      post :generate
+    end
+  end
+
   root "pages#home"
 end
