@@ -17,12 +17,12 @@ class ShiftResponseParser
     end
 
     { success: true, shifts: parsed }
-  rescue JSON::ParserError => e
-    { success: false, error: "AIのレスポンスをパースできませんでした: #{e.message}" }
-  rescue Date::Error => e
-    { success: false, error: "日付の形式が不正です: #{e.message}" }
+  rescue JSON::ParserError
+    { success: false, error: "AIの出力形式が正しくありませんでした。再度シフトを生成してください。" }
+  rescue Date::Error
+    { success: false, error: "AIが返した日付の形式が不正でした。再度シフトを生成してください。" }
   rescue StandardError => e
-    { success: false, error: "パース中にエラーが発生しました: #{e.message}" }
+    { success: false, error: "シフトの解析中にエラーが発生しました: #{e.message}" }
   end
 
   private
@@ -30,9 +30,14 @@ class ShiftResponseParser
   def extract_json(content)
     # ```json ... ``` や ``` ... ``` で囲まれている場合に抽出
     if content =~ /```(?:json)?\s*([\s\S]*?)```/
-      $1.strip
-    else
-      content.strip
+      return $1.strip
     end
+
+    # {"shifts": ...} のブロックを直接探す
+    if content =~ /(\{[\s\S]*"shifts"[\s\S]*\})/
+      return $1.strip
+    end
+
+    content.strip
   end
 end
