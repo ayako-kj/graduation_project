@@ -2,11 +2,20 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern
 
   helper_method :current_library
+  before_action :require_library!
 
   private
 
   def current_library
     @current_library ||= current_admin&.library
+  end
+
+  def require_library!
+    return unless admin_signed_in?
+    return if current_library.present?
+
+    sign_out current_admin
+    redirect_to new_admin_session_path, alert: "アカウントに図書館が紐付いていません。再度ログインするか、新規登録を行ってください。"
   end
 
   def after_sign_in_path_for(resource)
