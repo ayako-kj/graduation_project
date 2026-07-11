@@ -19,21 +19,21 @@
   </div>
 
   <div class="mb-3">
-    <%= f.label :staff_type_id, class: "form-label fw-semibold small" do %>
-      職種<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
-    <% end %>
-    <%= f.select :staff_type_id,
-        options_from_collection_for_select(@staff_types, :id, :name, staff.staff_type_id),
-        { prompt: "選択してください" },
-        { class: "form-select" } %>
-  </div>
-
-  <div class="mb-3">
     <%= f.label :employment_type_id, class: "form-label fw-semibold small" do %>
       雇用形態<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
     <% end %>
     <%= f.select :employment_type_id,
         options_from_collection_for_select(@employment_types, :id, :name, staff.employment_type_id),
+        { prompt: "選択してください" },
+        { class: "form-select" } %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :staff_type_id, class: "form-label fw-semibold small" do %>
+      職種<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
+    <%= f.select :staff_type_id,
+        options_from_collection_for_select(@staff_types, :id, :name, staff.staff_type_id),
         { prompt: "選択してください" },
         { class: "form-select" } %>
   </div>
