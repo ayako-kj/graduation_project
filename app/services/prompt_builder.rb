@@ -104,6 +104,17 @@ class PromptBuilder
     end
     lines << ""
 
+    lines << "【移動図書館巡回日（担当職員は必ず出勤）】"
+    if @constraints[:mobile_library_constraints].blank?
+      lines << "- なし"
+    else
+      @constraints[:mobile_library_constraints].each do |mc|
+        masked_names = mc[:staff_names].map { |n| @masker.mask(n) }.join("・")
+        lines << "- #{mc[:date]}（#{mc[:route_name]}）：#{masked_names}"
+      end
+    end
+    lines << ""
+
     lines << "【希望休】"
     if @constraints[:leave_requests].empty?
       lines << "- なし"

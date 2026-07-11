@@ -26,6 +26,9 @@ Rails.application.routes.draw do
   resources :special_dates
   resources :leave_requests
   resources :assignments
+  resources :mobile_libraries do
+    resources :mobile_library_routes, path: :routes
+  end
 
   resources :shifts, only: [:index] do
     collection do

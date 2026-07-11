@@ -1,0 +1,20 @@
+<% if mobile_library.errors.any? %>
+  <div class="alert alert-danger rounded-3 mb-4">
+    <p class="fw-semibold mb-2"><i class="bi bi-exclamation-circle me-1"></i>入力内容を確認してください</p>
+    <ul class="mb-0 ps-3">
+      <% mobile_library.errors.full_messages.each do |msg| %>
+        <li class="small"><%= msg %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<%= form_with model: mobile_library do |f| %>
+  <div class="mb-4">
+    <%= f.label :name, "移動図書館名", class: "form-label fw-semibold small" %>
+    <span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <%= f.text_field :name, class: "form-control", placeholder: "例：わかくさ号" %>
+  </div>
+
+  <%= f.submit mobile_library.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>
+<% end %>

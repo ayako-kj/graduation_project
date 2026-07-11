@@ -5,6 +5,7 @@ class Library < ApplicationRecord
   has_many :special_dates, dependent: :destroy
   has_many :shift_groups, dependent: :destroy
   has_many :assignments, dependent: :destroy
+  has_many :mobile_libraries, dependent: :destroy
 
   validates :name, presence: true
 end

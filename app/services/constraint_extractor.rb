@@ -22,7 +22,8 @@ class ConstraintExtractor
         hourly: working_calc.hourly_staff_days
       },
       duty_constraints: duty_constraints_data,
-      assignment_constraints: assignment_constraints_data
+      assignment_constraints: assignment_constraints_data,
+      mobile_library_constraints: mobile_library_constraints_data
     }
   end
 
@@ -54,6 +55,22 @@ class ConstraintExtractor
 
   def last_wednesday_of_month?(date)
     date.wednesday? && (date + 7).month != date.month
+  end
+
+  def mobile_library_constraints_data
+    MobileLibrary.includes(mobile_library_routes: :staffs).flat_map do |ml|
+      ml.mobile_library_routes.filter_map do |route|
+        next if route.staffs.empty?
+        dates_of_wday = (@start_date..@end_date).select { |d| d.wday == route.wday }
+        date = dates_of_wday[route.week_number - 1]
+        next if date.nil? || @closed_days_with_labels.key?(date)
+        {
+          route_name: "#{ml.name}#{route.name}",
+          staff_names: route.staffs.map(&:name),
+          date: date.strftime("%Y-%m-%d")
+        }
+      end
+    end
   end
 
   def assignment_constraints_data

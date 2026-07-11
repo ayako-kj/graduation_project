@@ -1,0 +1,58 @@
+<% if route.errors.any? %>
+  <div class="alert alert-danger rounded-3 mb-4">
+    <p class="fw-semibold mb-2"><i class="bi bi-exclamation-circle me-1"></i>入力内容を確認してください</p>
+    <ul class="mb-0 ps-3">
+      <% route.errors.full_messages.each do |msg| %>
+        <li class="small"><%= msg %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<%= form_with model: [mobile_library, route] do |f| %>
+  <div class="mb-3">
+    <%= f.label :name, "コース名", class: "form-label fw-semibold small" %>
+    <span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <%= f.text_field :name, class: "form-control", placeholder: "例：Aコース、東コース" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :week_number, "第何週", class: "form-label fw-semibold small" %>
+    <span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <%= f.select :week_number,
+        options_for_select([["第1週", 1], ["第2週", 2], ["第3週", 3], ["第4週", 4]], route.week_number),
+        { prompt: "選択してください" },
+        { class: "form-select" } %>
+  </div>
+
+  <div class="mb-4">
+    <%= f.label :wday, "曜日", class: "form-label fw-semibold small" %>
+    <span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <%= f.select :wday,
+        options_for_select([["日曜日", 0], ["月曜日", 1], ["火曜日", 2], ["水曜日", 3], ["木曜日", 4], ["金曜日", 5], ["土曜日", 6]], route.wday),
+        { prompt: "選択してください" },
+        { class: "form-select" } %>
+  </div>
+
+  <div class="mb-4">
+    <label class="form-label fw-semibold small">担当者<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
+    <div class="border rounded-3 p-3" style="max-height: 200px; overflow-y: auto;">
+      <% if @staffs.empty? %>
+        <p class="text-muted small mb-0">職員が登録されていません</p>
+      <% else %>
+        <% @staffs.each do |staff| %>
+          <div class="form-check">
+            <%= check_box_tag "mobile_library_route[staff_ids][]", staff.id,
+                route.staffs.include?(staff),
+                id: "staff_#{staff.id}", class: "form-check-input" %>
+            <label class="form-check-label small" for="staff_<%= staff.id %>">
+              <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span>
+            </label>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <%= f.submit route.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>
+<% end %>
