@@ -1,0 +1,58 @@
+<% content_for :title, "#{@mobile_library.name} コース管理 | Pitat" %>
+
+<div class="container py-5" style="max-width: 760px;">
+  <div class="d-flex align-items-center mb-4 gap-2">
+    <%= link_to mobile_libraries_path, class: "text-muted" do %>
+      <i class="bi bi-chevron-left"></i>
+    <% end %>
+    <h1 class="fs-5 fw-bold mb-0"><%= @mobile_library.name %> コース管理</h1>
+  </div>
+
+  <div class="d-flex justify-content-end mb-3">
+    <%= link_to "＋ コースを追加", new_mobile_library_mobile_library_route_path(@mobile_library), class: "btn btn-pitat rounded-pill px-4 fw-semibold" %>
+  </div>
+
+  <% if @routes.empty? %>
+    <div class="pitat-card p-5 text-center text-muted">
+      <p class="mb-0">コースが登録されていません</p>
+    </div>
+  <% else %>
+    <div class="pitat-card p-0 overflow-hidden">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="small fw-semibold ps-4">コース名</th>
+            <th class="small fw-semibold">巡回日</th>
+            <th class="small fw-semibold">担当者</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @routes.each do |route| %>
+            <tr>
+              <td class="ps-4 align-middle fw-semibold small"><%= route.name %></td>
+              <td class="align-middle small"><%= route.schedule_label %></td>
+              <td class="align-middle small">
+                <% if route.staffs.empty? %>
+                  <span class="text-muted">未設定</span>
+                <% else %>
+                  <%= route.staffs.map(&:name).join("・") %>
+                <% end %>
+              </td>
+              <td class="align-middle text-end pe-3">
+                <div class="d-flex gap-2 justify-content-end">
+                  <%= link_to "編集", edit_mobile_library_mobile_library_route_path(@mobile_library, route), class: "btn btn-outline-secondary btn-sm rounded-pill px-3" %>
+                  <%= button_to "削除", mobile_library_mobile_library_route_path(@mobile_library, route),
+                      method: :delete,
+                      data: { turbo_confirm: "#{route.name}を削除しますか？" },
+                      class: "btn btn-outline-danger btn-sm rounded-pill px-3",
+                      form: { style: "display:inline" } %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

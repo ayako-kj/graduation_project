@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_12_000004) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_12_000007) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -56,6 +56,33 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_000004) do
     t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "mobile_libraries", force: :cascade do |t|
+    t.bigint "library_id", null: false
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["library_id"], name: "index_mobile_libraries_on_library_id"
+  end
+
+  create_table "mobile_library_routes", force: :cascade do |t|
+    t.bigint "mobile_library_id", null: false
+    t.string "name", null: false
+    t.integer "wday", null: false
+    t.integer "week_number", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mobile_library_id"], name: "index_mobile_library_routes_on_mobile_library_id"
+  end
+
+  create_table "mobile_library_staff_assignments", force: :cascade do |t|
+    t.bigint "mobile_library_route_id", null: false
+    t.bigint "staff_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mobile_library_route_id"], name: "idx_on_mobile_library_route_id_e4b84dc899"
+    t.index ["staff_id"], name: "index_mobile_library_staff_assignments_on_staff_id"
   end
 
   create_table "placement_rules", force: :cascade do |t|
@@ -159,6 +186,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_000004) do
   add_foreign_key "admins", "libraries"
   add_foreign_key "assignments", "libraries"
   add_foreign_key "leave_requests", "staffs"
+  add_foreign_key "mobile_libraries", "libraries"
+  add_foreign_key "mobile_library_routes", "mobile_libraries"
+  add_foreign_key "mobile_library_staff_assignments", "mobile_library_routes"
+  add_foreign_key "mobile_library_staff_assignments", "staffs"
   add_foreign_key "placement_rules", "employment_types"
   add_foreign_key "placement_rules", "libraries"
   add_foreign_key "placement_rules", "staff_types"

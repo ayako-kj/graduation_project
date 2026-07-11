@@ -1,0 +1,44 @@
+<% content_for :title, "移動図書館設定 | Pitat" %>
+
+<div class="container py-5" style="max-width: 760px;">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h1 class="fs-5 fw-bold mb-0">移動図書館設定</h1>
+    <%= link_to "＋ 移動図書館を追加", new_mobile_library_path, class: "btn btn-pitat rounded-pill px-4 fw-semibold" %>
+  </div>
+
+  <% if @mobile_libraries.empty? %>
+    <div class="pitat-card p-5 text-center text-muted">
+      <p class="mb-0">移動図書館が登録されていません</p>
+    </div>
+  <% else %>
+    <% @mobile_libraries.each do |ml| %>
+      <div class="pitat-card p-4 mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 class="fs-6 fw-bold mb-0"><%= ml.name %></h2>
+          <div class="d-flex gap-2">
+            <%= link_to "コース管理", mobile_library_path(ml), class: "btn btn-outline-secondary btn-sm rounded-pill px-3" %>
+            <%= link_to "編集", edit_mobile_library_path(ml), class: "btn btn-outline-secondary btn-sm rounded-pill px-3" %>
+            <%= button_to "削除", mobile_library_path(ml),
+                method: :delete,
+                data: { turbo_confirm: "#{ml.name}とすべてのコースを削除しますか？" },
+                class: "btn btn-outline-danger btn-sm rounded-pill px-3",
+                form: { style: "display:inline" } %>
+          </div>
+        </div>
+
+        <% routes = ml.mobile_library_routes.sort_by { |r| [r.wday, r.week_number] } %>
+        <% if routes.empty? %>
+          <p class="text-muted small mb-0">コースが登録されていません</p>
+        <% else %>
+          <div class="d-flex flex-wrap gap-2">
+            <% routes.each do |route| %>
+              <span class="badge bg-light text-dark border small fw-normal">
+                <%= route.name %>（<%= route.schedule_label %>）
+              </span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+</div>
