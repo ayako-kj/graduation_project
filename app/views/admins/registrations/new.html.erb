@@ -1,44 +1,49 @@
-<% content_for :title, "管理者登録 | LibShiftAI_Pitat" %>
+<% content_for :title, "新規登録 | Pitat" %>
 
-<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
-  <div class="pitat-card p-5" style="width: 100%; max-width: 440px;">
-
-    <div class="text-center mb-4">
-      <h1 class="pitat-brand fw-bold fs-4">LibShiftAI_Pitat</h1>
-      <p class="text-muted small mt-1">管理者アカウント登録</p>
-    </div>
+<div class="container py-5" style="max-width: 480px;">
+  <div class="pitat-card p-4">
+    <h1 class="fs-5 fw-bold mb-4 text-center">新規アカウント登録</h1>
 
     <%= form_for(resource, as: resource_name, url: registration_path(resource_name)) do |f| %>
       <%= render "admins/shared/error_messages", resource: resource %>
 
       <div class="mb-3">
-        <%= f.label :email, "メールアドレス", class: "form-label fw-semibold small" %>
+        <%= f.label :library_name, "図書館名", class: "form-label fw-semibold" %>
+        <span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+        <%= f.text_field :library_name, class: "form-control",
+            placeholder: "例：○○市立中央図書館",
+            value: params.dig(:admin, :library_name) %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :email, "メールアドレス", class: "form-label fw-semibold" %>
+        <span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
         <%= f.email_field :email, autofocus: true, autocomplete: "email",
             class: "form-control", placeholder: "admin@example.com" %>
       </div>
 
       <div class="mb-3">
-        <%= f.label :password, "パスワード", class: "form-label fw-semibold small" %>
+        <%= f.label :password, "パスワード", class: "form-label fw-semibold" %>
+        <span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
         <% if @minimum_password_length %>
-          <div class="form-text text-muted mb-1"><%= @minimum_password_length %>文字以上</div>
+          <div class="form-text"><%= @minimum_password_length %>文字以上</div>
         <% end %>
-        <%= f.password_field :password, autocomplete: "new-password",
-            class: "form-control", placeholder: "••••••••" %>
+        <%= f.password_field :password, autocomplete: "new-password", class: "form-control" %>
       </div>
 
       <div class="mb-4">
-        <%= f.label :password_confirmation, "パスワード（確認）", class: "form-label fw-semibold small" %>
-        <%= f.password_field :password_confirmation, autocomplete: "new-password",
-            class: "form-control", placeholder: "••••••••" %>
+        <%= f.label :password_confirmation, "パスワード（確認）", class: "form-label fw-semibold" %>
+        <span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+        <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "form-control" %>
       </div>
 
-      <%= f.submit "登録する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>
-
+      <div class="d-grid">
+        <%= f.submit "登録する", class: "btn btn-pitat fw-semibold" %>
+      </div>
     <% end %>
 
-    <p class="text-center text-muted small mt-3">
-      すでにアカウントをお持ちの方は<%= link_to "ログインはこちら", new_admin_session_path, class: "text-muted" %>
-    </p>
-
+    <div class="text-center mt-3 small">
+      <%= render "admins/shared/links" %>
+    </div>
   </div>
 </div>

@@ -5,16 +5,16 @@ class SpecialDatesController < ApplicationController
   TARGET_GROUPS = %w[全職員 正規職員 専門司書 司書 行政職 一般事務].freeze
 
   def index
-    @special_dates = SpecialDate.includes(:designated_staffs).order(:date)
+    @special_dates = current_library.special_dates.includes(:designated_staffs).order(:date)
   end
 
   def new
-    @special_date = SpecialDate.new
+    @special_date = current_library.special_dates.build
     set_form_options
   end
 
   def create
-    @special_date = SpecialDate.new(special_date_params)
+    @special_date = current_library.special_dates.build(special_date_params)
     if @special_date.save
       sync_designated_staffs
       redirect_to special_dates_path, notice: "特定日を登録しました。"
@@ -46,11 +46,11 @@ class SpecialDatesController < ApplicationController
   private
 
   def set_special_date
-    @special_date = SpecialDate.find(params[:id])
+    @special_date = current_library.special_dates.find(params[:id])
   end
 
   def set_form_options
-    @staffs = Staff.includes(:staff_type).order(:name)
+    @staffs = current_library.staffs.includes(:staff_type).order(:name)
   end
 
   def sync_designated_staffs

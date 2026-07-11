@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_09_175405) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_11_172136) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -22,7 +22,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_09_175405) do
     t.datetime "remember_created_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "library_id"
     t.index ["email"], name: "index_admins_on_email", unique: true
+    t.index ["library_id"], name: "index_admins_on_library_id"
     t.index ["reset_password_token"], name: "index_admins_on_reset_password_token", unique: true
   end
 
@@ -41,11 +43,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_09_175405) do
     t.index ["staff_id"], name: "index_leave_requests_on_staff_id"
   end
 
+  create_table "libraries", force: :cascade do |t|
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "placement_rules", force: :cascade do |t|
     t.bigint "staff_type_id", null: false
     t.integer "min_count"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "library_id"
+    t.index ["library_id"], name: "index_placement_rules_on_library_id"
     t.index ["staff_type_id"], name: "index_placement_rules_on_staff_type_id"
   end
 
@@ -54,6 +64,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_09_175405) do
     t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "library_id"
+    t.index ["library_id"], name: "index_shift_groups_on_library_id"
   end
 
   create_table "shifts", force: :cascade do |t|
@@ -86,6 +98,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_09_175405) do
     t.string "target_group"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "library_id"
+    t.index ["library_id"], name: "index_special_dates_on_library_id"
   end
 
   create_table "staff_types", force: :cascade do |t|
@@ -101,7 +115,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_09_175405) do
     t.integer "weekly_work_days"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "library_id"
     t.index ["employment_type_id"], name: "index_staffs_on_employment_type_id"
+    t.index ["library_id"], name: "index_staffs_on_library_id"
     t.index ["staff_type_id"], name: "index_staffs_on_staff_type_id"
   end
 
@@ -116,13 +132,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_09_175405) do
     t.index ["staff_id"], name: "index_workday_manual_entries_on_staff_id"
   end
 
+  add_foreign_key "admins", "libraries"
   add_foreign_key "leave_requests", "staffs"
+  add_foreign_key "placement_rules", "libraries"
   add_foreign_key "placement_rules", "staff_types"
+  add_foreign_key "shift_groups", "libraries"
   add_foreign_key "shifts", "shift_groups"
   add_foreign_key "shifts", "staffs"
   add_foreign_key "special_date_staffs", "special_dates"
   add_foreign_key "special_date_staffs", "staffs"
+  add_foreign_key "special_dates", "libraries"
   add_foreign_key "staffs", "employment_types"
+  add_foreign_key "staffs", "libraries"
   add_foreign_key "staffs", "staff_types"
   add_foreign_key "workday_manual_entries", "staffs"
 end

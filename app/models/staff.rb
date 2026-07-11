@@ -1,4 +1,5 @@
 class Staff < ApplicationRecord
+  belongs_to :library
   belongs_to :staff_type
   belongs_to :employment_type
 

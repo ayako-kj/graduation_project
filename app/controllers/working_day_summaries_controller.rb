@@ -8,7 +8,7 @@ class WorkingDaySummariesController < ApplicationController
 
   def index
     @fiscal_year = params[:fiscal_year]&.to_i || current_fiscal_year
-    @staffs = Staff.includes(:staff_type, :employment_type).order(:staff_type_id, :name)
+    @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:staff_type_id, :name)
     @active_tab = params[:tab] == "staff" ? "staff" : "monthly"
 
     months = fiscal_year_months(@fiscal_year)
@@ -47,7 +47,7 @@ class WorkingDaySummariesController < ApplicationController
     manual_entries = WorkdayManualEntry.where(year_month: start_date..end_date)
     @manual_entries_map = manual_entries.index_by { |e| [e.staff_id, e.year_month] }
 
-    shift_groups = ShiftGroup.where(target_month: start_date..end_date)
+    shift_groups = current_library.shift_groups.where(target_month: start_date..end_date)
     @pitat_days_map = {}
     shift_groups.each do |sg|
       Shift.where(shift_group: sg, is_working: true).group(:staff_id).count.each do |staff_id, count|

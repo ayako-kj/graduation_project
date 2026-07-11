@@ -3,16 +3,16 @@ class StaffsController < ApplicationController
   before_action :set_staff, only: %i[edit update destroy]
 
   def index
-    @staffs = Staff.includes(:staff_type, :employment_type).order(:id)
+    @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:id)
   end
 
   def new
-    @staff = Staff.new
+    @staff = current_library.staffs.build
     set_form_options
   end
 
   def create
-    @staff = Staff.new(staff_params)
+    @staff = current_library.staffs.build(staff_params)
     if @staff.save
       redirect_to staffs_path, notice: "職員を登録しました。"
     else
@@ -42,7 +42,7 @@ class StaffsController < ApplicationController
   private
 
   def set_staff
-    @staff = Staff.find(params[:id])
+    @staff = current_library.staffs.find(params[:id])
   end
 
   def set_form_options
