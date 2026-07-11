@@ -93,6 +93,17 @@ class PromptBuilder
     end
     lines << ""
 
+    lines << "【担当会議日（該当担当の職員は全員出勤）】"
+    if @constraints[:assignment_constraints].blank?
+      lines << "- なし"
+    else
+      @constraints[:assignment_constraints].each do |ac|
+        masked_names = ac[:staff_names].map { |n| @masker.mask(n) }.join("・")
+        lines << "- #{ac[:name]}（#{masked_names}）：#{ac[:dates].join('、')}"
+      end
+    end
+    lines << ""
+
     lines << "【希望休】"
     if @constraints[:leave_requests].empty?
       lines << "- なし"

@@ -38,6 +38,31 @@
         { class: "form-select" } %>
   </div>
 
+  <% if @assignments.any? %>
+  <div class="mb-3">
+    <label class="form-label fw-semibold small">
+      担当<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+    </label>
+    <div class="border rounded-3 p-3">
+      <% @assignments.each do |assignment| %>
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input"
+                 name="staff[assignment_ids][]"
+                 value="<%= assignment.id %>"
+                 id="assignment_<%= assignment.id %>"
+                 <%= "checked" if staff.assignments.include?(assignment) %>>
+          <label class="form-check-label" for="assignment_<%= assignment.id %>">
+            <%= assignment.name %>
+            <% if assignment.meeting_wday %>
+              <span class="text-muted small">（毎週<%= assignment.meeting_wday_name %>会議）</span>
+            <% end %>
+          </label>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  <% end %>
+
   <div class="mb-4">
     <%= f.label :weekly_work_days, class: "form-label fw-semibold small" do %>
       週勤務日数<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>

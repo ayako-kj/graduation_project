@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_12_000003) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_12_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -26,6 +26,15 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_000003) do
     t.index ["email"], name: "index_admins_on_email", unique: true
     t.index ["library_id"], name: "index_admins_on_library_id"
     t.index ["reset_password_token"], name: "index_admins_on_reset_password_token", unique: true
+  end
+
+  create_table "assignments", force: :cascade do |t|
+    t.string "name", null: false
+    t.integer "meeting_wday"
+    t.bigint "library_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["library_id"], name: "index_assignments_on_library_id"
   end
 
   create_table "employment_types", force: :cascade do |t|
@@ -105,6 +114,16 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_000003) do
     t.index ["library_id"], name: "index_special_dates_on_library_id"
   end
 
+  create_table "staff_assignments", force: :cascade do |t|
+    t.bigint "staff_id", null: false
+    t.bigint "assignment_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assignment_id"], name: "index_staff_assignments_on_assignment_id"
+    t.index ["staff_id", "assignment_id"], name: "index_staff_assignments_on_staff_id_and_assignment_id", unique: true
+    t.index ["staff_id"], name: "index_staff_assignments_on_staff_id"
+  end
+
   create_table "staff_types", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
@@ -138,6 +157,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_000003) do
   end
 
   add_foreign_key "admins", "libraries"
+  add_foreign_key "assignments", "libraries"
   add_foreign_key "leave_requests", "staffs"
   add_foreign_key "placement_rules", "employment_types"
   add_foreign_key "placement_rules", "libraries"
@@ -148,6 +168,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_000003) do
   add_foreign_key "special_date_staffs", "special_dates"
   add_foreign_key "special_date_staffs", "staffs"
   add_foreign_key "special_dates", "libraries"
+  add_foreign_key "staff_assignments", "assignments"
+  add_foreign_key "staff_assignments", "staffs"
   add_foreign_key "staffs", "employment_types"
   add_foreign_key "staffs", "libraries"
   add_foreign_key "staffs", "staff_types"

@@ -25,6 +25,7 @@ Rails.application.routes.draw do
   resources :placement_rules
   resources :special_dates
   resources :leave_requests
+  resources :assignments
 
   resources :shifts, only: [:index] do
     collection do

@@ -21,7 +21,8 @@ class ConstraintExtractor
         regular: working_calc.regular_staff_days,
         hourly: working_calc.hourly_staff_days
       },
-      duty_constraints: duty_constraints_data
+      duty_constraints: duty_constraints_data,
+      assignment_constraints: assignment_constraints_data
     }
   end
 
@@ -53,6 +54,18 @@ class ConstraintExtractor
 
   def last_wednesday_of_month?(date)
     date.wednesday? && (date + 7).month != date.month
+  end
+
+  def assignment_constraints_data
+    Assignment.includes(:staffs).where.not(meeting_wday: nil).map do |assignment|
+      dates = (@start_date..@end_date).select { |d| d.wday == assignment.meeting_wday && !@closed_days_with_labels.key?(d) }
+      next if dates.empty? || assignment.staffs.empty?
+      {
+        name: assignment.name,
+        staff_names: assignment.staffs.map(&:name),
+        dates: dates.map { |d| d.strftime("%Y-%m-%d") }
+      }
+    end.compact
   end
 
   def staffs_data

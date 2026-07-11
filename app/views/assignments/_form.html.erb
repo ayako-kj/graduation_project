@@ -1,0 +1,37 @@
+<% if assignment.errors.any? %>
+  <div class="alert alert-danger rounded-3 mb-4">
+    <p class="fw-semibold mb-2"><i class="bi bi-exclamation-circle me-1"></i>入力内容を確認してください</p>
+    <ul class="mb-0 ps-3">
+      <% assignment.errors.full_messages.each do |msg| %>
+        <li class="small"><%= msg %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<%= form_with model: assignment do |f| %>
+
+  <div class="mb-3">
+    <%= f.label :name, class: "form-label fw-semibold small" do %>
+      担当名<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
+    <%= f.text_field :name, class: "form-control", placeholder: "例：児童担当" %>
+  </div>
+
+  <div class="mb-4">
+    <%= f.label :meeting_wday, class: "form-label fw-semibold small" do %>
+      定例会議の曜日<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+    <% end %>
+    <%= f.select :meeting_wday,
+        options_for_select(
+          [["設定しない", ""]] + Assignment::WDAY_NAMES.each_with_index.map { |name, i| ["毎週#{name}", i] },
+          assignment.meeting_wday
+        ),
+        {},
+        { class: "form-select" } %>
+    <div class="form-text text-muted">設定した場合、毎週その曜日は担当職員全員を出勤制約としてシフトに反映します。</div>
+  </div>
+
+  <%= f.submit assignment.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>
+
+<% end %>
