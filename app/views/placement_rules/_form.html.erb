@@ -11,27 +11,109 @@
 
 <%= form_with model: placement_rule do |f| %>
 
-  <div class="mb-3">
-    <%= f.label :staff_type_id, class: "form-label fw-semibold small" do %>
-      職種<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
-    <% end %>
-    <%= f.select :staff_type_id,
-        options_from_collection_for_select(@staff_types, :id, :name, placement_rule.staff_type_id),
-        { prompt: "選択してください" },
-        { class: "form-select" } %>
+  <%# ルール種類選択 %>
+  <div class="mb-4">
+    <label class="form-label fw-semibold small">
+      ルールの種類<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    </label>
+    <div class="d-flex flex-column gap-2">
+      <div class="form-check">
+        <%= f.radio_button :rule_type, "min_count", class: "form-check-input", id: "rule_min_count" %>
+        <label class="form-check-label" for="rule_min_count">
+          <span class="fw-semibold">職種別の最低出勤人数</span>
+          <span class="text-muted small ms-1">（例：司書は1日2人以上）</span>
+        </label>
+      </div>
+      <div class="form-check">
+        <%= f.radio_button :rule_type, "at_least_one_of", class: "form-check-input", id: "rule_at_least_one_of" %>
+        <label class="form-check-label" for="rule_at_least_one_of">
+          <span class="fw-semibold">いずれか1人以上出勤</span>
+          <span class="text-muted small ms-1">（例：館長か副館長のどちらかが出勤）</span>
+        </label>
+      </div>
+      <div class="form-check">
+        <%= f.radio_button :rule_type, "team_min", class: "form-check-input", id: "rule_team_min" %>
+        <label class="form-check-label" for="rule_team_min">
+          <span class="fw-semibold">複数職種の合計最低出勤人数</span>
+          <span class="text-muted small ms-1">（例：副館長・行政職・一般事務の合計2人以上）</span>
+        </label>
+      </div>
+    </div>
   </div>
 
-  <div class="mb-4">
-    <%= f.label :min_count, class: "form-label fw-semibold small" do %>
+  <%# min_count 専用：職種 + 雇用形態 %>
+  <div id="section-single-type">
+    <div class="mb-3">
+      <label class="form-label fw-semibold small">
+        職種<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+      </label>
+      <%= f.select :staff_type_id,
+          options_from_collection_for_select(@staff_types, :id, :name, placement_rule.staff_type_id),
+          { prompt: "選択してください" },
+          { class: "form-select" } %>
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold small">
+        雇用形態で絞り込む<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+      </label>
+      <%= f.select :employment_type_id,
+          options_from_collection_for_select(@employment_types, :id, :name, placement_rule.employment_type_id),
+          { include_blank: "絞り込まない（全員対象）" },
+          { class: "form-select" } %>
+    </div>
+  </div>
+
+  <%# at_least_one_of / team_min 共通：複数職種チェックボックス %>
+  <div id="section-multi-types">
+    <div class="mb-3">
+      <label class="form-label fw-semibold small">
+        対象職種<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+      </label>
+      <div class="border rounded-3 p-3">
+        <% @staff_types.each do |st| %>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input"
+                   name="placement_rule[staff_type_ids_array][]"
+                   value="<%= st.id %>"
+                   id="st_<%= st.id %>"
+                   <%= "checked" if placement_rule.staff_type_ids_array.map(&:to_i).include?(st.id) %>>
+            <label class="form-check-label" for="st_<%= st.id %>"><%= st.name %></label>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%# min_count / team_min 共通：最低人数 %>
+  <div id="section-min-count-field" class="mb-4">
+    <label class="form-label fw-semibold small">
       1日の最低出勤人数<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
-    <% end %>
+    </label>
     <div class="input-group">
       <%= f.number_field :min_count, class: "form-control", min: 1, placeholder: "例：2" %>
       <span class="input-group-text">名</span>
     </div>
-    <div class="form-text text-muted">例：司書は1日に最低2名出勤が必要</div>
   </div>
 
   <%= f.submit placement_rule.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>
 
 <% end %>
+
+<script>
+  (function() {
+    function switchSections() {
+      var type = document.querySelector('input[name="placement_rule[rule_type]"]:checked')?.value;
+      var singleType   = document.getElementById('section-single-type');
+      var multiTypes   = document.getElementById('section-multi-types');
+      var minCountField = document.getElementById('section-min-count-field');
+
+      singleType.style.display    = (type === 'min_count') ? '' : 'none';
+      multiTypes.style.display    = (type === 'at_least_one_of' || type === 'team_min') ? '' : 'none';
+      minCountField.style.display = (type === 'min_count' || type === 'team_min') ? '' : 'none';
+    }
+    document.querySelectorAll('input[name="placement_rule[rule_type]"]').forEach(function(el) {
+      el.addEventListener('change', switchSections);
+    });
+    switchSections();
+  })();
+</script>

@@ -47,12 +47,19 @@ class PromptBuilder
     end
     lines << ""
 
-    lines << "【配置ルール（職種別最低出勤人数）】"
+    lines << "【配置ルール】"
     if @constraints[:placement_rules].empty?
       lines << "- 設定なし"
     else
       @constraints[:placement_rules].each do |rule|
-        lines << "- #{rule[:staff_type]}：最低#{rule[:min_count]}名"
+        case rule[:rule_type]
+        when "min_count"
+          lines << "- #{rule[:staff_type]}：1日に最低#{rule[:min_count]}名出勤"
+        when "at_least_one_of"
+          lines << "- #{rule[:staff_types].join('・')}のうち必ず1名以上出勤"
+        when "team_min"
+          lines << "- #{rule[:staff_types].join('・')}の合計で1日に最低#{rule[:min_count]}名出勤"
+        end
       end
     end
     lines << ""

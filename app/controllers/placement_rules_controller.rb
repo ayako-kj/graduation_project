@@ -3,16 +3,19 @@ class PlacementRulesController < ApplicationController
   before_action :set_placement_rule, only: %i[edit update destroy]
 
   def index
-    @placement_rules = current_library.placement_rules.includes(:staff_type).order(:id)
+    @placement_rules = current_library.placement_rules
+                                      .includes(:staff_type, :employment_type)
+                                      .order(:id)
   end
 
   def new
-    @placement_rule = current_library.placement_rules.build
+    @placement_rule = current_library.placement_rules.build(rule_type: "min_count")
     set_form_options
   end
 
   def create
     @placement_rule = current_library.placement_rules.build(placement_rule_params)
+    normalize_staff_type_ids
     if @placement_rule.save
       redirect_to placement_rules_path, notice: "配置ルールを登録しました。"
     else
@@ -26,7 +29,9 @@ class PlacementRulesController < ApplicationController
   end
 
   def update
-    if @placement_rule.update(placement_rule_params)
+    @placement_rule.assign_attributes(placement_rule_params)
+    normalize_staff_type_ids
+    if @placement_rule.save
       redirect_to placement_rules_path, notice: "配置ルールを更新しました。"
     else
       set_form_options
@@ -36,7 +41,7 @@ class PlacementRulesController < ApplicationController
 
   def destroy
     @placement_rule.destroy
-    redirect_to placement_rules_path, notice: "#{@placement_rule.staff_type.name}の配置ルールを削除しました。"
+    redirect_to placement_rules_path, notice: "配置ルールを削除しました。"
   end
 
   private
@@ -46,10 +51,22 @@ class PlacementRulesController < ApplicationController
   end
 
   def set_form_options
-    @staff_types = StaffType.all
+    @staff_types = StaffType.order(:sort_order, :id)
+    @employment_types = EmploymentType.all
+  end
+
+  def normalize_staff_type_ids
+    ids = params.dig(:placement_rule, :staff_type_ids_array)
+    if ids.present?
+      @placement_rule.staff_type_ids = ids.reject(&:blank?).to_json
+    else
+      @placement_rule.staff_type_ids = nil
+    end
   end
 
   def placement_rule_params
-    params.require(:placement_rule).permit(:staff_type_id, :min_count)
+    params.require(:placement_rule).permit(
+      :rule_type, :staff_type_id, :employment_type_id, :min_count
+    )
   end
 end
