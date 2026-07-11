@@ -12,17 +12,23 @@
 <%= form_with model: special_date do |f| %>
 
   <div class="mb-3">
-    <%= f.label :date, "日付", class: "form-label fw-semibold small" %>
+    <%= f.label :date, class: "form-label fw-semibold small" do %>
+      日付<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
     <%= f.date_field :date, class: "form-control" %>
   </div>
 
   <div class="mb-3">
-    <%= f.label :label, "名称", class: "form-label fw-semibold small" %>
+    <%= f.label :label, class: "form-label fw-semibold small" do %>
+      名称<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
     <%= f.text_field :label, class: "form-control", placeholder: "例：全員会議日" %>
   </div>
 
   <div class="mb-3">
-    <%= f.label :target_group, "対象グループ", class: "form-label fw-semibold small" %>
+    <%= f.label :target_group, class: "form-label fw-semibold small" do %>
+      対象グループ<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+    <% end %>
     <%= f.select :target_group,
         options_for_select(SpecialDatesController::TARGET_GROUPS, special_date.target_group),
         { prompt: "選択してください（任意）", include_blank: true },
@@ -31,7 +37,7 @@
   </div>
 
   <div class="mb-4">
-    <label class="form-label fw-semibold small">個別指定（特定の職員を出勤させる場合）</label>
+    <label class="form-label fw-semibold small">個別指定（特定の職員を出勤させる場合）<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
     <div class="border rounded-3 p-3" style="max-height: 200px; overflow-y: auto;">
       <% if @staffs.empty? %>
         <p class="text-muted small mb-0">職員が登録されていません</p>

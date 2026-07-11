@@ -12,7 +12,9 @@
 <%= form_with model: placement_rule do |f| %>
 
   <div class="mb-3">
-    <%= f.label :staff_type_id, "職種", class: "form-label fw-semibold small" %>
+    <%= f.label :staff_type_id, class: "form-label fw-semibold small" do %>
+      職種<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
     <%= f.select :staff_type_id,
         options_from_collection_for_select(@staff_types, :id, :name, placement_rule.staff_type_id),
         { prompt: "選択してください" },
@@ -20,7 +22,9 @@
   </div>
 
   <div class="mb-4">
-    <%= f.label :min_count, "1日の最低出勤人数", class: "form-label fw-semibold small" %>
+    <%= f.label :min_count, class: "form-label fw-semibold small" do %>
+      1日の最低出勤人数<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
     <div class="input-group">
       <%= f.number_field :min_count, class: "form-control", min: 1, placeholder: "例：2" %>
       <span class="input-group-text">名</span>
