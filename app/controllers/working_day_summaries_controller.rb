@@ -9,7 +9,7 @@ class WorkingDaySummariesController < ApplicationController
   def index
     @fiscal_year = params[:fiscal_year]&.to_i || current_fiscal_year
     @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:staff_type_id, :name)
-    @active_tab = params[:tab] == "staff" ? "staff" : "monthly"
+    @active_tab = %w[staff duty].include?(params[:tab]) ? params[:tab] : "monthly"
 
     months = fiscal_year_months(@fiscal_year)
     holidays = HolidayFetcher.fetch(@fiscal_year).merge(HolidayFetcher.fetch(@fiscal_year + 1))
@@ -21,6 +21,8 @@ class WorkingDaySummariesController < ApplicationController
     if @active_tab == "staff"
       @selected_staff = @staffs.find_by(id: params[:staff_id])
       build_staff_summary if @selected_staff
+    elsif @active_tab == "duty"
+      build_duty_summary(months)
     else
       raw_month = params[:view_month].presence || months.first.strftime("%Y-%m")
       @view_month = Date.parse("#{raw_month}-01")
@@ -120,6 +122,24 @@ class WorkingDaySummariesController < ApplicationController
       { staff: staff, cumulative_actual: cumulative_actual.round(2),
         cumulative_city_hall: cumulative_city_hall.round(2),
         cumulative_diff: diff, has_any_data: has_any_data }
+    end
+  end
+
+  def build_duty_summary(months)
+    shift_groups = current_library.shift_groups
+                                  .where(target_month: months.first.beginning_of_month..months.last.beginning_of_month)
+
+    early_counts         = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_early: true).group(:staff_id).count
+    post_counts          = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_post_duty: true).group(:staff_id).count
+    holiday_post_counts  = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_holiday_post_duty: true).group(:staff_id).count
+
+    @duty_summaries = @staffs.map do |staff|
+      {
+        staff: staff,
+        early_count: early_counts[staff.id] || 0,
+        post_duty_count: post_counts[staff.id] || 0,
+        holiday_post_duty_count: holiday_post_counts[staff.id] || 0
+      }
     end
   end
 
