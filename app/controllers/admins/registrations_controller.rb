@@ -27,9 +27,46 @@ class Admins::RegistrationsController < Devise::RegistrationsController
     render :new, status: :unprocessable_entity
   end
 
+  def update
+    library_name = params.dig(:admin, :library_name).to_s.strip
+    self.resource = resource_class.to_adapter.get!(send(:"current_#{resource_name}").to_key)
+
+    new_email    = params.dig(:admin, :email).to_s.strip
+    new_password = params.dig(:admin, :password).to_s
+    credential_changed = new_email != resource.email || new_password.present?
+
+    if credential_changed
+      resource_updated = update_resource(resource, account_update_params)
+    else
+      resource_updated = true
+    end
+
+    if resource_updated
+      current_library.update(name: library_name) if library_name.present?
+      bypass_sign_in(resource) if credential_changed
+      redirect_to edit_admin_registration_path, notice: "アカウント情報を更新しました。"
+    else
+      clean_up_passwords resource
+      set_minimum_password_length
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    library = current_library
+    resource.destroy
+    library&.destroy
+    Devise.sign_out_all_scopes ? sign_out : sign_out(resource_name)
+    redirect_to root_path, notice: "アカウントを削除しました。"
+  end
+
   private
 
   def sign_up_params
     params.require(:admin).permit(:email, :password, :password_confirmation)
+  end
+
+  def account_update_params
+    params.require(:admin).permit(:email, :password, :password_confirmation, :current_password)
   end
 end

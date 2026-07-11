@@ -51,8 +51,16 @@
           <% end %>
           <div class="ms-auto d-flex align-items-center gap-2">
             <% if admin_signed_in? %>
-              <%= link_to "ログアウト", destroy_admin_session_path, data: { turbo_method: :delete }, class: "btn btn-pitat-outline rounded-pill px-4" %>
-              <i class="bi bi-person-circle fs-4 pitat-brand"></i>
+              <div class="dropdown">
+                <button class="btn btn-pitat-outline rounded-pill px-4 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-person-circle me-1"></i><%= current_library.name %>様
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><%= link_to "アカウント設定", edit_admin_registration_path, class: "dropdown-item" %></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><%= link_to "ログアウト", destroy_admin_session_path, data: { turbo_method: :delete }, class: "dropdown-item text-danger" %></li>
+                </ul>
+              </div>
             <% else %>
               <%= link_to "ログイン", new_admin_session_path, class: "btn btn-pitat-outline rounded-pill px-4" %>
               <i class="bi bi-person-circle fs-4 text-secondary"></i>
