@@ -2,16 +2,17 @@ class Admins::RegistrationsController < Devise::RegistrationsController
   def create
     library_name = params.dig(:admin, :library_name).to_s.strip
 
+    build_resource(sign_up_params)
+
     if library_name.blank?
-      build_resource(sign_up_params)
       resource.errors.add(:base, "図書館名を入力してください")
+      resource.valid?
       respond_with resource
       return
     end
 
     ActiveRecord::Base.transaction do
       library = Library.create!(name: library_name)
-      build_resource(sign_up_params)
       resource.library = library
       resource.save!
       yield resource if block_given?
@@ -24,7 +25,6 @@ class Admins::RegistrationsController < Devise::RegistrationsController
       end
     end
   rescue ActiveRecord::RecordInvalid
-    build_resource(sign_up_params)
     respond_with resource
   end
 

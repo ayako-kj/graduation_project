@@ -13,6 +13,10 @@ ja:
         less_than: "は%{count}より小さい値にしてください"
         required: "を選択してください"
       models:
+        admin:
+          attributes:
+            email:
+              taken: "は無効です"
         staff:
           attributes:
             name:
@@ -22,6 +26,12 @@ ja:
             employment_type:
               required: "を選択してください"
     attributes:
+      admin:
+        email: "メールアドレス"
+        password: "パスワード"
+        password_confirmation: "パスワード（確認）"
+      library:
+        name: "図書館名"
       staff:
         name: "氏名"
         staff_type: "職種"
