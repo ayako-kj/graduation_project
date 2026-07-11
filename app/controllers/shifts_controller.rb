@@ -67,8 +67,17 @@ class ShiftsController < ApplicationController
     parser = ShiftResponseParser.new(masker)
     parsed = parser.parse(result[:content])
 
+    if !parsed[:success]
+      result = generator.generate
+      if result[:success]
+        parsed = parser.parse(result[:content])
+      else
+        parsed = { success: false, error: result[:error] }
+      end
+    end
+
     unless parsed[:success]
-      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: parsed[:error] and return
+      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: "#{parsed[:error]}（2回試みましたが解決しませんでした）" and return
     end
 
     assigned_shifts = DutyAssigner.new(parsed[:shifts], constraints, target_month).assign
