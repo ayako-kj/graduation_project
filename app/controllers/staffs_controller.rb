@@ -65,7 +65,7 @@ class StaffsController < ApplicationController
   end
 
   def set_form_options
-    @staff_types = StaffType.all
+    @staff_types = StaffType.order(:sort_order, :id)
     @employment_types = EmploymentType.all
   end
 

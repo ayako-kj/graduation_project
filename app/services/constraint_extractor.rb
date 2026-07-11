@@ -67,12 +67,19 @@ class ConstraintExtractor
   end
 
   def placement_rules_data
-    PlacementRule.includes(:staff_type).map do |rule|
-      {
-        staff_type: rule.staff_type.name,
-        min_count: rule.min_count
-      }
-    end
+    PlacementRule.includes(:staff_type, :employment_type).map do |rule|
+      case rule.rule_type
+      when "min_count"
+        emp = rule.employment_type ? "（#{rule.employment_type.name}）" : ""
+        { rule_type: "min_count", staff_type: "#{rule.staff_type.name}#{emp}", min_count: rule.min_count }
+      when "at_least_one_of"
+        names = StaffType.where(id: rule.staff_type_ids_array).pluck(:name)
+        { rule_type: "at_least_one_of", staff_types: names }
+      when "team_min"
+        names = StaffType.where(id: rule.staff_type_ids_array).pluck(:name)
+        { rule_type: "team_min", staff_types: names, min_count: rule.min_count }
+      end
+    end.compact
   end
 
   def special_dates_data

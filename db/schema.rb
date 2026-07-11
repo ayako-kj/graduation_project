@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_12_000001) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_12_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -50,11 +50,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_000001) do
   end
 
   create_table "placement_rules", force: :cascade do |t|
-    t.bigint "staff_type_id", null: false
+    t.bigint "staff_type_id"
     t.integer "min_count"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "library_id"
+    t.string "rule_type", default: "min_count", null: false
+    t.bigint "employment_type_id"
+    t.text "staff_type_ids"
     t.index ["library_id"], name: "index_placement_rules_on_library_id"
     t.index ["staff_type_id"], name: "index_placement_rules_on_staff_type_id"
   end
@@ -106,6 +109,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_000001) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "sort_order"
   end
 
   create_table "staffs", force: :cascade do |t|
@@ -135,6 +139,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_000001) do
 
   add_foreign_key "admins", "libraries"
   add_foreign_key "leave_requests", "staffs"
+  add_foreign_key "placement_rules", "employment_types"
   add_foreign_key "placement_rules", "libraries"
   add_foreign_key "placement_rules", "staff_types"
   add_foreign_key "shift_groups", "libraries"
