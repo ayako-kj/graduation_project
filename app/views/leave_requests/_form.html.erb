@@ -12,7 +12,9 @@
 <%= form_with model: leave_request do |f| %>
 
   <div class="mb-3">
-    <%= f.label :staff_id, "職員", class: "form-label fw-semibold small" %>
+    <%= f.label :staff_id, class: "form-label fw-semibold small" do %>
+      職員<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
     <%= f.select :staff_id,
         options_from_collection_for_select(@staffs, :id, :name, leave_request.staff_id),
         { prompt: "選択してください" },
@@ -20,12 +22,16 @@
   </div>
 
   <div class="mb-3">
-    <%= f.label :date, "日付", class: "form-label fw-semibold small" %>
+    <%= f.label :date, class: "form-label fw-semibold small" do %>
+      日付<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
     <%= f.date_field :date, class: "form-control" %>
   </div>
 
   <div class="mb-4">
-    <%= f.label :reason, "理由（任意）", class: "form-label fw-semibold small" %>
+    <%= f.label :reason, class: "form-label fw-semibold small" do %>
+      理由<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+    <% end %>
     <%= f.text_field :reason, class: "form-control", placeholder: "例：通院、私用など" %>
   </div>
 

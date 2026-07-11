@@ -12,12 +12,16 @@
 <%= form_with model: staff do |f| %>
 
   <div class="mb-3">
-    <%= f.label :name, "氏名", class: "form-label fw-semibold small" %>
+    <%= f.label :name, class: "form-label fw-semibold small" do %>
+      氏名<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
     <%= f.text_field :name, class: "form-control", placeholder: "例：山田 花子" %>
   </div>
 
   <div class="mb-3">
-    <%= f.label :staff_type_id, "職種", class: "form-label fw-semibold small" %>
+    <%= f.label :staff_type_id, class: "form-label fw-semibold small" do %>
+      職種<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
     <%= f.select :staff_type_id,
         options_from_collection_for_select(@staff_types, :id, :name, staff.staff_type_id),
         { prompt: "選択してください" },
@@ -25,7 +29,9 @@
   </div>
 
   <div class="mb-3">
-    <%= f.label :employment_type_id, "雇用形態", class: "form-label fw-semibold small" %>
+    <%= f.label :employment_type_id, class: "form-label fw-semibold small" do %>
+      雇用形態<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <% end %>
     <%= f.select :employment_type_id,
         options_from_collection_for_select(@employment_types, :id, :name, staff.employment_type_id),
         { prompt: "選択してください" },
@@ -33,7 +39,9 @@
   </div>
 
   <div class="mb-4">
-    <%= f.label :weekly_work_days, "週勤務日数", class: "form-label fw-semibold small" %>
+    <%= f.label :weekly_work_days, class: "form-label fw-semibold small" do %>
+      週勤務日数<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+    <% end %>
     <div class="input-group">
       <%= f.number_field :weekly_work_days, class: "form-control", min: 1, max: 7, placeholder: "例：5" %>
       <span class="input-group-text">日</span>
