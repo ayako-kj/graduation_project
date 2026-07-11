@@ -6,8 +6,7 @@ class Admins::RegistrationsController < Devise::RegistrationsController
 
     if library_name.blank?
       resource.errors.add(:base, "図書館名を入力してください")
-      resource.valid?
-      respond_with resource
+      render :new, status: :unprocessable_entity
       return
     end
 
@@ -19,13 +18,13 @@ class Admins::RegistrationsController < Devise::RegistrationsController
 
       if resource.persisted?
         sign_up(resource_name, resource)
-        respond_with resource, location: after_sign_up_path_for(resource)
+        redirect_to after_sign_up_path_for(resource), notice: "アカウントを登録しました。"
       else
         raise ActiveRecord::Rollback
       end
     end
   rescue ActiveRecord::RecordInvalid
-    respond_with resource
+    render :new, status: :unprocessable_entity
   end
 
   private
