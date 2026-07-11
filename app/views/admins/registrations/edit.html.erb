@@ -1,42 +1,101 @@
-<h2>Edit <%= resource_name.to_s.humanize %></h2>
+<% content_for :title, "アカウント設定 | Pitat" %>
 
-<%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put }) do |f| %>
-  <%= render "admins/shared/error_messages", resource: resource %>
+<div class="container py-5" style="max-width: 520px;">
+  <h1 class="fs-5 fw-bold mb-4">アカウント設定</h1>
 
-  <div class="field">
-    <p><%= f.label :email %></p>
-    <p><%= f.email_field :email, autofocus: true, autocomplete: "email" %></p>
-  </div>
+  <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put }) do |f| %>
+    <% if resource.errors.any? %>
+      <div class="alert alert-danger rounded-3 mb-4">
+        <p class="fw-semibold mb-2"><i class="bi bi-exclamation-circle me-1"></i>入力内容を確認してください</p>
+        <ul class="mb-0 ps-3">
+          <% resource.errors.full_messages.each do |msg| %>
+            <li class="small"><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
 
-  <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
-    <div>Currently waiting confirmation for: <%= resource.unconfirmed_email %></div>
+    <%# 図書館名 %>
+    <div class="pitat-card p-4 mb-4">
+      <h2 class="fs-6 fw-bold mb-3">図書館名</h2>
+      <div class="mb-0">
+        <%= f.label :library_name, "図書館名", class: "form-label fw-semibold small" %>
+        <%= f.text_field :library_name, value: current_library.name, class: "form-control", placeholder: "例：○○市立中央図書館" %>
+      </div>
+    </div>
+
+    <%# メールアドレス・パスワード %>
+    <div class="pitat-card p-4 mb-4">
+      <h2 class="fs-6 fw-bold mb-3">メールアドレス・パスワード</h2>
+
+      <div class="mb-3">
+        <%= f.label :email, "メールアドレス", class: "form-label fw-semibold small" %>
+        <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control" %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :password, "新しいパスワード", class: "form-label fw-semibold small" %>
+        <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+        <% if @minimum_password_length %>
+          <div class="form-text"><%= @minimum_password_length %>文字以上</div>
+        <% end %>
+        <div class="input-group">
+          <%= f.password_field :password, autocomplete: "new-password", class: "form-control", placeholder: "変更しない場合は空欄", id: "admin_password" %>
+          <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('admin_password', this)">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :password_confirmation, "新しいパスワード（確認）", class: "form-label fw-semibold small" %>
+        <div class="input-group">
+          <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "form-control", placeholder: "変更しない場合は空欄", id: "admin_password_confirmation" %>
+          <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('admin_password_confirmation', this)">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-0">
+        <%= f.label :current_password, "現在のパスワード", class: "form-label fw-semibold small" %>
+        <div class="form-text mb-1">メールアドレスまたはパスワードを変更する場合に必要です</div>
+        <div class="input-group">
+          <%= f.password_field :current_password, autocomplete: "current-password", class: "form-control", id: "admin_current_password" %>
+          <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('admin_current_password', this)">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <script>
+        function togglePassword(fieldId, btn) {
+          const field = document.getElementById(fieldId);
+          const icon = btn.querySelector('i');
+          if (field.type === 'password') {
+            field.type = 'text';
+            icon.classList.replace('bi-eye', 'bi-eye-slash');
+          } else {
+            field.type = 'password';
+            icon.classList.replace('bi-eye-slash', 'bi-eye');
+          }
+        }
+      </script>
+    </div>
+
+    <div class="d-grid mb-5">
+      <%= f.submit "更新する", class: "btn btn-pitat fw-semibold rounded-pill py-2" %>
+    </div>
   <% end %>
 
-  <div class="field">
-    <p><%= f.label :password %> <i>(leave blank if you don't want to change it)</i></p>
-    <p><%= f.password_field :password, autocomplete: "new-password" %></p>
-    <% if @minimum_password_length %>
-      <p><em><%= @minimum_password_length %> characters minimum</em></p>
-    <% end %>
+  <%# アカウント削除 %>
+  <div class="pitat-card p-4 border-danger">
+    <h2 class="fs-6 fw-bold mb-2 text-danger">アカウントの削除</h2>
+    <p class="small text-muted mb-3">アカウントを削除すると、図書館情報・職員情報・シフトデータなどすべての情報が失われます。この操作は取り消せません。</p>
+    <%= button_to "アカウントを削除する",
+        registration_path(resource_name),
+        method: :delete,
+        data: { turbo_confirm: "本当にアカウントを削除しますか？\nすべてのデータが失われます。この操作は取り消せません。" },
+        class: "btn btn-outline-danger btn-sm rounded-pill px-4" %>
   </div>
-
-  <div class="field">
-    <p><%= f.label :password_confirmation %></p>
-    <p><%= f.password_field :password_confirmation, autocomplete: "new-password" %></p>
-  </div>
-
-  <div class="field">
-    <p><%= f.label :current_password %> <i>(we need your current password to confirm your changes)</i></p>
-    <p><%= f.password_field :current_password, autocomplete: "current-password" %></p>
-  </div>
-
-  <div class="actions">
-    <%= f.submit "Update" %>
-  </div>
-<% end %>
-
-<h3>Cancel my account</h3>
-
-<div>Unhappy? <%= button_to "Cancel my account", registration_path(resource_name), data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" }, method: :delete %></div>
-
-<%= link_to "Back", :back %>
+</div>
