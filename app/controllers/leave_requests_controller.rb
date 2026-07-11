@@ -3,7 +3,7 @@ class LeaveRequestsController < ApplicationController
   before_action :set_leave_request, only: %i[edit update destroy]
 
   def index
-    @leave_requests = LeaveRequest.includes(:staff).order(:date)
+    @leave_requests = LeaveRequest.includes(:staff).where(staff: current_library.staffs).order(:date)
   end
 
   def new
@@ -42,11 +42,11 @@ class LeaveRequestsController < ApplicationController
   private
 
   def set_leave_request
-    @leave_request = LeaveRequest.find(params[:id])
+    @leave_request = LeaveRequest.where(staff: current_library.staffs).find(params[:id])
   end
 
   def set_form_options
-    @staffs = Staff.order(:name)
+    @staffs = current_library.staffs.order(:name)
   end
 
   def leave_request_params

@@ -3,16 +3,16 @@ class PlacementRulesController < ApplicationController
   before_action :set_placement_rule, only: %i[edit update destroy]
 
   def index
-    @placement_rules = PlacementRule.includes(:staff_type).order(:id)
+    @placement_rules = current_library.placement_rules.includes(:staff_type).order(:id)
   end
 
   def new
-    @placement_rule = PlacementRule.new
+    @placement_rule = current_library.placement_rules.build
     set_form_options
   end
 
   def create
-    @placement_rule = PlacementRule.new(placement_rule_params)
+    @placement_rule = current_library.placement_rules.build(placement_rule_params)
     if @placement_rule.save
       redirect_to placement_rules_path, notice: "配置ルールを登録しました。"
     else
@@ -42,7 +42,7 @@ class PlacementRulesController < ApplicationController
   private
 
   def set_placement_rule
-    @placement_rule = PlacementRule.find(params[:id])
+    @placement_rule = current_library.placement_rules.find(params[:id])
   end
 
   def set_form_options

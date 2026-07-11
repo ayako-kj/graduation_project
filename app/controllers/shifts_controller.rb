@@ -4,8 +4,8 @@ class ShiftsController < ApplicationController
   def index
     @target_month = parse_target_month
     @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
-    @staffs = Staff.includes(:staff_type).order(:staff_type_id, :name)
-    @shift_group = ShiftGroup.find_by(target_month: @target_month.beginning_of_month)
+    @staffs = current_library.staffs.includes(:staff_type).order(:staff_type_id, :name)
+    @shift_group = current_library.shift_groups.find_by(target_month: @target_month.beginning_of_month)
 
     holidays = HolidayFetcher.fetch(@target_month.year)
     closed_calc = ClosedDayCalculator.new(@target_month, holidays)
@@ -27,8 +27,8 @@ class ShiftsController < ApplicationController
   def download
     @target_month = parse_target_month
     @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
-    @staffs = Staff.includes(:staff_type).order(:staff_type_id, :name)
-    @shift_group = ShiftGroup.find_by(target_month: @target_month.beginning_of_month)
+    @staffs = current_library.staffs.includes(:staff_type).order(:staff_type_id, :name)
+    @shift_group = current_library.shift_groups.find_by(target_month: @target_month.beginning_of_month)
 
     holidays = HolidayFetcher.fetch(@target_month.year)
     closed_calc = ClosedDayCalculator.new(@target_month, holidays)
@@ -52,7 +52,7 @@ class ShiftsController < ApplicationController
   def generate
     target_month = parse_target_month
 
-    staffs = Staff.all
+    staffs = current_library.staffs
     masker = StaffMasker.new(staffs)
     extractor = ConstraintExtractor.new(target_month)
     constraints = extractor.extract
@@ -72,7 +72,7 @@ class ShiftsController < ApplicationController
     end
 
     assigned_shifts = DutyAssigner.new(parsed[:shifts], constraints, target_month).assign
-    saver = ShiftSaver.new(target_month, assigned_shifts)
+    saver = ShiftSaver.new(target_month, assigned_shifts, current_library)
     saved = saver.save
 
     unless saved[:success]

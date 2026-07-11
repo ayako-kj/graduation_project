@@ -1,19 +1,20 @@
 class ShiftSaver
-  def initialize(target_month, shifts)
+  def initialize(target_month, shifts, library)
     @target_month = target_month
     @shifts = shifts
+    @library = library
   end
 
   def save
     ActiveRecord::Base.transaction do
-      shift_group = ShiftGroup.find_or_initialize_by(target_month: @target_month.beginning_of_month)
+      shift_group = @library.shift_groups.find_or_initialize_by(target_month: @target_month.beginning_of_month)
       shift_group.status = "generated"
       shift_group.save!
 
       shift_group.shifts.delete_all
 
       @shifts.each do |shift_data|
-        staff = Staff.find_by(name: shift_data[:staff_name])
+        staff = @library.staffs.find_by(name: shift_data[:staff_name])
         next unless staff
 
         shift_group.shifts.create!(
