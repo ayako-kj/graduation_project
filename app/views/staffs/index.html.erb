@@ -21,16 +21,23 @@
             <th class="py-3 text-muted small fw-semibold">職種</th>
             <th class="py-3 text-muted small fw-semibold">雇用形態</th>
             <th class="py-3 text-muted small fw-semibold">週勤務日数</th>
+            <th class="py-3 text-muted small fw-semibold text-center">並び替え</th>
             <th class="py-3"></th>
           </tr>
         </thead>
         <tbody>
-          <% @staffs.each do |staff| %>
+          <% @staffs.each_with_index do |staff, i| %>
             <tr>
               <td class="ps-4 py-3 fw-semibold"><%= staff.name %></td>
               <td class="py-3"><%= staff.staff_type.name %></td>
               <td class="py-3"><%= staff.employment_type.name %></td>
               <td class="py-3"><%= staff.weekly_work_days ? "#{staff.weekly_work_days}日" : "－" %></td>
+              <td class="py-3 text-center text-nowrap">
+                <%= i == 0 ? tag.span("↑", class: "btn btn-sm btn-outline-secondary px-2 py-0 me-1 disabled opacity-25") :
+                    button_to("↑", move_up_staff_path(staff), method: :patch, class: "btn btn-sm btn-outline-secondary px-2 py-0 me-1", form: { style: "display:inline" }) %>
+                <%= i == @staffs.size - 1 ? tag.span("↓", class: "btn btn-sm btn-outline-secondary px-2 py-0 disabled opacity-25") :
+                    button_to("↓", move_down_staff_path(staff), method: :patch, class: "btn btn-sm btn-outline-secondary px-2 py-0", form: { style: "display:inline" }) %>
+              </td>
               <td class="py-3 pe-4 text-end">
                 <%= link_to "編集", edit_staff_path(staff), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
                 <%= link_to "削除", staff_path(staff),
