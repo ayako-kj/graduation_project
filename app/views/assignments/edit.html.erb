@@ -1,0 +1,11 @@
+<% content_for :title, "担当の編集 | LibShiftAI_Pitat" %>
+
+<div class="container py-5" style="max-width: 560px;">
+  <h1 class="fs-5 fw-bold mb-4">担当の編集</h1>
+  <div class="pitat-card p-4">
+    <%= render "form", assignment: @assignment %>
+  </div>
+  <div class="mt-3 text-center">
+    <%= link_to "一覧に戻る", assignments_path, class: "text-muted small" %>
+  </div>
+</div>

@@ -38,6 +38,25 @@
 
   <div class="mb-4">
     <label class="form-label fw-semibold small">個別指定（特定の職員を出勤させる場合）<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
+
+    <% assignments_with_staffs = @assignments.select { |a| a.staffs.any? } %>
+    <% if assignments_with_staffs.any? %>
+      <div class="mb-2">
+        <p class="small text-muted mb-1">担当から一括選択：</p>
+        <div class="d-flex flex-wrap gap-2">
+          <% assignments_with_staffs.each do |assignment| %>
+            <button type="button"
+                    class="btn btn-outline-secondary btn-sm rounded-pill"
+                    data-staff-ids="<%= assignment.staff_ids.to_json %>"
+                    onclick="selectAssignmentStaff(this)">
+              <%= assignment.name %>
+            </button>
+          <% end %>
+        </div>
+        <div class="form-text text-muted">クリックで選択、もう一度クリックで解除できます</div>
+      </div>
+    <% end %>
+
     <div class="border rounded-3 p-3" style="max-height: 200px; overflow-y: auto;">
       <% if @staffs.empty? %>
         <p class="text-muted small mb-0">職員が登録されていません</p>
@@ -56,6 +75,26 @@
     </div>
     <div class="form-text text-muted">対象グループと個別指定は併用できます</div>
   </div>
+
+  <script>
+    function selectAssignmentStaff(button) {
+      const staffIds = JSON.parse(button.dataset.staffIds);
+      const isActive = button.classList.contains('btn-secondary');
+
+      staffIds.forEach(function(id) {
+        const checkbox = document.getElementById('staff_' + id);
+        if (checkbox) checkbox.checked = !isActive;
+      });
+
+      if (isActive) {
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-outline-secondary');
+      } else {
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-secondary');
+      }
+    }
+  </script>
 
   <%= f.submit special_date.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>
 

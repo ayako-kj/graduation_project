@@ -15,6 +15,7 @@ class StaffsController < ApplicationController
     @staff = current_library.staffs.build(staff_params)
     @staff.sort_order = current_library.staffs.maximum(:sort_order).to_i + 1
     if @staff.save
+      update_assignments(@staff)
       redirect_to staffs_path, notice: "職員を登録しました。"
     else
       set_form_options
@@ -28,6 +29,7 @@ class StaffsController < ApplicationController
 
   def update
     if @staff.update(staff_params)
+      update_assignments(@staff)
       redirect_to staffs_path, notice: "職員情報を更新しました。"
     else
       set_form_options
@@ -67,6 +69,12 @@ class StaffsController < ApplicationController
   def set_form_options
     @staff_types = StaffType.order(:sort_order, :id)
     @employment_types = EmploymentType.all
+    @assignments = current_library.assignments.order(:id)
+  end
+
+  def update_assignments(staff)
+    ids = params.dig(:staff, :assignment_ids)&.reject(&:blank?)&.map(&:to_i) || []
+    staff.assignments = current_library.assignments.where(id: ids)
   end
 
   def staff_params
