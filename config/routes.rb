@@ -28,5 +28,9 @@ Rails.application.routes.draw do
     end
   end
 
+  get "privacy-policy", to: "pages#privacy_policy", as: :privacy_policy
+  get "help",           to: "pages#help",           as: :help
+  get "terms",          to: "pages#terms",           as: :terms
+
   root "pages#home"
 end

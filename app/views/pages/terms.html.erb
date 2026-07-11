@@ -1,0 +1,30 @@
+<% content_for :title, "利用規約 | Pitat" %>
+
+<div class="container py-5" style="max-width: 800px;">
+  <div class="pitat-card p-4 p-md-5">
+    <h1 class="fs-4 fw-bold mb-4">利用規約</h1>
+    <p class="text-muted small mb-4">最終更新日：<%= Date.today.strftime("%Y年%-m月%-d日") %></p>
+
+    <p>本規約は、Pitat（以下「本サービス」）の利用条件を定めるものです。利用者は本規約に同意のうえ、本サービスをご利用ください。</p>
+
+    <h2 class="fs-5 fw-bold mt-4 mb-2">1. 利用目的</h2>
+    <p>本サービスは、公立図書館のシフト管理を目的として提供されます。目的外の利用はお控えください。</p>
+
+    <h2 class="fs-5 fw-bold mt-4 mb-2">2. 禁止事項</h2>
+    <ul>
+      <li>本サービスの不正利用・改ざん</li>
+      <li>他の利用者への迷惑行為</li>
+      <li>法令・公序良俗に反する利用</li>
+    </ul>
+
+    <h2 class="fs-5 fw-bold mt-4 mb-2">3. 免責事項</h2>
+    <p>本サービスの利用により生じた損害について、開発者は一切の責任を負いません。AIが生成するシフトは参考情報であり、最終的な判断は利用者が行ってください。</p>
+
+    <h2 class="fs-5 fw-bold mt-4 mb-2">4. 規約の変更</h2>
+    <p>本規約は予告なく変更される場合があります。変更後の規約は本ページに掲載した時点で効力を持ちます。</p>
+
+    <div class="mt-4">
+      <%= link_to "← トップに戻る", root_path, class: "text-decoration-none small" %>
+    </div>
+  </div>
+</div>

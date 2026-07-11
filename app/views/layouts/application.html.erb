@@ -82,11 +82,11 @@
       <div class="container text-center">
         <p class="fw-semibold mb-2">LibShiftAI_Pitat</p>
         <div class="d-flex justify-content-center gap-4 mb-3">
-          <a href="#" class="text-muted small text-decoration-none">プライバシーポリシー</a>
-          <a href="#" class="text-muted small text-decoration-none">ヘルプセンター</a>
-          <a href="#" class="text-muted small text-decoration-none">利用規約</a>
+          <%= link_to "プライバシーポリシー", privacy_policy_path, class: "text-muted small text-decoration-none" %>
+          <%= link_to "ヘルプセンター", help_path, class: "text-muted small text-decoration-none" %>
+          <%= link_to "利用規約", terms_path, class: "text-muted small text-decoration-none" %>
         </div>
-        <p class="text-muted small mb-0">&copy;2024 LibShiftAI Pitat. Public Library Systems.</p>
+        <p class="text-muted small mb-0">&copy;<%= Date.today.year %> LibShiftAI Pitat. Public Library Systems.</p>
       </div>
     </footer>
   </body>
