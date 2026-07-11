@@ -8,7 +8,7 @@ class WorkingDaySummariesController < ApplicationController
 
   def index
     @fiscal_year = params[:fiscal_year]&.to_i || current_fiscal_year
-    @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:staff_type_id, :name)
+    @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
     @active_tab = %w[staff duty].include?(params[:tab]) ? params[:tab] : "monthly"
 
     months = fiscal_year_months(@fiscal_year)

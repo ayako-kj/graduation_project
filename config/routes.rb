@@ -16,7 +16,12 @@ Rails.application.routes.draw do
       post :save
     end
   end
-  resources :staffs
+  resources :staffs do
+    member do
+      patch :move_up
+      patch :move_down
+    end
+  end
   resources :placement_rules
   resources :special_dates
   resources :leave_requests

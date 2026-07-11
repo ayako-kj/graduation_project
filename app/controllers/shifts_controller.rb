@@ -4,7 +4,7 @@ class ShiftsController < ApplicationController
   def index
     @target_month = parse_target_month
     @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
-    @staffs = current_library.staffs.includes(:staff_type).order(:staff_type_id, :name)
+    @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
     @shift_group = current_library.shift_groups.find_by(target_month: @target_month.beginning_of_month)
 
     holidays = HolidayFetcher.fetch(@target_month.year)
@@ -27,7 +27,7 @@ class ShiftsController < ApplicationController
   def download
     @target_month = parse_target_month
     @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
-    @staffs = current_library.staffs.includes(:staff_type).order(:staff_type_id, :name)
+    @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
     @shift_group = current_library.shift_groups.find_by(target_month: @target_month.beginning_of_month)
 
     holidays = HolidayFetcher.fetch(@target_month.year)
