@@ -53,7 +53,10 @@ class DutyAssigner
 
     counts = historical_counts(eligible, :is_holiday_post_duty)
     (@dc[:holiday_post_duty_dates] || {}).each_key do |date|
-      assignee = eligible.min_by { |name| counts[name] }
+      # 連続勤務違反を引き起こさない人を優先して選ぶ
+      safe = eligible.reject { |name| would_cause_consecutive_violation?(name, date) }
+      candidates = safe.any? ? safe : eligible
+      assignee = candidates.min_by { |name| counts[name] }
       set_field(assignee, date, :is_holiday_post_duty, true)
       set_field(assignee, date, :is_working, true)
       counts[assignee] += 1
@@ -88,5 +91,24 @@ class DutyAssigner
   def set_field(staff_name, date, field, value)
     shift = @shifts.find { |s| s[:staff_name] == staff_name && s[:date] == date }
     shift[field] = value if shift
+  end
+
+  def would_cause_consecutive_violation?(staff_name, date)
+    staff_shifts = @shifts.select { |s| s[:staff_name] == staff_name }
+    working_dates = staff_shifts.select { |s| s[:is_working] }.map { |s| s[:date] }.sort
+    test_dates = (working_dates + [date]).uniq.sort
+    groups = find_consecutive_date_groups(test_dates)
+    groups.any? { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
+  end
+
+  def find_consecutive_date_groups(dates)
+    return [] if dates.empty?
+    groups = []
+    current = [dates.first]
+    dates[1..].each do |date|
+      date == current.last + 1 ? current << date : (groups << current; current = [date])
+    end
+    groups << current
+    groups
   end
 end

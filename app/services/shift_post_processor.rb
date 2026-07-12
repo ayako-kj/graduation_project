@@ -54,9 +54,10 @@ class ShiftPostProcessor
     end
   end
 
-  def fix_day(day_shifts)
+  def fix_day(day_shifts, exclude_name: nil)
     working = day_shifts.select { |s| s[:is_working] }
     resting = day_shifts.reject { |s| s[:is_working] }
+    resting = resting.reject { |s| s[:staff_name] == exclude_name } if exclude_name
 
     # 配置ルールを満たすよう補完
     @rules.each do |rule|
@@ -161,7 +162,7 @@ class ShiftPostProcessor
 
   def fix_consecutive_work
     by_staff = @shifts.group_by { |s| s[:staff_name] }
-    by_staff.each do |_staff_name, staff_shifts|
+    by_staff.each do |staff_name, staff_shifts|
       10.times do
         working_dates = staff_shifts.select { |s| s[:is_working] }.map { |s| s[:date] }.sort
         groups = find_consecutive_date_groups(working_dates)
@@ -174,11 +175,11 @@ class ShiftPostProcessor
         target_shift = staff_shifts.find { |s| s[:date] == target_date }
         break unless target_shift
 
-        # 12人制約を外して休みにし、その日を即座に別の職員で補完する
+        # 休みにし、その日を即座に別の職員で補完する（本人は補完対象から除く）
         target_shift[:is_working] = false
         unless @closed_days.key?(target_date)
           day_shifts = @shifts.select { |s| s[:date] == target_date }
-          fix_day(day_shifts)
+          fix_day(day_shifts, exclude_name: staff_name)
         end
       end
     end
@@ -222,16 +223,27 @@ class ShiftPostProcessor
 
   def add_staff(resting, working, count, &block)
     candidates = resting.select(&block).reject { |s| @leave_set.include?([s[:staff_name], s[:date]]) }
-    # 不可曜日でない職員を優先し、不可曜日の職員は最後の手段とする
-    preferred, fallback = candidates.partition { |s|
-      wdays = @staff_info.dig(s[:staff_name], :unavailable_wdays) || []
-      !wdays.include?(s[:date].wday)
+    # 優先度: 1.連続勤務違反なし×不可曜日でない 2.連続違反なし×不可曜日 3.連続違反あり×不可曜日でない 4.連続違反あり×不可曜日
+    safe, risky = candidates.partition { |s| !would_cause_consecutive_violation?(s[:staff_name], s[:date]) }
+    preferred_safe, fallback_safe = safe.partition { |s|
+      !((@staff_info.dig(s[:staff_name], :unavailable_wdays) || []).include?(s[:date].wday))
     }
-    ordered = preferred + fallback
+    preferred_risky, fallback_risky = risky.partition { |s|
+      !((@staff_info.dig(s[:staff_name], :unavailable_wdays) || []).include?(s[:date].wday))
+    }
+    ordered = preferred_safe + fallback_safe + preferred_risky + fallback_risky
     ordered.first([count, ordered.size].min).each do |shift|
       shift[:is_working] = true
       resting.delete(shift)
       working << shift
     end
+  end
+
+  def would_cause_consecutive_violation?(staff_name, date)
+    staff_shifts = @shifts.select { |s| s[:staff_name] == staff_name }
+    working_dates = staff_shifts.select { |s| s[:is_working] }.map { |s| s[:date] }.sort
+    test_dates = (working_dates + [date]).uniq.sort
+    groups = find_consecutive_date_groups(test_dates)
+    groups.any? { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
   end
 end

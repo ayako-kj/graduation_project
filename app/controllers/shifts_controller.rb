@@ -82,7 +82,7 @@ class ShiftsController < ApplicationController
 
     shift_group = saved[:shift_group]
     shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
-      { staff_name: s.staff.name, date: s.date, is_working: s.is_working }
+      { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
     end
     summary = ShiftValidationSummary.new(shifts_for_validation, target_month)
     summary.save_to_shifts(shift_group)
