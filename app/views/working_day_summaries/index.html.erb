@@ -127,7 +127,8 @@
                   <% when "自動生成" %>
                     <span class="badge bg-success">自動生成</span>
                   <% else %>
-                    <span class="badge bg-light text-muted border">未入力</span>
+                    <%= link_to "入力する", workday_manual_entries_path(month: row[:month].strftime("%Y-%m")),
+                        class: "badge bg-light text-muted border text-decoration-none" %>
                   <% end %>
                 </td>
                 <td><%= row[:used_hours] %>時間</td>
@@ -175,6 +176,7 @@
       <i class="bi bi-info-circle me-1"></i>
       <%= @view_month.strftime("%Y年%-m月") %>末時点の累計差を全職員で一覧表示します。
       累計差がマイナスの場合は市役所より少ない勤務時間です。
+      Pitat導入前の実績は<%= link_to "勤務実績の手入力", workday_manual_entries_path, class: "text-muted" %>から入力できます。
     </div>
 
     <div class="pitat-card p-0 overflow-hidden">
