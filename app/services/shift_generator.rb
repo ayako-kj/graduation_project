@@ -33,7 +33,16 @@ class ShiftGenerator
       content = body.dig("choices", 0, "message", "content")
       { success: true, content: content }
     elsif response.code == "429"
-      { success: false, error: "リクエストが集中しています。1分ほど待ってから再度「AIでシフトを生成する」を押してください。" }
+      error_msg = body.dig("error", "message") || ""
+      retry_after = response["retry-after"]
+      if error_msg.match?(/per day|tokens per day|TPD|RPD/i)
+        { success: false, error: "本日のAPI利用上限に達しました。明日以降に再試行してください。（Groq無料プランの日次制限）" }
+      elsif retry_after
+        wait = retry_after.to_i > 60 ? "#{(retry_after.to_i / 60.0).ceil}分" : "#{retry_after}秒"
+        { success: false, error: "リクエストが集中しています。#{wait}ほど待ってから再度「AIでシフトを生成する」を押してください。" }
+      else
+        { success: false, error: "リクエストが集中しています。数分待ってから再度「AIでシフトを生成する」を押してください。" }
+      end
     else
       { success: false, error: "APIエラーが発生しました（#{response.code}）: #{body.dig('error', 'message')}" }
     end
