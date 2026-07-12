@@ -9,6 +9,7 @@
     <i class="bi bi-info-circle me-1"></i>
     Pitat導入前（令和8年4〜6月など）の実績勤務日数を月単位で入力できます。
     年間サマリーページで手入力データとPitatのシフトデータを統合して表示します。
+    <strong>空欄または0日のままの欄は保存されません。</strong>Pitatでシフト生成済みの月は入力不要です。
   </div>
 
   <%# 月選択 %>
@@ -39,8 +40,8 @@
               <td class="py-2"><%= staff.employment_type.name %></td>
               <td class="py-2">
                 <input type="number" name="entries[<%= staff.id %>][working_days]"
-                       value="<%= entry&.working_days || 0 %>"
-                       min="0" max="31" class="form-control form-control-sm text-center">
+                       value="<%= entry&.working_days %>"
+                       min="0" max="31" placeholder="日数" class="form-control form-control-sm text-center">
               </td>
               <td class="py-2">
                 <input type="text" name="entries[<%= staff.id %>][note]"
