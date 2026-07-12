@@ -162,7 +162,8 @@ class ConstraintExtractor
       cumulative_diff += actual * HOURLY_DAILY_HOURS - n * CITY_HALL_HOURLY_DAILY_HOURS
     end
 
-    cumulative_diff <= -HOURLY_DAILY_HOURS ? base_days + 1 : base_days
+    extra = (-cumulative_diff / HOURLY_DAILY_HOURS).truncate.clamp(-2, 2)
+    base_days + extra
   end
 
   def placement_rules_data
