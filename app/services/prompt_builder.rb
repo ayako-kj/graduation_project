@@ -8,24 +8,22 @@ class PromptBuilder
   def system_prompt
     <<~PROMPT
       あなたは公立図書館のシフト管理AIです。
-      与えられた制約条件をもとに、対象月の全職員の出勤・休みシフトを作成してください。
+      与えられた制約条件をもとに、対象月の全職員の出勤シフトを作成してください。
 
       【出力形式】
-      以下のJSON形式のみで出力してください。説明文は不要です。
-      {
-        "shifts": [
-          {"staff": "Staff_A", "date": "YYYY-MM-DD", "is_working": true},
-          ...
-        ]
-      }
+      JSON形式のみで出力し、説明文は不要です。開館日のみ含め、休館日は省略してください。
+      {"shifts":{"YYYY-MM-DD":["Staff_A","Staff_B"],"YYYY-MM-DD":["Staff_C"]}}
 
       【ルール】
-      - 各雇用形態の月の勤務日数目標を守ること（週勤務日数は参考情報）
-      - 休館日は全職員を休みにすること（出勤させないこと）
-      - 職種ごとの最低出勤人数を毎日満たすこと（休館日を除く）
-      - 希望休は必ず反映すること
-      - 特定日（全員会議日など）は対象グループ全員を出勤にすること
-      - 土日の連続勤務は避けること（土曜・日曜を連続して出勤させないこと）
+      - 希望休を必ず反映する
+      - 特定日は対象グループ全員を出勤にする
+      - 休館日は全員休みにする
+      - 月の勤務日数目標を守る
+      - 開館日は毎日12人以上出勤させる
+      - 配置ルールを毎日満たす
+      - 土曜と日曜を連続して出勤させない
+      - 同じ職員を5日超え連続出勤させない（水〜月の6日連続も違反）
+      - 毎日必ず数名は休みにし、月全体で均等に休みを分配する
     PROMPT
   end
 
@@ -36,14 +34,29 @@ class PromptBuilder
 
     lines << "【月の勤務日数目標】"
     lines << "- 正規職員：#{@constraints.dig(:working_days, :regular)}日"
-    lines << "- 会計年度任用職員：#{@constraints.dig(:working_days, :hourly)}日"
+    lines << "- 会計年度任用職員：各職員の個別目標日数（下記職員一覧を参照）"
     lines << ""
 
+    total_staff = @constraints[:staffs].size
+    open_days = @target_month.end_of_month.day - @constraints[:closed_days].size
+    max_per_day = (total_staff * 0.8).ceil
+    lines << "【出勤人数の目安】"
+    lines << "- 1日あたり12〜#{max_per_day}名（開館日数：#{open_days}日、職員総数：#{total_staff}名）"
+    lines << ""
+
+    wday_names = %w[日 月 火 水 木 金 土]
+    regular_target = @constraints.dig(:working_days, :regular)
     lines << "【職員一覧】"
     @constraints[:staffs].each do |staff|
       identifier = @masker.mask(staff[:name])
-      weekly = staff[:weekly_work_days] ? "週#{staff[:weekly_work_days]}日（参考）" : ""
-      lines << "- #{identifier}：#{staff[:staff_type]}（#{staff[:employment_type]}）#{weekly}"
+      target_days = staff[:monthly_target_days] || regular_target
+      unavailable = if staff[:unavailable_wdays].any?
+        names = staff[:unavailable_wdays].map { |w| "#{wday_names[w]}曜" }.join("・")
+        "（#{names}は月1回程度を除き出勤させないこと）"
+      else
+        ""
+      end
+      lines << "- #{identifier}：#{staff[:staff_type]}（#{staff[:employment_type]}）今月の目標出勤日数#{target_days}日#{unavailable}"
     end
     lines << ""
 
@@ -54,11 +67,11 @@ class PromptBuilder
       @constraints[:placement_rules].each do |rule|
         case rule[:rule_type]
         when "min_count"
-          lines << "- #{rule[:staff_type]}：1日に最低#{rule[:min_count]}名出勤"
+          lines << "- #{rule[:staff_type]}：最低#{rule[:min_count]}名/日"
         when "at_least_one_of"
-          lines << "- #{rule[:staff_types].join('・')}のうち必ず1名以上出勤"
+          lines << "- #{rule[:staff_types].join('・')}のうち1名以上/日"
         when "team_min"
-          lines << "- #{rule[:staff_types].join('・')}の合計で1日に最低#{rule[:min_count]}名出勤"
+          lines << "- #{rule[:staff_types].join('・')}の合計で最低#{rule[:min_count]}名/日"
         end
       end
     end

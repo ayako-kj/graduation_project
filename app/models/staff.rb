@@ -11,4 +11,16 @@ class Staff < ApplicationRecord
   has_many :assignments, through: :staff_assignments
 
   validates :name, presence: true
+
+  WDAY_NAMES = %w[日 月 火 水 木 金 土].freeze
+
+  def unavailable_wdays_array
+    JSON.parse(unavailable_wdays || "[]")
+  rescue JSON::ParserError
+    []
+  end
+
+  def unavailable_wdays_label
+    unavailable_wdays_array.map { |w| "#{WDAY_NAMES[w]}曜日" }.join("・")
+  end
 end

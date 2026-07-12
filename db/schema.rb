@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_12_000007) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_12_125221) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -167,6 +167,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_000007) do
     t.datetime "updated_at", null: false
     t.bigint "library_id"
     t.integer "sort_order"
+    t.string "unavailable_wdays", default: "[]", null: false
     t.index ["employment_type_id"], name: "index_staffs_on_employment_type_id"
     t.index ["library_id"], name: "index_staffs_on_library_id"
     t.index ["staff_type_id"], name: "index_staffs_on_staff_type_id"

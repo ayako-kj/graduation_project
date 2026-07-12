@@ -1,14 +1,24 @@
 class ConstraintExtractor
-  def initialize(target_month)
+  HOURLY_DAILY_HOURS = 7.5
+  CITY_HALL_HOURLY_DAILY_HOURS = 6.0
+
+  def initialize(target_month, library)
     @target_month = target_month
+    @library = library
     @start_date = target_month.beginning_of_month
     @end_date = target_month.end_of_month
   end
 
   def extract
     @holidays = HolidayFetcher.fetch(@target_month.year)
+    fiscal_year = @target_month.month >= 4 ? @target_month.year : @target_month.year - 1
+    @all_holidays = if fiscal_year == @target_month.year
+      @holidays
+    else
+      HolidayFetcher.fetch(fiscal_year).merge(@holidays)
+    end
     @closed_calc = ClosedDayCalculator.new(@target_month, @holidays)
-    working_calc = WorkingDayCalculator.new(@target_month, @holidays)
+    @working_calc = WorkingDayCalculator.new(@target_month, @holidays)
     @closed_days_with_labels = @closed_calc.closed_days_with_labels
 
     {
@@ -18,8 +28,8 @@ class ConstraintExtractor
       leave_requests: leave_requests_data,
       closed_days: @closed_days_with_labels,
       working_days: {
-        regular: working_calc.regular_staff_days,
-        hourly: working_calc.hourly_staff_days
+        regular: @working_calc.regular_staff_days,
+        hourly: @working_calc.hourly_staff_days
       },
       duty_constraints: duty_constraints_data,
       assignment_constraints: assignment_constraints_data,
@@ -86,14 +96,73 @@ class ConstraintExtractor
   end
 
   def staffs_data
-    Staff.includes(:staff_type, :employment_type).map do |staff|
+    fiscal_year = @target_month.month >= 4 ? @target_month.year : @target_month.year - 1
+    fiscal_months = (4..12).map { |m| Date.new(fiscal_year, m, 1) } +
+                    (1..3).map { |m| Date.new(fiscal_year + 1, m, 1) }
+    past_months = fiscal_months.select { |m| m < @target_month.beginning_of_month }
+
+    staffs = @library.staffs.includes(:staff_type, :employment_type)
+    actual_data = past_months.any? ? preload_past_actual_data(staffs, past_months) : {}
+
+    base_hourly = @working_calc.hourly_staff_days
+
+    staffs.map do |staff|
+      is_regular = staff.employment_type.name == "正規職員"
+      monthly_target = unless is_regular
+        calculate_hourly_monthly_target(staff, base_hourly, past_months, actual_data)
+      end
+
       {
         name: staff.name,
         staff_type: staff.staff_type.name,
         employment_type: staff.employment_type.name,
-        weekly_work_days: staff.weekly_work_days
+        weekly_work_days: staff.weekly_work_days,
+        unavailable_wdays: staff.unavailable_wdays_array,
+        monthly_target_days: monthly_target
       }
     end
+  end
+
+  def preload_past_actual_data(staffs, past_months)
+    start_date = past_months.first
+    end_date = past_months.last
+    staff_ids = staffs.map(&:id)
+
+    manual_map = WorkdayManualEntry
+      .where(staff_id: staff_ids, year_month: start_date..end_date)
+      .index_by { |e| [e.staff_id, e.year_month] }
+
+    shift_groups = @library.shift_groups.where(target_month: start_date..end_date)
+    pitat_map = {}
+    shift_groups.each do |sg|
+      Shift.where(shift_group: sg, is_working: true).group(:staff_id).count.each do |staff_id, count|
+        pitat_map[[staff_id, sg.target_month]] = count
+      end
+    end
+    sg_months = Set.new(shift_groups.map(&:target_month))
+
+    { manual: manual_map, pitat: pitat_map, sg_months: sg_months }
+  end
+
+  def calculate_hourly_monthly_target(staff, base_days, past_months, actual_data)
+    cumulative_diff = 0.0
+    past_months.each do |month|
+      n = WorkingDayCalculator.new(month, @all_holidays).regular_staff_days
+      target = (n * CITY_HALL_HOURLY_DAILY_HOURS / HOURLY_DAILY_HOURS).floor
+
+      key = [staff.id, month.beginning_of_month]
+      actual = if actual_data[:manual][key]
+        actual_data[:manual][key].working_days
+      elsif actual_data[:sg_months].include?(month.beginning_of_month)
+        actual_data[:pitat][key] || 0
+      else
+        target
+      end
+
+      cumulative_diff += actual * HOURLY_DAILY_HOURS - n * CITY_HALL_HOURLY_DAILY_HOURS
+    end
+
+    cumulative_diff <= -HOURLY_DAILY_HOURS ? base_days + 1 : base_days
   end
 
   def placement_rules_data

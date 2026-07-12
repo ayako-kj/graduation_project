@@ -1,0 +1,237 @@
+class ShiftPostProcessor
+  def initialize(parsed_shifts, closed_days, leave_requests = [])
+    @shifts = parsed_shifts
+    @closed_days = closed_days
+    @leave_set = leave_requests.each_with_object(Set.new) do |lr, set|
+      set << [lr[:staff_name], Date.parse(lr[:date])]
+    end
+    @staff_info = build_staff_info
+    @rules = build_rules
+  end
+
+  def process
+    fix_closed_days
+    fix_excess_staff
+    fix_weekend_consecutive
+    5.times do
+      snapshot = @shifts.map { |s| s[:is_working] }
+      fix_consecutive_work
+      @shifts.group_by { |s| s[:date] }.each do |date, day_shifts|
+        next if @closed_days.key?(date)
+        fix_day(day_shifts)
+      end
+      break if @shifts.map { |s| s[:is_working] } == snapshot
+    end
+    @shifts
+  end
+
+  private
+
+  def build_staff_info
+    Staff.includes(:staff_type, :employment_type).each_with_object({}) do |s, h|
+      h[s.name] = {
+        staff_type: s.staff_type.name,
+        employment_type: s.employment_type.name,
+        unavailable_wdays: s.unavailable_wdays_array
+      }
+    end
+  end
+
+  def build_rules
+    staff_type_names = StaffType.pluck(:id, :name).to_h
+    PlacementRule.includes(:staff_type, :employment_type).filter_map do |rule|
+      case rule.rule_type
+      when "min_count"
+        { type: "min_count", staff_type: rule.staff_type.name,
+          employment_type: rule.employment_type&.name, min: rule.min_count }
+      when "at_least_one_of"
+        names = rule.staff_type_ids_array.filter_map { |id| staff_type_names[id] }
+        { type: "at_least_one_of", staff_types: names }
+      when "team_min"
+        names = rule.staff_type_ids_array.filter_map { |id| staff_type_names[id] }
+        { type: "team_min", staff_types: names, min: rule.min_count }
+      end
+    end
+  end
+
+  def fix_day(day_shifts)
+    working = day_shifts.select { |s| s[:is_working] }
+    resting = day_shifts.reject { |s| s[:is_working] }
+
+    # 配置ルールを満たすよう補完
+    @rules.each do |rule|
+      case rule[:type]
+      when "min_count"
+        count = working.count { |s| matches_min_count?(s, rule) }
+        if count < rule[:min]
+          add_staff(resting, working, rule[:min] - count) { |s| matches_min_count?(s, rule) }
+        end
+      when "at_least_one_of"
+        unless working.any? { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) }
+          add_staff(resting, working, 1) { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) }
+        end
+      when "team_min"
+        count = working.count { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) }
+        if count < rule[:min]
+          add_staff(resting, working, rule[:min] - count) { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) }
+        end
+      end
+    end
+
+    # 最低出勤人数（12人）を満たすよう補完
+    if working.size < TotalCountValidator::MIN_STAFF_COUNT
+      add_staff(resting, working, TotalCountValidator::MIN_STAFF_COUNT - working.size) { true }
+    end
+
+    # ManagerPresenceValidator の条件を満たすよう補完
+    manager_present = working.any? do |s|
+      info = @staff_info[s[:staff_name]]
+      info && (info[:staff_type] == "副館長" ||
+               info[:staff_type] == "行政職" ||
+               (info[:staff_type] == "一般事務" && info[:employment_type] == "会計年度任用職員"))
+    end
+    unless manager_present
+      add_staff(resting, working, 1) do |s|
+        info = @staff_info[s[:staff_name]]
+        info && (info[:staff_type] == "副館長" ||
+                 info[:staff_type] == "行政職" ||
+                 (info[:staff_type] == "一般事務" && info[:employment_type] == "会計年度任用職員"))
+      end
+    end
+  end
+
+  def fix_closed_days
+    @shifts.each do |shift|
+      shift[:is_working] = false if @closed_days.key?(shift[:date])
+    end
+  end
+
+  def fix_excess_staff
+    total_staff_count = @shifts.map { |s| s[:staff_name] }.uniq.size
+    max_per_day = (total_staff_count * 0.8).ceil
+
+    # 月全体の勤務日数をカウント（日付昇順で処理しながら更新）
+    monthly_work_days = Hash.new(0)
+    @shifts.each { |s| monthly_work_days[s[:staff_name]] += 1 if s[:is_working] }
+
+    @shifts.group_by { |s| s[:date] }.sort.each do |date, day_shifts|
+      next if @closed_days.key?(date)
+      working = day_shifts.select { |s| s[:is_working] }
+      next if working.size <= max_per_day
+
+      excess = working.size - max_per_day
+      # 配置ルール上必須な職員は削減対象から除外し、不可曜日→勤務日数多い順で削減
+      candidates = working
+        .reject { |s| essential_for_rules?(s, working) }
+        .sort_by { |s|
+          wdays = @staff_info.dig(s[:staff_name], :unavailable_wdays) || []
+          unavailable = wdays.include?(s[:date].wday) ? 0 : 1
+          [unavailable, -monthly_work_days[s[:staff_name]]]
+        }
+      candidates.first([excess, candidates.size].min).each do |shift|
+        shift[:is_working] = false
+        monthly_work_days[shift[:staff_name]] -= 1
+      end
+    end
+  end
+
+  def fix_weekend_consecutive
+    by_staff = @shifts.group_by { |s| s[:staff_name] }
+    by_staff.each do |staff_name, staff_shifts|
+      shifts_by_date = staff_shifts.each_with_object({}) { |s, h| h[s[:date]] = s }
+
+      staff_shifts.select { |s| s[:is_working] && s[:date].saturday? }.each do |sat_shift|
+        sun_shift = shifts_by_date[sat_shift[:date] + 1]
+        next unless sun_shift&.[](:is_working)
+
+        # 土日連続：前の金曜か後の月曜を休みにする（出勤者が多い日を優先）
+        friday = sat_shift[:date] - 1
+        monday = sat_shift[:date] + 2
+        candidates = [friday, monday].filter_map do |date|
+          s = shifts_by_date[date]
+          s if s&.[](:is_working) && !@leave_set.include?([staff_name, date]) && !@closed_days.key?(date)
+        end
+        next if candidates.empty?
+
+        target = candidates.max_by { |s| @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] } }
+        target[:is_working] = false
+      end
+    end
+  end
+
+  def fix_consecutive_work
+    by_staff = @shifts.group_by { |s| s[:staff_name] }
+    by_staff.each do |_staff_name, staff_shifts|
+      10.times do
+        working_dates = staff_shifts.select { |s| s[:is_working] }.map { |s| s[:date] }.sort
+        groups = find_consecutive_date_groups(working_dates)
+        violation = groups.find { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
+        break unless violation
+
+        # 6日目以降で、当日の出勤者が最も多い日を選んで休みにする
+        excess_dates = violation[ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS..]
+        target_date = excess_dates.max_by { |d| @shifts.count { |s| s[:date] == d && s[:is_working] } }
+        target_shift = staff_shifts.find { |s| s[:date] == target_date }
+        break unless target_shift
+
+        # 12人制約を外して休みにし、その日を即座に別の職員で補完する
+        target_shift[:is_working] = false
+        unless @closed_days.key?(target_date)
+          day_shifts = @shifts.select { |s| s[:date] == target_date }
+          fix_day(day_shifts)
+        end
+      end
+    end
+  end
+
+  def find_consecutive_date_groups(dates)
+    return [] if dates.empty?
+    groups = []
+    current = [dates.first]
+    dates[1..].each do |date|
+      date == current.last + 1 ? current << date : (groups << current; current = [date])
+    end
+    groups << current
+    groups
+  end
+
+  def essential_for_rules?(shift, working)
+    @rules.any? do |rule|
+      case rule[:type]
+      when "min_count"
+        next false unless matches_min_count?(shift, rule)
+        current = working.count { |s| matches_min_count?(s, rule) }
+        current <= rule[:min]
+      when "at_least_one_of"
+        next false unless rule[:staff_types].include?(@staff_info.dig(shift[:staff_name], :staff_type))
+        working.count { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) } <= 1
+      when "team_min"
+        next false unless rule[:staff_types].include?(@staff_info.dig(shift[:staff_name], :staff_type))
+        current = working.count { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) }
+        current <= rule[:min]
+      end
+    end
+  end
+
+  def matches_min_count?(shift, rule)
+    info = @staff_info[shift[:staff_name]]
+    return false unless info
+    return false unless info[:staff_type] == rule[:staff_type]
+    rule[:employment_type].nil? || info[:employment_type] == rule[:employment_type]
+  end
+
+  def add_staff(resting, working, count, &block)
+    candidates = resting.select(&block).reject { |s| @leave_set.include?([s[:staff_name], s[:date]]) }
+    # 不可曜日でない職員を優先し、不可曜日の職員は最後の手段とする
+    preferred, fallback = candidates.partition { |s|
+      wdays = @staff_info.dig(s[:staff_name], :unavailable_wdays) || []
+      !wdays.include?(s[:date].wday)
+    }
+    ordered = preferred + fallback
+    ordered.first([count, ordered.size].min).each do |shift|
+      shift[:is_working] = true
+      resting.delete(shift)
+      working << shift
+    end
+  end
+end

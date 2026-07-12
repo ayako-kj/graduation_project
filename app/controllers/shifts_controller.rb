@@ -54,7 +54,7 @@ class ShiftsController < ApplicationController
 
     staffs = current_library.staffs
     masker = StaffMasker.new(staffs)
-    extractor = ConstraintExtractor.new(target_month)
+    extractor = ConstraintExtractor.new(target_month, current_library)
     constraints = extractor.extract
     builder = PromptBuilder.new(constraints, masker, target_month)
     generator = ShiftGenerator.new(builder)
@@ -64,23 +64,15 @@ class ShiftsController < ApplicationController
       redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: result[:error] and return
     end
 
-    parser = ShiftResponseParser.new(masker)
+    parser = ShiftResponseParser.new(masker, staffs, target_month)
     parsed = parser.parse(result[:content])
 
-    if !parsed[:success]
-      result = generator.generate
-      if result[:success]
-        parsed = parser.parse(result[:content])
-      else
-        parsed = { success: false, error: result[:error] }
-      end
-    end
-
     unless parsed[:success]
-      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: "#{parsed[:error]}（2回試みましたが解決しませんでした）" and return
+      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: parsed[:error] and return
     end
 
-    assigned_shifts = DutyAssigner.new(parsed[:shifts], constraints, target_month).assign
+    fixed_shifts = ShiftPostProcessor.new(parsed[:shifts], constraints[:closed_days], constraints[:leave_requests]).process
+    assigned_shifts = DutyAssigner.new(fixed_shifts, constraints, target_month).assign
     saver = ShiftSaver.new(target_month, assigned_shifts, current_library)
     saved = saver.save
 

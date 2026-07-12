@@ -21,7 +21,9 @@ class ShiftValidationSummary
     end
 
     ConsecutiveWorkValidator.new(@shifts).validate.each do |v|
-      errors_by_key[v[:staff_name]] << v[:message]
+      (v[:start_date]..v[:end_date]).each do |date|
+        errors_by_key["#{date}_#{v[:staff_name]}"] << v[:message]
+      end
     end
 
     ManagerPresenceValidator.new(@shifts).validate.each do |v|
@@ -35,13 +37,13 @@ class ShiftValidationSummary
     errors_by_key = run
 
     shift_group.shifts.includes(:staff).each do |shift|
+      next unless shift.is_working
+
       date_key = shift.date.to_s
       staff_date_key = "#{shift.date}_#{shift.staff.name}"
-      staff_key = shift.staff.name
 
       messages = (errors_by_key[date_key] || []) +
-                 (errors_by_key[staff_date_key] || []) +
-                 (errors_by_key[staff_key] || [])
+                 (errors_by_key[staff_date_key] || [])
 
       shift.update_column(:validation_errors, messages.uniq.to_json)
     end
