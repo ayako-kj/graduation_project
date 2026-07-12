@@ -134,7 +134,7 @@ class ShiftPostProcessor
 
   def fix_excess_staff
     total_staff_count = @shifts.map { |s| s[:staff_name] }.uniq.size
-    max_per_day = (total_staff_count * 0.8).ceil
+    max_per_day = (total_staff_count * 0.75).ceil
 
     # 月全体の勤務日数をカウント（日付昇順で処理しながら更新）
     monthly_work_days = Hash.new(0)
