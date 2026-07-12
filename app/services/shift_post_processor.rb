@@ -1,9 +1,16 @@
 class ShiftPostProcessor
-  def initialize(parsed_shifts, closed_days, leave_requests = [])
+  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [])
     @shifts = parsed_shifts
     @closed_days = closed_days
     @leave_set = leave_requests.each_with_object(Set.new) do |lr, set|
       set << [lr[:staff_name], Date.parse(lr[:date])]
+    end
+    @all_staff_dates = special_dates.each_with_object(Set.new) do |sd, set|
+      set << Date.parse(sd[:date]) if sd[:target_group] == "全職員"
+    end
+    @designated_dates = special_dates.each_with_object({}) do |sd, h|
+      next if sd[:designated_staffs].empty?
+      h[Date.parse(sd[:date])] = sd[:designated_staffs]
     end
     @staff_info = build_staff_info
     @rules = build_rules
@@ -11,6 +18,7 @@ class ShiftPostProcessor
 
   def process
     fix_closed_days
+    fix_special_dates
     fix_excess_staff
     fix_weekend_consecutive
     5.times do
@@ -107,6 +115,23 @@ class ShiftPostProcessor
     end
   end
 
+  def fix_special_dates
+    # 全員出勤日：希望休を除く全職員を出勤にする
+    @all_staff_dates.each do |date|
+      next if @closed_days.key?(date)
+      @shifts.select { |s| s[:date] == date }.each do |shift|
+        shift[:is_working] = true unless @leave_set.include?([shift[:staff_name], date])
+      end
+    end
+    # 指定職員出勤日：指定された職員を出勤にする
+    @designated_dates.each do |date, staff_names|
+      next if @closed_days.key?(date)
+      @shifts.select { |s| s[:date] == date && staff_names.include?(s[:staff_name]) }.each do |shift|
+        shift[:is_working] = true unless @leave_set.include?([shift[:staff_name], date])
+      end
+    end
+  end
+
   def fix_excess_staff
     total_staff_count = @shifts.map { |s| s[:staff_name] }.uniq.size
     max_per_day = (total_staff_count * 0.8).ceil
@@ -117,6 +142,7 @@ class ShiftPostProcessor
 
     @shifts.group_by { |s| s[:date] }.sort.each do |date, day_shifts|
       next if @closed_days.key?(date)
+      next if @all_staff_dates.include?(date)  # 全員出勤日は削減しない
       working = day_shifts.select { |s| s[:is_working] }
       next if working.size <= max_per_day
 
