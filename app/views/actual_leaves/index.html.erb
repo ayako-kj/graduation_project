@@ -58,14 +58,12 @@
     <%= form_with url: save_actual_leaves_path(month: @target_month.strftime("%Y-%m")), method: :post do |f| %>
       <div class="pitat-card p-0 overflow-hidden mb-3">
         <div class="table-responsive">
-          <table class="table table-bordered table-sm align-middle mb-0" style="width: max-content; min-width: <%= 200 + @open_dates.size * 44 %>px;">
+          <table class="table table-bordered table-sm text-center align-middle mb-0" style="width:100%; table-layout:fixed; font-size:0.8rem;">
             <thead class="table-light">
               <tr>
-                <th class="ps-3 py-2 text-muted small fw-semibold" style="width:72px; white-space:nowrap;">職員名</th>
-                <th class="py-2 text-muted small fw-semibold" style="width:88px; white-space:nowrap;">雇用形態</th>
+                <th class="text-start ps-3 py-2 text-muted fw-semibold" style="width:120px;">職員名</th>
                 <% @open_dates.each do |date| %>
-                  <th class="text-center py-1 small fw-semibold <%= date.saturday? ? 'text-primary' : date.sunday? ? 'text-danger' : '' %>"
-                      style="width:40px; min-width:40px;">
+                  <th class="py-1 fw-semibold <%= date.saturday? ? 'table-info text-primary' : date.sunday? ? 'table-danger text-danger' : '' %>">
                     <%= date.day %><br>
                     <span class="fw-normal" style="font-size:0.7rem;"><%= %w[日 月 火 水 木 金 土][date.wday] %></span>
                   </th>
@@ -75,15 +73,17 @@
             <tbody>
               <% @staffs.each do |staff| %>
                 <tr>
-                  <td class="ps-3 py-1 fw-semibold small"><%= staff.name %></td>
-                  <td class="py-1 small text-muted"><%= staff.employment_type.name %></td>
+                  <td class="text-start ps-3 py-1" style="overflow:hidden;">
+                    <div class="fw-semibold" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= staff.name %></div>
+                    <div class="text-muted" style="font-size:0.7rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= staff.employment_type.name %></div>
+                  </td>
                   <% @open_dates.each do |date| %>
                     <% shift = @shift_map[[staff.id, date]] %>
                     <% leave = @leave_map[[staff.id, date]] %>
                     <% is_working = shift&.is_working %>
-                    <td class="text-center p-0 <%= is_working ? 'bg-light' : 'bg-white' %>" style="width:40px;">
+                    <td class="p-0 <%= date.saturday? ? 'table-info' : date.sunday? ? 'table-danger' : (is_working ? 'bg-light' : '') %>">
                       <% if is_working %>
-                        <span class="small text-muted d-block py-1">出</span>
+                        <span class="text-success fw-bold">○</span>
                       <% else %>
                         <select name="leaves[<%= staff.id %>][<%= date.strftime('%Y-%m-%d') %>]"
                                 class="leave-select"
