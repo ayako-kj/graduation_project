@@ -58,11 +58,11 @@
     <%= form_with url: save_actual_leaves_path(month: @target_month.strftime("%Y-%m")), method: :post do |f| %>
       <div class="pitat-card p-0 overflow-hidden mb-3">
         <div class="table-responsive">
-          <table class="table table-bordered table-sm align-middle mb-0" style="min-width: <%= 200 + @open_dates.size * 44 %>px;">
+          <table class="table table-bordered table-sm align-middle mb-0" style="width: max-content; min-width: <%= 200 + @open_dates.size * 44 %>px;">
             <thead class="table-light">
               <tr>
-                <th class="ps-3 py-2 text-muted small fw-semibold" style="min-width:100px;">職員名</th>
-                <th class="py-2 text-muted small fw-semibold" style="min-width:80px;">雇用形態</th>
+                <th class="ps-3 py-2 text-muted small fw-semibold" style="width:72px; white-space:nowrap;">職員名</th>
+                <th class="py-2 text-muted small fw-semibold" style="width:88px; white-space:nowrap;">雇用形態</th>
                 <% @open_dates.each do |date| %>
                   <th class="text-center py-1 small fw-semibold <%= date.saturday? ? 'text-primary' : date.sunday? ? 'text-danger' : '' %>"
                       style="width:40px; min-width:40px;">
