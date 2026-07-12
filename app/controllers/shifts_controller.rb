@@ -71,9 +71,13 @@ class ShiftsController < ApplicationController
       redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: parsed[:error] and return
     end
 
+    staff_target_days = constraints[:staffs].each_with_object({}) do |s, h|
+      h[s[:name]] = s[:monthly_target_days] || constraints[:working_days][:regular]
+    end
     fixed_shifts = ShiftPostProcessor.new(
       parsed[:shifts], constraints[:closed_days],
-      constraints[:leave_requests], constraints[:special_dates]
+      constraints[:leave_requests], constraints[:special_dates],
+      staff_target_days
     ).process
     assigned_shifts = DutyAssigner.new(fixed_shifts, constraints, target_month).assign
     saver = ShiftSaver.new(target_month, assigned_shifts, current_library)
