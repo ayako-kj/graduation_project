@@ -78,6 +78,9 @@ class StaffsController < ApplicationController
   end
 
   def staff_params
-    params.require(:staff).permit(:name, :staff_type_id, :employment_type_id, :weekly_work_days)
+    raw = params.require(:staff).permit(:name, :staff_type_id, :employment_type_id, :weekly_work_days,
+                                        unavailable_wdays: [])
+    wdays = Array(raw.delete(:unavailable_wdays)).reject(&:blank?).map(&:to_i)
+    raw.merge(unavailable_wdays: wdays.to_json)
   end
 end

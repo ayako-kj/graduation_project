@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  shift_group: one
+  staff: one
+  date: 2026-07-08
+  is_working: false
+  validation_errors: MyText
+
+two:
+  shift_group: two
+  staff: two
+  date: 2026-07-08
+  is_working: false
+  validation_errors: MyText

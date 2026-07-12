@@ -11,7 +11,7 @@ class ConsecutiveWorkValidator
 
     shifts_by_staff.each do |staff_name, staff_shifts|
       working_dates = staff_shifts
-        .select { |s| s[:is_working] }
+        .select { |s| s[:is_working] && !s[:is_holiday_post_duty] }
         .map { |s| s[:date] }
         .sort
 
