@@ -24,7 +24,8 @@ class WorkingDaySummariesController < ApplicationController
     elsif @active_tab == "duty"
       build_duty_summary(months)
     else
-      raw_month = params[:view_month].presence || months.first.strftime("%Y-%m")
+      default_month = months.select { |m| m <= Date.today }.last || months.first
+      raw_month = params[:view_month].presence || default_month.strftime("%Y-%m")
       @view_month = Date.parse("#{raw_month}-01")
       build_monthly_all_staff_summary(months)
     end
