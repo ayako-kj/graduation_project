@@ -10,9 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_12_125221) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_12_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "actual_leaves", force: :cascade do |t|
+    t.bigint "staff_id", null: false
+    t.date "date", null: false
+    t.string "leave_type", default: "annual", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["staff_id", "date"], name: "index_actual_leaves_on_staff_id_and_date", unique: true
+    t.index ["staff_id"], name: "index_actual_leaves_on_staff_id"
+  end
 
   create_table "admins", force: :cascade do |t|
     t.string "email", default: "", null: false
@@ -184,6 +194,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_125221) do
     t.index ["staff_id"], name: "index_workday_manual_entries_on_staff_id"
   end
 
+  add_foreign_key "actual_leaves", "staffs"
   add_foreign_key "admins", "libraries"
   add_foreign_key "assignments", "libraries"
   add_foreign_key "leave_requests", "staffs"

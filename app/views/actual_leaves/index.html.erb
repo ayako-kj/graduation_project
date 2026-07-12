@@ -1,0 +1,91 @@
+<% content_for :title, "休暇種別入力 | LibShiftAI_Pitat" %>
+
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="fs-4 fw-bold mb-0">休暇種別入力</h1>
+    <%= link_to shifts_path(month: @target_month.strftime("%Y-%m")),
+        class: "btn btn-sm btn-outline-secondary rounded-pill" do %>
+      <i class="bi bi-arrow-left me-1"></i>シフト表に戻る
+    <% end %>
+  </div>
+
+  <div class="pitat-card p-3 mb-3 small text-muted">
+    <i class="bi bi-info-circle me-1"></i>
+    シフト生成後に、各職員の「休み」の種別を入力してください。
+    <strong>「休（公休）」はデフォルトのため入力不要です。</strong>
+    「年・夏・特・病」は出勤日数にカウントされます。
+    空欄のセルは「休（公休）」として扱います。
+  </div>
+
+  <div class="pitat-card p-3 mb-3 d-flex align-items-center gap-2 flex-wrap">
+    <%= form_with url: actual_leaves_path, method: :get, class: "d-flex align-items-center gap-2" do |f| %>
+      <%= f.month_field :month, value: @target_month.strftime("%Y-%m"), class: "form-control form-control-sm", style: "width: auto;" %>
+      <%= f.submit "表示", class: "btn btn-sm btn-outline-secondary rounded-pill px-3" %>
+    <% end %>
+    <span class="ms-2 text-muted small">
+      <% ActualLeave::LEAVE_LABELS.each do |type, label| %>
+        <span class="badge bg-secondary me-1"><%= ActualLeave::LEAVE_TYPES[type] %></span><%= label %>
+      <% end %>
+      <span class="badge bg-light text-dark border me-1">休</span>公休（入力不要）
+    </span>
+  </div>
+
+  <% if @open_dates.empty? %>
+    <div class="alert alert-warning">この月のシフトデータが見つかりません。</div>
+  <% else %>
+    <%= form_with url: save_actual_leaves_path(month: @target_month.strftime("%Y-%m")), method: :post do |f| %>
+      <div class="pitat-card p-0 overflow-hidden mb-3">
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm align-middle mb-0" style="min-width: <%= 180 + @open_dates.size * 52 %>px;">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3 py-2 text-muted small fw-semibold" style="min-width:100px;">職員名</th>
+                <th class="py-2 text-muted small fw-semibold" style="min-width:80px;">雇用形態</th>
+                <% @open_dates.each do |date| %>
+                  <th class="text-center py-2 small fw-semibold <%= date.saturday? ? 'text-primary' : date.sunday? ? 'text-danger' : '' %>"
+                      style="min-width:48px;">
+                    <%= date.day %>日<br>
+                    <span class="fw-normal"><%= %w[日 月 火 水 木 金 土][date.wday] %></span>
+                  </th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody>
+              <% @staffs.each do |staff| %>
+                <tr>
+                  <td class="ps-3 py-1 fw-semibold small"><%= staff.name %></td>
+                  <td class="py-1 small text-muted"><%= staff.employment_type.name %></td>
+                  <% @open_dates.each do |date| %>
+                    <% shift = @shift_map[[staff.id, date]] %>
+                    <% leave = @leave_map[[staff.id, date]] %>
+                    <td class="text-center p-1
+                      <%= shift&.is_working ? 'bg-light text-muted' : '' %>">
+                      <% if shift&.is_working %>
+                        <span class="small text-muted">出</span>
+                      <% else %>
+                        <select name="leaves[<%= staff.id %>][<%= date.strftime('%Y-%m-%d') %>]"
+                                class="form-select form-select-sm p-0 text-center border-0 bg-transparent"
+                                style="font-size:0.75rem; width:42px; cursor:pointer;">
+                          <option value="">休</option>
+                          <% ActualLeave::LEAVE_TYPES.each do |type, symbol| %>
+                            <option value="<%= type %>" <%= 'selected' if leave&.leave_type == type %>><%= symbol %></option>
+                          <% end %>
+                        </select>
+                      <% end %>
+                    </td>
+                  <% end %>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="text-end">
+        <%= f.submit "#{@target_month.strftime('%Y年%-m月')}の休暇種別を保存する",
+            class: "btn btn-pitat rounded-pill px-4 fw-semibold",
+            data: { turbo_confirm: "#{@target_month.strftime('%Y年%-m月')}の休暇種別を保存しますか？" } %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

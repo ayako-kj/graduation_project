@@ -49,6 +49,34 @@ class ShiftsController < ApplicationController
     render "download", formats: [:xlsx]
   end
 
+  def export
+    @target_month = parse_target_month
+    @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
+    @shift_group = current_library.shift_groups.find_by(target_month: @target_month.beginning_of_month)
+
+    holidays = HolidayFetcher.fetch(@target_month.year)
+    @closed_days = ClosedDayCalculator.new(@target_month, holidays).closed_days_with_labels
+    @holidays_in_month = holidays.select { |d, _| d >= @target_month.beginning_of_month && d <= @target_month.end_of_month }
+    @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
+
+    if @shift_group
+      @shifts_map = @shift_group.shifts.includes(:staff).each_with_object({}) do |s, h|
+        h[s.staff_id] ||= {}
+        h[s.staff_id][s.date] = s
+      end
+    else
+      @shifts_map = {}
+    end
+
+    @leave_map = ActualLeave
+      .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
+      .index_by { |l| [l.staff_id, l.date] }
+
+    filename = "勤務予定表_#{@target_month.strftime('%Y年%m月')}.xlsx"
+    response.headers["Content-Disposition"] = "attachment; filename*=UTF-8''#{ERB::Util.url_encode(filename)}"
+    render "export", formats: [:xlsx]
+  end
+
   def generate
     target_month = parse_target_month
 

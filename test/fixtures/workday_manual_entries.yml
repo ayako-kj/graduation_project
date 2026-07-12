@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  staff: one
+  year_month: 2026-07-10
+  working_days: 1
+  note: MyText
+
+two:
+  staff: two
+  year_month: 2026-07-10
+  working_days: 1
+  note: MyText

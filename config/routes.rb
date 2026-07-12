@@ -34,6 +34,13 @@ Rails.application.routes.draw do
     collection do
       post :generate
       get :download
+      get :export
+    end
+  end
+
+  resources :actual_leaves, only: [:index] do
+    collection do
+      post :save
     end
   end
 

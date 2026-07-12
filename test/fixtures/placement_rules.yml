@@ -1,0 +1,9 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  staff_type: one
+  min_count: 1
+
+two:
+  staff_type: two
+  min_count: 1

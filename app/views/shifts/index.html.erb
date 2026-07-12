@@ -20,10 +20,16 @@
 
       <%# Excelダウンロードボタン %>
       <% if @shift_group %>
-        <%= link_to download_shifts_path(month: @target_month.strftime("%Y-%m")),
-            class: "btn btn-outline-success rounded-pill px-4 fw-semibold" do %>
-          <i class="bi bi-file-earmark-excel me-1"></i>Excelダウンロード
-        <% end %>
+        <div class="d-flex gap-2 flex-wrap">
+          <%= link_to actual_leaves_path(month: @target_month.strftime("%Y-%m")),
+              class: "btn btn-outline-secondary rounded-pill px-3 fw-semibold" do %>
+            <i class="bi bi-pencil-square me-1"></i>休暇種別入力
+          <% end %>
+          <%= link_to export_shifts_path(month: @target_month.strftime("%Y-%m")),
+              class: "btn btn-outline-success rounded-pill px-4 fw-semibold" do %>
+            <i class="bi bi-file-earmark-excel me-1"></i>勤務予定表(Excel)
+          <% end %>
+        </div>
       <% end %>
     </div>
   </div>

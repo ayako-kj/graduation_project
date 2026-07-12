@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  name: MyString
+  staff_type: one
+  employment_type: one
+  weekly_work_days: 1
+
+two:
+  name: MyString
+  staff_type: two
+  employment_type: two
+  weekly_work_days: 1
