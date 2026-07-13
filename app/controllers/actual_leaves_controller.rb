@@ -7,7 +7,7 @@ class ActualLeavesController < ApplicationController
 
     holidays = HolidayFetcher.fetch(@target_month.year)
     closed = ClosedDayCalculator.new(@target_month, holidays,
-               regular_closed_wday: current_library.regular_closed_wday).closed_days_with_labels
+               closed_wdays: current_library.closed_wdays_array).closed_days_with_labels
     @open_dates = (@target_month.beginning_of_month..@target_month.end_of_month)
                     .reject { |d| closed.key?(d) }
 

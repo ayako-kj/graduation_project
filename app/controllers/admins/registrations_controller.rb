@@ -44,8 +44,8 @@ class Admins::RegistrationsController < Devise::RegistrationsController
     if resource_updated
       library_attrs = {}
       library_attrs[:name]                = library_name if library_name.present?
-      raw_wday = params.dig(:admin, :regular_closed_wday)
-      library_attrs[:regular_closed_wday] = raw_wday.present? ? raw_wday.to_i : nil
+      wdays = Array(params.dig(:admin, :closed_wdays)).reject(&:blank?).map(&:to_i)
+      library_attrs[:closed_wdays] = wdays.to_json
       current_library.update(library_attrs)
       bypass_sign_in(resource) if credential_changed
       redirect_to edit_admin_registration_path, notice: "アカウント情報を更新しました。"

@@ -8,4 +8,12 @@ class Library < ApplicationRecord
   has_many :mobile_libraries, dependent: :destroy
 
   validates :name, presence: true
+
+  WDAY_NAMES = %w[日 月 火 水 木 金 土].freeze
+
+  def closed_wdays_array
+    JSON.parse(closed_wdays || "[]").map(&:to_i)
+  rescue JSON::ParserError
+    []
+  end
 end
