@@ -81,7 +81,18 @@
                     <% shift = @shift_map[[staff.id, date]] %>
                     <% leave = @leave_map[[staff.id, date]] %>
                     <% is_working = shift&.is_working %>
-                    <td class="p-0 <%= date.saturday? ? 'table-info' : date.sunday? ? 'table-danger' : (is_working ? 'bg-light' : '') %>">
+                    <% is_leave_request = @leave_requests_set.include?([staff.id, date]) %>
+                    <%
+                      cell_class = if date.saturday?
+                        "table-info"
+                      elsif date.sunday?
+                        "table-danger"
+                      elsif is_working
+                        "bg-light"
+                      end
+                      cell_style = (!is_working && is_leave_request) ? "background-color:#FEF3C7;" : nil
+                    %>
+                    <td class="p-0 <%= cell_class %>" style="<%= cell_style %>">
                       <% if is_working %>
                         <span class="text-success fw-bold">○</span>
                       <% else %>

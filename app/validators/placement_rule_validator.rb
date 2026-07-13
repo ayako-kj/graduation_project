@@ -1,6 +1,7 @@
 class PlacementRuleValidator
-  def initialize(shifts)
+  def initialize(shifts, closed_days = {})
     @shifts = shifts
+    @closed_days = closed_days
     @rules = PlacementRule.includes(:staff_type, :employment_type).all
     @staff_info_map = Staff.includes(:staff_type, :employment_type).each_with_object({}) do |staff, hash|
       hash[staff.name] = {
@@ -17,6 +18,7 @@ class PlacementRuleValidator
     shifts_by_date = @shifts.group_by { |s| s[:date] }
 
     shifts_by_date.each do |date, day_shifts|
+      next if @closed_days.key?(date)
       working = day_shifts.select { |s| s[:is_working] }
 
       @rules.each do |rule|

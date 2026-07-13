@@ -1,5 +1,5 @@
 class ShiftPostProcessor
-  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [], staff_target_days = {})
+  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [], staff_target_days = {}, assignment_constraints = [])
     @shifts = parsed_shifts
     @closed_days = closed_days
     @staff_target_days = staff_target_days
@@ -13,6 +13,14 @@ class ShiftPostProcessor
       next if sd[:designated_staffs].empty?
       h[Date.parse(sd[:date])] = sd[:designated_staffs]
     end
+    # 担当会議日: {date => [staff_name, ...]}
+    @assignment_dates = assignment_constraints.each_with_object({}) do |ac, h|
+      ac[:dates].each do |date_str|
+        date = Date.parse(date_str)
+        h[date] ||= []
+        h[date].concat(ac[:staff_names])
+      end
+    end
     @staff_info = build_staff_info
     @rules = build_rules
   end
@@ -20,6 +28,7 @@ class ShiftPostProcessor
   def process
     fix_closed_days
     fix_special_dates
+    fix_assignment_dates
     fix_excess_staff
     fix_weekend_consecutive
     5.times do
@@ -32,6 +41,7 @@ class ShiftPostProcessor
       break if @shifts.map { |s| s[:is_working] } == snapshot
     end
     fix_target_days
+    fix_excess_days
     @shifts
   end
 
@@ -118,20 +128,33 @@ class ShiftPostProcessor
   end
 
   def fix_special_dates
-    # 全員出勤日：希望休を除く全職員を出勤にする
+    # 全員出勤日：希望休を除く全職員を出勤にする（閉館日は除く）
     @all_staff_dates.each do |date|
       next if @closed_days.key?(date)
       @shifts.select { |s| s[:date] == date }.each do |shift|
         shift[:is_working] = true unless @leave_set.include?([shift[:staff_name], date])
       end
     end
-    # 指定職員出勤日：指定された職員を出勤にする
+    # 指定職員出勤日：指定された職員を出勤にする（閉館日でも適用）
     @designated_dates.each do |date, staff_names|
+      @shifts.select { |s| s[:date] == date && staff_names.include?(s[:staff_name]) }.each do |shift|
+        shift[:is_working] = true unless @leave_set.include?([shift[:staff_name], date])
+      end
+    end
+  end
+
+  def fix_assignment_dates
+    @assignment_dates.each do |date, staff_names|
       next if @closed_days.key?(date)
       @shifts.select { |s| s[:date] == date && staff_names.include?(s[:staff_name]) }.each do |shift|
         shift[:is_working] = true unless @leave_set.include?([shift[:staff_name], date])
       end
     end
+  end
+
+  def assignment_protected?(staff_name, date)
+    return false if @leave_set.include?([staff_name, date])
+    @assignment_dates[date]&.include?(staff_name) || @designated_dates[date]&.include?(staff_name)
   end
 
   def fix_excess_staff
@@ -149,9 +172,10 @@ class ShiftPostProcessor
       next if working.size <= max_per_day
 
       excess = working.size - max_per_day
-      # 優先削減順：目標超過 → 不可曜日 → 勤務日数多い
+      # 優先削減順：目標超過 → 不可曜日 → 勤務日数多い（担当会議日は保護）
       candidates = working
         .reject { |s| essential_for_rules?(s, working) }
+        .reject { |s| assignment_protected?(s[:staff_name], s[:date]) }
         .sort_by { |s|
           wdays = @staff_info.dig(s[:staff_name], :unavailable_wdays) || []
           unavailable = wdays.include?(s[:date].wday) ? 0 : 1
@@ -175,12 +199,13 @@ class ShiftPostProcessor
         sun_shift = shifts_by_date[sat_shift[:date] + 1]
         next unless sun_shift&.[](:is_working)
 
-        # 土日連続：前の金曜か後の月曜を休みにする（出勤者が多い日を優先）
+        # 土日連続：前の金曜か後の月曜を休みにする（出勤者が多い日を優先、担当会議日は保護）
         friday = sat_shift[:date] - 1
         monday = sat_shift[:date] + 2
         candidates = [friday, monday].filter_map do |date|
           s = shifts_by_date[date]
-          s if s&.[](:is_working) && !@leave_set.include?([staff_name, date]) && !@closed_days.key?(date)
+          s if s&.[](:is_working) && !@leave_set.include?([staff_name, date]) &&
+               !@closed_days.key?(date) && !assignment_protected?(staff_name, date)
         end
         next if candidates.empty?
 
@@ -199,8 +224,10 @@ class ShiftPostProcessor
         violation = groups.find { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
         break unless violation
 
-        # 6日目以降で、当日の出勤者が最も多い日を選んで休みにする
+        # 6日目以降で、当日の出勤者が最も多い日を選んで休みにする（担当会議日は保護）
         excess_dates = violation[ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS..]
+                         .reject { |d| assignment_protected?(staff_name, d) }
+        break if excess_dates.empty?
         target_date = excess_dates.max_by { |d| @shifts.count { |s| s[:date] == d && s[:is_working] } }
         target_shift = staff_shifts.find { |s| s[:date] == target_date }
         break unless target_shift
@@ -283,13 +310,18 @@ class ShiftPostProcessor
     end.sort_by { |_, diff| -diff }
 
     by_shortfall.each do |staff_name, shortfall|
-      resting = @shifts.select do |s|
+      unavailable_wdays = @staff_info.dig(staff_name, :unavailable_wdays) || []
+      base_filter = ->(s) {
         s[:staff_name] == staff_name && !s[:is_working] &&
           !@closed_days.key?(s[:date]) && !@leave_set.include?([staff_name, s[:date]])
-      end.sort_by { |s| [daily_counts[s[:date]], s[:date]] }
+      }
+      # unavailable_wdays の日は後回し（できるだけ出勤しない）
+      resting = @shifts.select { |s| base_filter.call(s) && !unavailable_wdays.include?(s[:date].wday) }
+                       .sort_by { |s| [daily_counts[s[:date]], s[:date]] } +
+               @shifts.select { |s| base_filter.call(s) && unavailable_wdays.include?(s[:date].wday) }
+                       .sort_by { |s| [daily_counts[s[:date]], s[:date]] }
 
       added = 0
-      # まず連続勤務違反を起こさない日を追加
       resting.each do |shift|
         break if added >= shortfall
         next if would_cause_consecutive_violation?(staff_name, shift[:date])
@@ -297,14 +329,62 @@ class ShiftPostProcessor
         daily_counts[shift[:date]] += 1
         added += 1
       end
-
-      # それでも不足する場合はやむを得ず追加
       resting.each do |shift|
         break if added >= shortfall
         next if shift[:is_working]
         shift[:is_working] = true
         daily_counts[shift[:date]] += 1
         added += 1
+      end
+    end
+  end
+
+  def fix_excess_days
+    return if @staff_target_days.empty?
+
+    monthly_work_days = @shifts.each_with_object(Hash.new(0)) { |s, h| h[s[:staff_name]] += 1 if s[:is_working] }
+
+    # 超過が大きい職員を優先して削減
+    by_excess = @staff_target_days.filter_map do |name, target|
+      diff = monthly_work_days[name] - target
+      diff > 0 ? [name, diff] : nil
+    end.sort_by { |_, diff| -diff }
+
+    by_excess.each do |staff_name, excess|
+      # 全員出勤日・閉館日を除いた出勤シフトを削減候補にする
+      # 優先順：出勤者が多い日 → 削減後の連続休みが短い日（月初偏り防止）
+      staff_on = @shifts.select { |s| s[:staff_name] == staff_name && s[:is_working] }
+                        .map { |s| s[:date] }.to_set
+      working_shifts = @shifts.select { |s|
+        s[:staff_name] == staff_name && s[:is_working] &&
+          !@closed_days.key?(s[:date]) && !@all_staff_dates.include?(s[:date]) &&
+          !@leave_set.include?([staff_name, s[:date]]) &&
+          !assignment_protected?(staff_name, s[:date])
+      }.sort_by { |s|
+        day_count = @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] }
+        d = s[:date] - 1
+        pre = 0
+        while d >= s[:date].beginning_of_month && !staff_on.include?(d) && !@closed_days.key?(d)
+          pre += 1; d -= 1
+        end
+        d = s[:date] + 1
+        post = 0
+        while d <= s[:date].end_of_month && !staff_on.include?(d) && !@closed_days.key?(d)
+          post += 1; d += 1
+        end
+        [-day_count, pre + post + 1]
+      }
+
+      removed = 0
+      working_shifts.each do |shift|
+        break if removed >= excess
+        day_shifts = @shifts.select { |s| s[:date] == shift[:date] }
+        working = day_shifts.select { |s| s[:is_working] }
+        next if working.size <= TotalCountValidator::MIN_STAFF_COUNT
+        next if essential_for_rules?(shift, working)
+        shift[:is_working] = false
+        monthly_work_days[staff_name] -= 1
+        removed += 1
       end
     end
   end

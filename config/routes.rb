@@ -30,9 +30,11 @@ Rails.application.routes.draw do
     resources :mobile_library_routes, path: :routes
   end
 
-  resources :shifts, only: [:index] do
+  resources :shifts, only: [:index, :update] do
     collection do
       post :generate
+      post :confirm
+      post :restore
       get :download
       get :export
     end

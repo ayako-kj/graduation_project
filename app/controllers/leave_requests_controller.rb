@@ -46,7 +46,7 @@ class LeaveRequestsController < ApplicationController
   end
 
   def set_form_options
-    @staffs = current_library.staffs.order(:name)
+    @staffs = current_library.staffs.order(:sort_order, :id)
   end
 
   def leave_request_params

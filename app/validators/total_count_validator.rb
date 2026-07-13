@@ -1,8 +1,9 @@
 class TotalCountValidator
   MIN_STAFF_COUNT = 12
 
-  def initialize(shifts)
+  def initialize(shifts, closed_days = {})
     @shifts = shifts
+    @closed_days = closed_days
   end
 
   def validate
@@ -10,6 +11,7 @@ class TotalCountValidator
 
     shifts_by_date = @shifts.group_by { |s| s[:date] }
     shifts_by_date.each do |date, day_shifts|
+      next if @closed_days.key?(date)
       working_count = day_shifts.count { |s| s[:is_working] }
       if working_count < MIN_STAFF_COUNT
         violations << {
