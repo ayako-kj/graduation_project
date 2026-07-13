@@ -33,11 +33,13 @@ class ShiftsController < ApplicationController
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .pluck(:staff_id, :date).to_set
 
-    # 特定日マップ：date => Set of staff_id（または :all）
-    @special_dates_map = {}
+    # 特定日マップ：date => Set of staff_id（または :all）＋ラベル
+    @special_dates_map    = {}
+    @special_date_labels  = {}
     SpecialDate.includes(:designated_staffs)
                .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                .each do |sd|
+      @special_date_labels[sd.date] = sd.label if sd.label.present?
       if sd.target_group == "全職員"
         @special_dates_map[sd.date] = :all
       elsif sd.designated_staffs.any?
@@ -187,6 +189,11 @@ class ShiftsController < ApplicationController
     @leave_map = ActualLeave
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .index_by { |l| [l.staff_id, l.date] }
+
+    @special_date_labels = SpecialDate
+      .where(library: current_library, date: @target_month.beginning_of_month..@target_month.end_of_month)
+      .where.not(label: [nil, ""])
+      .pluck(:date, :label).to_h
 
     filename = "勤務予定表_#{@target_month.strftime('%Y年%m月')}.xlsx"
     response.headers["Content-Disposition"] = "attachment; filename*=UTF-8''#{ERB::Util.url_encode(filename)}"

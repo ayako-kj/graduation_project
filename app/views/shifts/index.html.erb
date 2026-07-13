@@ -54,6 +54,16 @@
           <% end %>
         </div>
       </div>
+      <% if @special_date_labels.any? %>
+        <div>
+          <div class="text-muted small fw-semibold mb-1"><i class="bi bi-star-fill me-1" style="color:#059669;"></i>特定日</div>
+          <div class="small">
+            <% @special_date_labels.sort.each do |date, label| %>
+              <span class="me-3"><%= date.strftime('%-m/%-d') %>（<span class="fw-semibold"><%= label %></span>）</span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
     </div>
   </div>
 
@@ -99,11 +109,16 @@
             <th class="text-start ps-3 py-2" style="min-width: 120px;">職員名</th>
             <% @dates.each do |date| %>
               <% is_closed = @closed_days.key?(date) %>
+              <% sd_label = @special_date_labels[date] %>
+              <% tooltip = [is_closed ? @closed_days[date] : nil, sd_label].compact.join(" / ") %>
               <th class="py-2 <%= is_closed ? '' : (date.saturday? || date.sunday? ? 'table-info' : '') %>"
                   style="min-width: 36px; <%= is_closed ? 'background-color:#dee2e6;' : '' %>"
-                  <% if is_closed %> title="<%= @closed_days[date] %>" data-bs-toggle="tooltip" <% end %>>
+                  <%= tooltip.present? ? "title=\"#{tooltip}\" data-bs-toggle=\"tooltip\" data-bs-placement=\"top\"" : "" %>>
                 <div><%= date.day %></div>
                 <div class="text-muted" style="font-size: 0.7rem;"><%= %w[日 月 火 水 木 金 土][date.wday] %></div>
+                <% if sd_label.present? %>
+                  <div style="font-size: 0.6rem; color: #059669; line-height: 1; margin-top: 1px;">★</div>
+                <% end %>
               </th>
             <% end %>
             <th class="py-2" style="min-width: 44px;">合計</th>
