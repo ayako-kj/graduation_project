@@ -13,6 +13,8 @@ class Staff < ApplicationRecord
 
   validates :name, presence: true
 
+  before_create :generate_access_token
+
   WDAY_NAMES = %w[日 月 火 水 木 金 土].freeze
 
   def unavailable_wdays_array
@@ -23,5 +25,15 @@ class Staff < ApplicationRecord
 
   def unavailable_wdays_label
     unavailable_wdays_array.map { |w| "#{WDAY_NAMES[w]}曜日" }.join("・")
+  end
+
+  def regenerate_token!
+    update!(access_token: SecureRandom.urlsafe_base64(16))
+  end
+
+  private
+
+  def generate_access_token
+    self.access_token ||= SecureRandom.urlsafe_base64(16)
   end
 end

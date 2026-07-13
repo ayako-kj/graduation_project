@@ -1,6 +1,6 @@
 class StaffsController < ApplicationController
   before_action :authenticate_admin!
-  before_action :set_staff, only: %i[edit update destroy move_up move_down]
+  before_action :set_staff, only: %i[edit update destroy move_up move_down regenerate_token]
 
   def index
     @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
@@ -52,6 +52,32 @@ class StaffsController < ApplicationController
     below = current_library.staffs.where("sort_order > ?", @staff.sort_order).order(sort_order: :asc).first
     swap_sort_order(@staff, below) if below
     redirect_to staffs_path
+  end
+
+  def hope_urls
+    @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
+    @base_url = request.base_url
+  end
+
+  def hope_qrcodes
+    @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
+    base_url = request.base_url
+    @qr_data = @staffs.each_with_object({}) do |staff, h|
+      url = "#{base_url}/hope?token=#{staff.access_token}"
+      h[staff.id] = {
+        url: url,
+        svg: RQRCode::QRCode.new(url).as_svg(
+          offset: 0, color: "000", shape_rendering: "crispEdges",
+          module_size: 4, standalone: true
+        )
+      }
+    end
+    @library_name = current_library.name
+  end
+
+  def regenerate_token
+    @staff.regenerate_token!
+    redirect_to hope_urls_staffs_path, notice: "#{@staff.name}のURLを再発行しました。"
   end
 
   private

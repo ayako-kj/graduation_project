@@ -1,0 +1,92 @@
+<% content_for :title, "希望休入力 | LibShiftAI_Pitat" %>
+
+<style>
+  .date-toggle { cursor: pointer; }
+  .date-toggle input[type="checkbox"] { display: none; }
+  .date-toggle input[type="checkbox"]:checked + .date-card {
+    background-color: #FEF3C7 !important;
+    border-color: #f59e0b !important;
+    color: #92400E !important;
+  }
+  .date-toggle input[type="checkbox"]:checked + .date-card .date-hint { display: block !important; }
+  .date-toggle input[type="checkbox"]:not(:checked) + .date-card .date-hint { display: none !important; }
+  .date-card:hover { opacity: 0.8; }
+</style>
+
+<div class="container py-5" style="max-width: 720px;">
+
+  <div class="text-center mb-4">
+    <p class="text-muted small mb-1">LibShiftAI Pitat</p>
+    <h1 class="fs-3 fw-bold mb-1">希望休の入力</h1>
+    <p class="text-muted">こんにちは、<strong class="text-dark"><%= @current_staff.name %></strong>さん</p>
+  </div>
+
+  <%# 月ナビゲーション %>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <%= link_to staff_leave_input_path(token: params[:token], month: (@target_month << 1).strftime("%Y-%m")),
+        class: "btn btn-outline-secondary btn-sm rounded-pill px-3" do %>
+      ＜ 前月
+    <% end %>
+    <h2 class="fs-5 fw-bold mb-0"><%= @target_month.strftime("%Y年%-m月") %></h2>
+    <%= link_to staff_leave_input_path(token: params[:token], month: (@target_month >> 1).strftime("%Y-%m")),
+        class: "btn btn-outline-secondary btn-sm rounded-pill px-3" do %>
+      翌月 ＞
+    <% end %>
+  </div>
+
+  <div class="pitat-card p-3 mb-3 small text-muted">
+    <i class="bi bi-info-circle me-1"></i>
+    希望休にしたい日をクリックして選択し、最後に「保存する」を押してください。休館日は選択できません。
+  </div>
+
+  <%= form_with url: save_staff_leave_input_path(token: params[:token], month: @target_month.strftime("%Y-%m")),
+      method: :post do |f| %>
+
+    <div class="pitat-card p-3 mb-4">
+      <div class="d-flex flex-wrap gap-2 justify-content-start">
+        <% @dates.each do |date| %>
+          <% is_closed    = @closed_days.key?(date) %>
+          <% is_selected  = @existing_leave_dates.include?(date) %>
+          <% wday_names   = %w[日 月 火 水 木 金 土] %>
+
+          <% if is_closed %>
+            <div class="text-center rounded border px-2 py-2"
+                 style="min-width:52px; background-color:#f3f4f6; color:#9ca3af; border-color:#e5e7eb;">
+              <div class="small fw-bold"><%= date.day %></div>
+              <div style="font-size:0.7rem;"><%= wday_names[date.wday] %></div>
+              <div style="font-size:0.65rem;">休館</div>
+            </div>
+          <% else %>
+            <label class="date-toggle">
+              <input type="checkbox" name="dates[]" value="<%= date %>" <%= is_selected ? "checked" : "" %>>
+              <div class="date-card rounded border text-center px-2 py-2"
+                   style="min-width:52px; background-color:white;">
+                <div class="small fw-bold"><%= date.day %></div>
+                <div style="font-size:0.7rem;"><%= wday_names[date.wday] %></div>
+                <div class="date-hint fw-semibold" style="font-size:0.65rem; color:#92400E;">希望</div>
+              </div>
+            </label>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+
+    <%# 選択中の日付サマリー %>
+    <div class="pitat-card p-3 mb-4 small" id="selected-summary">
+      <span class="text-muted fw-semibold">現在の希望休：</span>
+      <% if @existing_leave_dates.any? %>
+        <span class="text-warning-emphasis fw-semibold">
+          <%= @existing_leave_dates.sort.map { |d| "#{d.month}/#{d.day}" }.join("、") %>
+        </span>
+      <% else %>
+        <span class="text-muted">なし</span>
+      <% end %>
+      <div class="text-muted" style="font-size:0.75rem; margin-top:4px;">※ 保存後に反映されます</div>
+    </div>
+
+    <div class="text-center">
+      <%= f.submit "#{@target_month.strftime('%Y年%-m月')}の希望休を保存する",
+          class: "btn btn-pitat rounded-pill px-5 fw-semibold" %>
+    </div>
+  <% end %>
+</div>

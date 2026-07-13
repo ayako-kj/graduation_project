@@ -20,8 +20,17 @@ Rails.application.routes.draw do
     member do
       patch :move_up
       patch :move_down
+      post :regenerate_token
+    end
+    collection do
+      get :hope_urls
+      get :hope_qrcodes
     end
   end
+
+  # 職員向け希望休入力（トークン認証・ログイン不要）
+  get  "/hope",      to: "staff_leave_requests#index", as: :staff_leave_input
+  post "/hope/save", to: "staff_leave_requests#save",  as: :save_staff_leave_input
   resources :placement_rules
   resources :special_dates
   resources :leave_requests
