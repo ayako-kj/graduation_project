@@ -8,9 +8,9 @@ class ShiftsController < ApplicationController
     @shift_group = current_library.shift_groups.find_by(target_month: @target_month.beginning_of_month)
 
     holidays = HolidayFetcher.fetch(@target_month.year)
-    wday = current_library.regular_closed_wday
-    closed_calc = ClosedDayCalculator.new(@target_month, holidays, regular_closed_wday: wday)
-    working_calc = WorkingDayCalculator.new(@target_month, holidays, regular_closed_wday: wday)
+    wdays = current_library.closed_wdays_array
+    closed_calc = ClosedDayCalculator.new(@target_month, holidays, closed_wdays: wdays)
+    working_calc = WorkingDayCalculator.new(@target_month, holidays, closed_wdays: wdays)
     @closed_days = closed_calc.closed_days_with_labels
     @working_days = { regular: working_calc.regular_staff_days, hourly: working_calc.hourly_staff_days }
 
@@ -134,7 +134,7 @@ class ShiftsController < ApplicationController
     shift_group = shift.shift_group
     holidays = HolidayFetcher.fetch(shift_group.target_month.year)
     closed_days = ClosedDayCalculator.new(shift_group.target_month, holidays,
-                    regular_closed_wday: current_library.regular_closed_wday).closed_days_with_labels
+                    closed_wdays: current_library.closed_wdays_array).closed_days_with_labels
     shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
       { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
     end
@@ -152,7 +152,7 @@ class ShiftsController < ApplicationController
 
     holidays = HolidayFetcher.fetch(@target_month.year)
     @closed_days = ClosedDayCalculator.new(@target_month, holidays,
-                     regular_closed_wday: current_library.regular_closed_wday).closed_days_with_labels
+                     closed_wdays: current_library.closed_wdays_array).closed_days_with_labels
 
     if @shift_group
       shifts = @shift_group.shifts.includes(:staff)
@@ -176,7 +176,7 @@ class ShiftsController < ApplicationController
 
     holidays = HolidayFetcher.fetch(@target_month.year)
     @closed_days = ClosedDayCalculator.new(@target_month, holidays,
-                     regular_closed_wday: current_library.regular_closed_wday).closed_days_with_labels
+                     closed_wdays: current_library.closed_wdays_array).closed_days_with_labels
     @holidays_in_month = holidays.select { |d, _| d >= @target_month.beginning_of_month && d <= @target_month.end_of_month }
     @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
 

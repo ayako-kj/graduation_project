@@ -1,10 +1,10 @@
 class ClosedDayCalculator
-  # regular_closed_wday: 0=日 1=月 2=火 3=水 4=木 5=金 6=土、nilは定休曜日なし
-  def initialize(target_month, holidays, regular_closed_wday: 2)
-    @start_date          = target_month.beginning_of_month
-    @end_date            = target_month.end_of_month
-    @holidays            = holidays
-    @regular_closed_wday = regular_closed_wday
+  # closed_wdays: 0=日 1=月 2=火 3=水 4=木 5=金 6=土 の整数配列
+  def initialize(target_month, holidays, closed_wdays: [2])
+    @start_date   = target_month.beginning_of_month
+    @end_date     = target_month.end_of_month
+    @holidays     = holidays
+    @closed_wdays = Array(closed_wdays).map(&:to_i)
   end
 
   def closed_days
@@ -21,18 +21,10 @@ class ClosedDayCalculator
   private
 
   def closed?(date)
-    regular_closed?(date) || @holidays.key?(date)
-  end
-
-  def regular_closed?(date)
-    @regular_closed_wday.present? && date.wday == @regular_closed_wday
+    @closed_wdays.include?(date.wday) || @holidays.key?(date)
   end
 
   def label_for(date)
-    if @holidays.key?(date)
-      @holidays[date]
-    else
-      "定休日"
-    end
+    @holidays.key?(date) ? @holidays[date] : "定休日"
   end
 end

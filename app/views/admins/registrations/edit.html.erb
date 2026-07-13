@@ -23,14 +23,20 @@
         <%= f.text_field :library_name, value: current_library.name, class: "form-control", placeholder: "例：○○市立中央図書館" %>
       </div>
       <div class="mb-0">
-        <%= f.label :regular_closed_wday, "定休曜日", class: "form-label fw-semibold small" %>
-        <div class="form-text mb-1">毎週この曜日が休館日として扱われます。</div>
-        <%= f.select :regular_closed_wday,
-            [["なし（定休曜日なし）", ""],
-             ["日曜日", 0], ["月曜日", 1], ["火曜日", 2],
-             ["水曜日", 3], ["木曜日", 4], ["金曜日", 5], ["土曜日", 6]],
-            { selected: current_library.regular_closed_wday.to_s },
-            class: "form-select" %>
+        <div class="form-label fw-semibold small">定休曜日</div>
+        <div class="form-text mb-2">チェックした曜日が毎週の休館日として扱われます（複数選択可）。</div>
+        <div class="d-flex flex-wrap gap-3">
+          <% [[0,"日"], [1,"月"], [2,"火"], [3,"水"], [4,"木"], [5,"金"], [6,"土"]].each do |wday, name| %>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox"
+                     name="admin[closed_wdays][]"
+                     value="<%= wday %>"
+                     id="closed_wday_<%= wday %>"
+                     <%= current_library.closed_wdays_array.include?(wday) ? "checked" : "" %>>
+              <label class="form-check-label" for="closed_wday_<%= wday %>"><%= name %>曜</label>
+            </div>
+          <% end %>
+        </div>
       </div>
     </div>
 
