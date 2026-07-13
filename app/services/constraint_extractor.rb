@@ -17,8 +17,9 @@ class ConstraintExtractor
     else
       HolidayFetcher.fetch(fiscal_year).merge(@holidays)
     end
-    @closed_calc = ClosedDayCalculator.new(@target_month, @holidays)
-    @working_calc = WorkingDayCalculator.new(@target_month, @holidays)
+    wday = @library.regular_closed_wday
+    @closed_calc = ClosedDayCalculator.new(@target_month, @holidays, regular_closed_wday: wday)
+    @working_calc = WorkingDayCalculator.new(@target_month, @holidays, regular_closed_wday: wday)
     @closed_days_with_labels = @closed_calc.closed_days_with_labels
 
     {

@@ -1,8 +1,9 @@
 class WorkingDayCalculator
-  def initialize(target_month, holidays)
-    @start_date = target_month.beginning_of_month
-    @end_date = target_month.end_of_month
-    @holidays = holidays
+  def initialize(target_month, holidays, regular_closed_wday: 2)
+    @start_date          = target_month.beginning_of_month
+    @end_date            = target_month.end_of_month
+    @holidays            = holidays
+    @regular_closed_wday = regular_closed_wday
   end
 
   def regular_staff_days
@@ -17,11 +18,11 @@ class WorkingDayCalculator
 
   def n
     @n ||= begin
-      weekdays = (@start_date..@end_date).count { |d| !d.saturday? && !d.sunday? }
-      holidays_on_weekday = @holidays.keys.count { |d|
-        d >= @start_date && d <= @end_date && !d.saturday? && !d.sunday?
-      }
-      weekdays - holidays_on_weekday
+      (@start_date..@end_date).count do |d|
+        !d.saturday? && !d.sunday? &&
+          !@holidays.key?(d) &&
+          (@regular_closed_wday.nil? || d.wday != @regular_closed_wday)
+      end
     end
   end
 end

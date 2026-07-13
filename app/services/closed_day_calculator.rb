@@ -1,10 +1,10 @@
 class ClosedDayCalculator
-  STATUTORY_CLOSURES = [[1, 4]].freeze
-
-  def initialize(target_month, holidays)
-    @start_date = target_month.beginning_of_month
-    @end_date = target_month.end_of_month
-    @holidays = holidays
+  # regular_closed_wday: 0=日 1=月 2=火 3=水 4=木 5=金 6=土、nilは定休曜日なし
+  def initialize(target_month, holidays, regular_closed_wday: 2)
+    @start_date          = target_month.beginning_of_month
+    @end_date            = target_month.end_of_month
+    @holidays            = holidays
+    @regular_closed_wday = regular_closed_wday
   end
 
   def closed_days
@@ -21,17 +21,15 @@ class ClosedDayCalculator
   private
 
   def closed?(date)
-    date.tuesday? || @holidays.key?(date) || statutory_closure?(date)
+    regular_closed?(date) || @holidays.key?(date)
   end
 
-  def statutory_closure?(date)
-    STATUTORY_CLOSURES.any? { |m, d| date.month == m && date.day == d }
+  def regular_closed?(date)
+    @regular_closed_wday.present? && date.wday == @regular_closed_wday
   end
 
   def label_for(date)
-    if statutory_closure?(date)
-      "条例休館日"
-    elsif @holidays.key?(date)
+    if @holidays.key?(date)
       @holidays[date]
     else
       "定休日"

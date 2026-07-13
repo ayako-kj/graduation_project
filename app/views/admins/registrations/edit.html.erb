@@ -15,12 +15,22 @@
       </div>
     <% end %>
 
-    <%# 図書館名 %>
+    <%# 図書館名・定休曜日 %>
     <div class="pitat-card p-4 mb-4">
-      <h2 class="fs-6 fw-bold mb-3">図書館名</h2>
-      <div class="mb-0">
+      <h2 class="fs-6 fw-bold mb-3">図書館の基本設定</h2>
+      <div class="mb-3">
         <%= f.label :library_name, "図書館名", class: "form-label fw-semibold small" %>
         <%= f.text_field :library_name, value: current_library.name, class: "form-control", placeholder: "例：○○市立中央図書館" %>
+      </div>
+      <div class="mb-0">
+        <%= f.label :regular_closed_wday, "定休曜日", class: "form-label fw-semibold small" %>
+        <div class="form-text mb-1">毎週この曜日が休館日として扱われます。</div>
+        <%= f.select :regular_closed_wday,
+            [["なし（定休曜日なし）", ""],
+             ["日曜日", 0], ["月曜日", 1], ["火曜日", 2],
+             ["水曜日", 3], ["木曜日", 4], ["金曜日", 5], ["土曜日", 6]],
+            { selected: current_library.regular_closed_wday.to_s },
+            class: "form-select" %>
       </div>
     </div>
 

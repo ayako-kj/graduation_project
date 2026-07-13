@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_14_000001) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_14_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -66,6 +66,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_14_000001) do
     t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "regular_closed_wday", default: 2
   end
 
   create_table "mobile_libraries", force: :cascade do |t|
