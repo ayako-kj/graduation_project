@@ -1,0 +1,59 @@
+<% content_for :title, "希望休QRコード印刷 | LibShiftAI_Pitat" %>
+
+<style>
+  @media print {
+    nav, footer, .no-print { display: none !important; }
+    body { background: white !important; }
+    .qr-grid { gap: 12px !important; }
+    .qr-card { break-inside: avoid; border: 1px solid #ccc !important; }
+    .print-title { display: block !important; }
+  }
+  .qr-card svg { width: 140px; height: 140px; display: block; margin: 0 auto; }
+  .print-title { display: none; }
+</style>
+
+<%# 画面表示用ヘッダー %>
+<div class="container py-4 no-print">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <h1 class="fs-4 fw-bold mb-1">希望休入力QRコード</h1>
+      <p class="text-muted small mb-0">印刷して各職員に配布してください。</p>
+    </div>
+    <div class="d-flex gap-2">
+      <%= link_to hope_urls_staffs_path, class: "btn btn-outline-secondary rounded-pill px-3" do %>
+        ← URL一覧に戻る
+      <% end %>
+      <button type="button" onclick="window.print()" class="btn btn-pitat rounded-pill px-4 fw-semibold">
+        <i class="bi bi-printer me-1"></i>印刷する
+      </button>
+    </div>
+  </div>
+  <div class="pitat-card p-3 mb-4 small text-muted">
+    <i class="bi bi-info-circle me-1"></i>
+    「印刷する」ボタンを押すと、ナビゲーションバーが除かれた印刷用レイアウトで出力されます。
+    切り取って各職員に渡すか、掲示板に貼り出してください。
+  </div>
+</div>
+
+<%# 印刷タイトル（印刷時のみ表示） %>
+<div class="print-title text-center mb-3" style="font-size:14pt; font-weight:bold;">
+  <%= @library_name %> ― 希望休入力QRコード一覧
+</div>
+
+<%# QRコードカード一覧 %>
+<div class="container">
+  <div class="qr-grid d-flex flex-wrap gap-3 justify-content-start">
+    <% @staffs.each do |staff| %>
+      <% data = @qr_data[staff.id] %>
+      <div class="qr-card text-center p-3 rounded border"
+           style="width: 185px; background: white;">
+        <div class="fw-bold mb-1" style="font-size: 0.95rem;"><%= staff.name %></div>
+        <div class="text-muted mb-2" style="font-size: 0.75rem;"><%= staff.staff_type.name %></div>
+        <%= raw data[:svg] %>
+        <div class="mt-2 text-muted" style="font-size: 0.6rem; word-break: break-all; line-height: 1.3;">
+          希望休入力用QRコード
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
