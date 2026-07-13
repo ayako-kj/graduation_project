@@ -18,9 +18,15 @@
           data: { turbo_confirm: "#{@target_month.strftime('%Y年%m月')}のシフトをAIで生成しますか？既存のシフトは上書きされます。" },
           class: "btn btn-pitat rounded-pill px-4 fw-semibold" %>
 
-      <%# Excelダウンロードボタン %>
+      <%# 確定・ダウンロードボタン %>
       <% if @shift_group %>
         <div class="d-flex gap-2 flex-wrap">
+          <%= button_to confirm_shifts_path(month: @target_month.strftime("%Y-%m")),
+              method: :post,
+              class: "btn btn-success rounded-pill px-4 fw-semibold",
+              data: { turbo_confirm: "#{@target_month.strftime('%Y年%m月')}のシフトを確定しますか？" } do %>
+            <i class="bi bi-check-circle me-1"></i>シフトを確定する
+          <% end %>
           <%= link_to actual_leaves_path(month: @target_month.strftime("%Y-%m")),
               class: "btn btn-outline-secondary rounded-pill px-3 fw-semibold" do %>
             <i class="bi bi-pencil-square me-1"></i>休暇種別入力
@@ -51,6 +57,23 @@
     </div>
   </div>
 
+  <%# 確定済みバナー %>
+  <% if @snapshot %>
+    <div class="alert alert-success d-flex align-items-center gap-3 mb-4 py-2 px-3" role="alert">
+      <i class="bi bi-check-circle-fill fs-5"></i>
+      <div class="small">
+        <span class="fw-semibold">確定済み</span>
+        <span class="text-muted ms-1">（<%= @snapshot.confirmed_at_jst.strftime('%Y年%-m月%-d日 %H:%M') %>）</span>
+        <span class="text-muted">— 誤って再生成しても確定版に戻せます</span>
+      </div>
+      <%= button_to "確定版から復元",
+          restore_shifts_path(month: @target_month.strftime("%Y-%m")),
+          method: :post,
+          class: "btn btn-sm btn-outline-success rounded-pill ms-auto fw-semibold",
+          data: { turbo_confirm: "確定済みのシフトに戻しますか？現在のシフトは上書きされます。" } %>
+    </div>
+  <% end %>
+
   <% if @shift_group.nil? %>
     <div class="pitat-card p-5 text-center text-muted">
       <i class="bi bi-calendar2-week fs-1 d-block mb-3"></i>
@@ -65,6 +88,8 @@
       <span><span class="badge me-1" style="background-color:#f59e0b;">早</span>早番</span>
       <span><span class="badge me-1" style="background-color:#3b82f6;">p</span>ポスト当番</span>
       <span><span class="badge me-1" style="background-color:#ef4444;">P</span>祝日ポスト当番</span>
+      <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">休</span>希望休</span>
+      <span><span class="badge me-1" style="background-color:#D1FAE5; color:#065F46; border:1px solid #6ee7b7;">○</span>特定日・移動図書館・定例会議</span>
     </div>
 
     <div class="table-responsive">
@@ -81,6 +106,7 @@
                 <div class="text-muted" style="font-size: 0.7rem;"><%= %w[日 月 火 水 木 金 土][date.wday] %></div>
               </th>
             <% end %>
+            <th class="py-2" style="min-width: 44px;">合計</th>
           </tr>
         </thead>
         <tbody>
@@ -89,38 +115,86 @@
               <td class="text-start ps-3 fw-semibold"><%= staff.name %><br><span class="text-muted fw-normal" style="font-size: 0.75rem;"><%= staff.staff_type.name %></span></td>
               <% @dates.each do |date| %>
                 <% is_closed = @closed_days.key?(date) %>
-                <% if is_closed %>
-                  <td style="background-color:#dee2e6;">
-                    <span class="text-muted" style="font-size:0.75rem;">閉</span>
-                  </td>
-                <% else %>
-                  <% shift = @shifts_map.dig(staff.id, date) %>
-                  <% errors = shift && shift.validation_errors.present? ? JSON.parse(shift.validation_errors) : [] %>
-                  <% has_error = errors.any? %>
-                  <td class="<%= has_error ? 'table-danger' : '' %>">
-                    <% if shift.nil? %>
-                      <span class="text-muted">－</span>
-                    <% elsif shift.is_working %>
-                      <% if has_error %>
-                        <span class="text-danger fw-bold" title="<%= errors.join("\n") %>" data-bs-toggle="tooltip" data-bs-placement="top">!</span>
-                      <% elsif shift.is_early %>
-                        <span class="fw-bold" style="color:#d97706;">早</span>
-                      <% elsif shift.is_holiday_post_duty %>
-                        <span class="fw-bold" style="color:#ef4444;">P</span>
-                      <% elsif shift.is_post_duty %>
-                        <span class="fw-bold" style="color:#3b82f6;">p</span>
+                <% shift = @shifts_map.dig(staff.id, date) %>
+                <% is_holiday_post = shift&.is_holiday_post_duty %>
+                <% errors = shift && shift.validation_errors.present? ? JSON.parse(shift.validation_errors) : [] %>
+                <% has_error = errors.any? %>
+                <% is_leave = @leave_requests_set.include?([staff.id, date]) %>
+                <% sp = @special_dates_map[date]; is_special = sp == :all || sp&.include?(staff.id) %>
+                <% is_mobile = @mobile_library_map[date]&.include?(staff.id) %>
+                <% is_assignment = @assignment_map[date]&.include?(staff.id) %>
+                <%
+                  show_closed = is_closed && !is_holiday_post && !shift&.is_working
+                  cell_bg = if show_closed
+                    "background-color:#dee2e6;"
+                  elsif has_error
+                    ""
+                  elsif is_holiday_post
+                    "background-color:#FEE2E2;"
+                  elsif is_leave && shift && !shift.is_working
+                    "background-color:#FEF3C7;"
+                  elsif (is_special || is_mobile || is_assignment) && shift&.is_working
+                    "background-color:#D1FAE5;"
+                  end
+                %>
+                <td class="<%= has_error ? 'table-danger' : '' %> p-0" style="<%= cell_bg %>">
+                  <% if shift.nil? %>
+                    <span class="text-muted" style="font-size:0.75rem;"><%= is_closed ? '閉' : '－' %></span>
+                  <% else %>
+                    <%= button_to shift_path(shift), method: :patch,
+                        class: "btn btn-link p-0 w-100 h-100 d-flex align-items-center justify-content-center",
+                        style: "min-height:32px; text-decoration:none;",
+                        title: shift.is_working ? "クリックして休みに変更" : "クリックして出勤に変更",
+                        data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                      <% if show_closed %>
+                        <span class="text-muted" style="font-size:0.75rem;">閉</span>
+                      <% elsif shift.is_working %>
+                        <% if has_error %>
+                          <span class="text-danger fw-bold" title="<%= errors.join("\n") %>" data-bs-toggle="tooltip" data-bs-placement="top">!</span>
+                        <% elsif shift.is_early %>
+                          <span class="fw-bold" style="color:#d97706;">早</span>
+                        <% elsif is_holiday_post %>
+                          <span class="fw-bold" style="color:#ef4444;">P</span>
+                        <% elsif shift.is_post_duty %>
+                          <span class="fw-bold" style="color:#3b82f6;">p</span>
+                        <% else %>
+                          <span class="text-success fw-bold">○</span>
+                        <% end %>
                       <% else %>
-                        <span class="text-success fw-bold">○</span>
+                        <% if is_leave %>
+                          <span style="color:#92400E; font-weight:600; font-size:0.75rem;">休</span>
+                        <% else %>
+                          <span class="text-muted">－</span>
+                        <% end %>
                       <% end %>
-                    <% else %>
-                      <span class="text-muted">－</span>
                     <% end %>
-                  </td>
-                <% end %>
+                  <% end %>
+                </td>
               <% end %>
+              <%# 月の出勤日数合計（年休等を含む、祝日ポスト当番は除外） %>
+              <% total = @dates.count { |d|
+                   shift = @shifts_map.dig(staff.id, d)
+                   (shift&.is_working && !shift.is_holiday_post_duty) || @actual_leave_set.include?([staff.id, d])
+                 } %>
+              <td class="fw-semibold"><%= total %></td>
             </tr>
           <% end %>
         </tbody>
+        <tfoot class="table-light">
+          <tr style="height: 40px;">
+            <td class="text-start ps-3 fw-semibold" style="font-size: 0.8rem;">出勤人数</td>
+            <% @dates.each do |date| %>
+              <% is_closed = @closed_days.key?(date) %>
+              <% if is_closed %>
+                <td style="background-color:#dee2e6;"></td>
+              <% else %>
+                <% count = @staffs.count { |s| @shifts_map.dig(s.id, date)&.is_working } %>
+                <td class="fw-bold text-success" style="font-size: 0.8rem;"><%= count %></td>
+              <% end %>
+            <% end %>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   <% end %>

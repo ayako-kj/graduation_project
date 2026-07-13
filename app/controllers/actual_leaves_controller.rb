@@ -21,6 +21,10 @@ class ActualLeavesController < ApplicationController
     @leave_map = ActualLeave
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .index_by { |l| [l.staff_id, l.date] }
+
+    @leave_requests_set = LeaveRequest
+      .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
+      .pluck(:staff_id, :date).to_set
   end
 
   def save

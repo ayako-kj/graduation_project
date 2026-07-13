@@ -54,13 +54,28 @@ class ConstraintExtractor
   end
 
   def post_duty_dates
+    # 月曜祝日の翌々日（水曜）は通常ポスト当番をスキップ
+    monday_holidays_in_month = @holidays.keys.select { |d| d >= @start_date && d <= @end_date && d.monday? }
+    skip_wednesdays = monday_holidays_in_month.map { |d| d + 2 }.to_set
     (@start_date..@end_date).select do |date|
-      date.wednesday? && !last_wednesday_of_month?(date) && !@holidays.key?(date)
+      date.wednesday? && !last_wednesday_of_month?(date) && !@holidays.key?(date) &&
+        !skip_wednesdays.include?(date)
     end
   end
 
   def holiday_post_duty_dates
-    @holidays.select { |d, _| d >= @start_date && d <= @end_date }
+    result = {}
+    @holidays.each do |d, label|
+      next unless d >= @start_date && d <= @end_date
+      if d.monday?
+        # 月曜祝日は翌火曜日に祝日ポスト当番を振替
+        tuesday = d + 1
+        result[tuesday] = label if tuesday <= @end_date
+      else
+        result[d] = label
+      end
+    end
+    result
   end
 
   def last_wednesday_of_month?(date)

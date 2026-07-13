@@ -1,6 +1,7 @@
 class ManagerPresenceValidator
-  def initialize(shifts)
+  def initialize(shifts, closed_days = {})
     @shifts = shifts
+    @closed_days = closed_days
     @staff_info_map = Staff.includes(:staff_type, :employment_type).each_with_object({}) do |staff, hash|
       hash[staff.name] = {
         staff_type: staff.staff_type.name,
@@ -14,6 +15,7 @@ class ManagerPresenceValidator
     shifts_by_date = @shifts.group_by { |s| s[:date] }
 
     shifts_by_date.each do |date, day_shifts|
+      next if @closed_days.key?(date)
       has_required_staff = day_shifts.any? do |s|
         next false unless s[:is_working]
 

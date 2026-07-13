@@ -14,18 +14,24 @@ class WorkdayManualEntriesController < ApplicationController
     entries_params = params[:entries] || {}
 
     entries_params.each do |staff_id, data|
-      days = data[:working_days].presence&.to_i
-      note = data[:note].presence
+      days        = data[:working_days].presence&.to_i
+      early       = data[:early_count].presence&.to_i
+      post        = data[:post_duty_count].presence&.to_i
+      holiday_post = data[:holiday_post_duty_count].presence&.to_i
+      note        = data[:note].presence
       entry = WorkdayManualEntry.find_by(staff_id: staff_id.to_i, year_month: @target_month)
 
-      if days.nil? || (days == 0 && note.nil?)
+      if days.nil? && early.nil? && post.nil? && holiday_post.nil? && note.nil?
         entry&.destroy
         next
       end
 
       entry ||= WorkdayManualEntry.new(staff_id: staff_id.to_i, year_month: @target_month)
-      entry.working_days = days
-      entry.note = note
+      entry.working_days             = days
+      entry.early_count              = early
+      entry.post_duty_count          = post
+      entry.holiday_post_duty_count  = holiday_post
+      entry.note                     = note
       entry.save!
     end
 

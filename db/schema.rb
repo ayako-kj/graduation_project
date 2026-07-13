@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_12_200000) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_13_144058) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -117,6 +117,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_200000) do
     t.index ["library_id"], name: "index_shift_groups_on_library_id"
   end
 
+  create_table "shift_snapshots", force: :cascade do |t|
+    t.bigint "library_id", null: false
+    t.date "target_month", null: false
+    t.text "snapshot_data", null: false
+    t.datetime "confirmed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["library_id", "target_month"], name: "index_shift_snapshots_on_library_id_and_target_month", unique: true
+    t.index ["library_id"], name: "index_shift_snapshots_on_library_id"
+  end
+
   create_table "shifts", force: :cascade do |t|
     t.bigint "shift_group_id", null: false
     t.bigint "staff_id", null: false
@@ -190,6 +201,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_200000) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "early_count"
+    t.integer "post_duty_count"
+    t.integer "holiday_post_duty_count"
     t.index ["staff_id", "year_month"], name: "index_workday_manual_entries_on_staff_id_and_year_month", unique: true
     t.index ["staff_id"], name: "index_workday_manual_entries_on_staff_id"
   end
@@ -206,6 +220,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_12_200000) do
   add_foreign_key "placement_rules", "libraries"
   add_foreign_key "placement_rules", "staff_types"
   add_foreign_key "shift_groups", "libraries"
+  add_foreign_key "shift_snapshots", "libraries"
   add_foreign_key "shifts", "shift_groups"
   add_foreign_key "shifts", "staffs"
   add_foreign_key "special_date_staffs", "special_dates"

@@ -1,17 +1,18 @@
 class ShiftValidationSummary
-  def initialize(shifts, target_month)
+  def initialize(shifts, target_month, closed_days = {})
     @shifts = shifts
     @target_month = target_month
+    @closed_days = closed_days
   end
 
   def run
     errors_by_key = Hash.new { |h, k| h[k] = [] }
 
-    TotalCountValidator.new(@shifts).validate.each do |v|
+    TotalCountValidator.new(@shifts, @closed_days).validate.each do |v|
       errors_by_key[v[:date].to_s] << v[:message]
     end
 
-    PlacementRuleValidator.new(@shifts).validate.each do |v|
+    PlacementRuleValidator.new(@shifts, @closed_days).validate.each do |v|
       errors_by_key[v[:date].to_s] << v[:message]
     end
 
@@ -26,7 +27,7 @@ class ShiftValidationSummary
       end
     end
 
-    ManagerPresenceValidator.new(@shifts).validate.each do |v|
+    ManagerPresenceValidator.new(@shifts, @closed_days).validate.each do |v|
       errors_by_key[v[:date].to_s] << v[:message]
     end
 
@@ -37,15 +38,16 @@ class ShiftValidationSummary
     errors_by_key = run
 
     shift_group.shifts.includes(:staff).each do |shift|
-      next unless shift.is_working
-
       date_key = shift.date.to_s
       staff_date_key = "#{shift.date}_#{shift.staff.name}"
 
-      messages = (errors_by_key[date_key] || []) +
-                 (errors_by_key[staff_date_key] || [])
-
-      shift.update_column(:validation_errors, messages.uniq.to_json)
+      if shift.is_working
+        messages = (errors_by_key[date_key] || []) +
+                   (errors_by_key[staff_date_key] || [])
+        shift.update_column(:validation_errors, messages.uniq.to_json)
+      elsif shift.validation_errors.present?
+        shift.update_column(:validation_errors, nil)
+      end
     end
   end
 

@@ -36,7 +36,7 @@
     <%# ---- 当番回数集計タブ ---- %>
     <div class="pitat-card p-3 mb-4 small text-muted">
       <i class="bi bi-info-circle me-1"></i>
-      <%= @fiscal_year %>年度（<%= @fiscal_year %>/4〜<%= @fiscal_year + 1 %>/3）の当番回数集計です。自動生成済みの月のみ集計されます。
+      <%= @fiscal_year %>年度（<%= @fiscal_year %>/4〜<%= @fiscal_year + 1 %>/3）の当番回数集計です。自動生成済みの月の実績と、<%= link_to "勤務実績の手入力", workday_manual_entries_path, class: "text-muted" %>から登録した回数を合算して表示します。
     </div>
 
     <div class="pitat-card p-0 overflow-hidden">

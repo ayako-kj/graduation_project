@@ -22,6 +22,122 @@ class ShiftsController < ApplicationController
     else
       @shifts_map = {}
     end
+
+    # 希望休セット：[staff_id, date]
+    @leave_requests_set = LeaveRequest
+      .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
+      .pluck(:staff_id, :date).to_set
+
+    # 年休・夏休・特別・病気休暇セット：[staff_id, date]（出勤日数にカウント）
+    @actual_leave_set = ActualLeave
+      .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
+      .pluck(:staff_id, :date).to_set
+
+    # 特定日マップ：date => Set of staff_id（または :all）
+    @special_dates_map = {}
+    SpecialDate.includes(:designated_staffs)
+               .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
+               .each do |sd|
+      if sd.target_group == "全職員"
+        @special_dates_map[sd.date] = :all
+      elsif sd.designated_staffs.any?
+        @special_dates_map[sd.date] = sd.designated_staffs.map(&:id).to_set
+      end
+    end
+
+    # 移動図書館マップ：date => Set of staff_id
+    @mobile_library_map = {}
+    MobileLibrary.includes(mobile_library_routes: :staffs).each do |ml|
+      ml.mobile_library_routes.each do |route|
+        date = @dates.select { |d| d.wday == route.wday }[route.week_number - 1]
+        next if date.nil? || @closed_days.key?(date)
+        @mobile_library_map[date] ||= Set.new
+        @mobile_library_map[date].merge(route.staffs.map(&:id))
+      end
+    end
+
+    # 担当定例会議マップ：date => Set of staff_id
+    @assignment_map = {}
+    current_library.assignments.includes(:staffs).where.not(meeting_wday: nil).each do |assignment|
+      @dates.select { |d| d.wday == assignment.meeting_wday && !@closed_days.key?(d) }.each do |date|
+        @assignment_map[date] ||= Set.new
+        @assignment_map[date].merge(assignment.staffs.map(&:id))
+      end
+    end
+
+    @snapshot = ShiftSnapshot.find_by(library: current_library, target_month: @target_month.beginning_of_month)
+  end
+
+  def confirm
+    target_month = parse_target_month
+    shift_group = current_library.shift_groups.find_by(target_month: target_month.beginning_of_month)
+
+    unless shift_group
+      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: "シフトが生成されていません。" and return
+    end
+
+    data = shift_group.shifts.includes(:staff).map do |s|
+      { staff_id: s.staff_id, staff_name: s.staff.name, date: s.date.to_s,
+        is_working: s.is_working, is_early: s.is_early,
+        is_post_duty: s.is_post_duty, is_holiday_post_duty: s.is_holiday_post_duty,
+        validation_errors: s.validation_errors }
+    end
+
+    snapshot = ShiftSnapshot.find_or_initialize_by(
+      library: current_library, target_month: target_month.beginning_of_month
+    )
+    snapshot.snapshot_data = data.to_json
+    snapshot.confirmed_at  = Time.current
+    snapshot.save!
+
+    redirect_to shifts_path(month: target_month.strftime("%Y-%m")),
+                notice: "#{target_month.strftime('%Y年%-m月')}のシフトを確定しました。"
+  end
+
+  def restore
+    target_month = parse_target_month
+    snapshot = ShiftSnapshot.find_by(library: current_library, target_month: target_month.beginning_of_month)
+
+    unless snapshot
+      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: "確定済みのバックアップが見つかりません。" and return
+    end
+
+    shift_group = current_library.shift_groups.find_or_create_by!(target_month: target_month.beginning_of_month)
+    shift_group.shifts.delete_all
+
+    snapshot.shifts_data.each do |s|
+      next unless Staff.exists?(s["staff_id"])
+      shift_group.shifts.create!(
+        staff_id:             s["staff_id"],
+        date:                 Date.parse(s["date"]),
+        is_working:           s["is_working"],
+        is_early:             s["is_early"],
+        is_post_duty:         s["is_post_duty"],
+        is_holiday_post_duty: s["is_holiday_post_duty"],
+        validation_errors:    s["validation_errors"]
+      )
+    end
+
+    redirect_to shifts_path(month: target_month.strftime("%Y-%m")),
+                notice: "#{target_month.strftime('%Y年%-m月')}の確定済みシフトを復元しました。"
+  end
+
+  def update
+    shift = Shift.joins(:shift_group)
+                 .where(shift_groups: { library_id: current_library.id })
+                 .find(params[:id])
+    shift.update!(is_working: !shift.is_working)
+
+    shift_group = shift.shift_group
+    holidays = HolidayFetcher.fetch(shift_group.target_month.year)
+    closed_days = ClosedDayCalculator.new(shift_group.target_month, holidays).closed_days_with_labels
+    shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
+      { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
+    end
+    ShiftValidationSummary.new(shifts_for_validation, shift_group.target_month, closed_days).save_to_shifts(shift_group)
+
+    redirect_to shifts_path(month: shift_group.target_month.strftime("%Y-%m")),
+                notice: "#{shift.date.strftime('%-m月%-d日')}の#{shift.staff.name}のシフトを変更しました。"
   end
 
   def download
@@ -105,7 +221,7 @@ class ShiftsController < ApplicationController
     fixed_shifts = ShiftPostProcessor.new(
       parsed[:shifts], constraints[:closed_days],
       constraints[:leave_requests], constraints[:special_dates],
-      staff_target_days
+      staff_target_days, constraints[:assignment_constraints]
     ).process
     assigned_shifts = DutyAssigner.new(fixed_shifts, constraints, target_month).assign
     saver = ShiftSaver.new(target_month, assigned_shifts, current_library)
@@ -119,7 +235,7 @@ class ShiftsController < ApplicationController
     shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
       { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
     end
-    summary = ShiftValidationSummary.new(shifts_for_validation, target_month)
+    summary = ShiftValidationSummary.new(shifts_for_validation, target_month, constraints[:closed_days])
     summary.save_to_shifts(shift_group)
 
     redirect_to shifts_path(month: target_month.strftime("%Y-%m")), notice: "シフトを生成しました。"

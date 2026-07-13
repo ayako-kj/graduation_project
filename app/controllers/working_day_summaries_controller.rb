@@ -134,12 +134,22 @@ class WorkingDaySummariesController < ApplicationController
     post_counts          = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_post_duty: true).group(:staff_id).count
     holiday_post_counts  = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_holiday_post_duty: true).group(:staff_id).count
 
+    manual = WorkdayManualEntry.where(staff: @staffs, year_month: months.first..months.last)
+    manual_early = Hash.new(0)
+    manual_post  = Hash.new(0)
+    manual_holiday_post = Hash.new(0)
+    manual.each do |e|
+      manual_early[e.staff_id]        += e.early_count || 0
+      manual_post[e.staff_id]         += e.post_duty_count || 0
+      manual_holiday_post[e.staff_id] += e.holiday_post_duty_count || 0
+    end
+
     @duty_summaries = @staffs.map do |staff|
       {
         staff: staff,
-        early_count: early_counts[staff.id] || 0,
-        post_duty_count: post_counts[staff.id] || 0,
-        holiday_post_duty_count: holiday_post_counts[staff.id] || 0
+        early_count: (early_counts[staff.id] || 0) + manual_early[staff.id],
+        post_duty_count: (post_counts[staff.id] || 0) + manual_post[staff.id],
+        holiday_post_duty_count: (holiday_post_counts[staff.id] || 0) + manual_holiday_post[staff.id]
       }
     end
   end

@@ -7,9 +7,9 @@
 
   <div class="pitat-card p-3 mb-4 small text-muted">
     <i class="bi bi-info-circle me-1"></i>
-    Pitat導入前（令和8年4〜6月など）の実績勤務日数を月単位で入力できます。
+    Pitat導入前（令和8年4〜6月など）の実績勤務日数・当番回数を月単位で入力できます。
     年間サマリーページで手入力データとPitatのシフトデータを統合して表示します。
-    <strong>空欄または0日のままの欄は保存されません。</strong>Pitatでシフト生成済みの月は入力不要です。
+    <strong>すべて空欄のままの行は保存されません。</strong>Pitatでシフト生成済みの月は入力不要です。
   </div>
 
   <%# 月選択 %>
@@ -27,7 +27,10 @@
             <th class="ps-4 py-3 text-muted small fw-semibold">職員名</th>
             <th class="py-3 text-muted small fw-semibold">職種</th>
             <th class="py-3 text-muted small fw-semibold">雇用形態</th>
-            <th class="py-3 text-muted small fw-semibold" style="width: 120px;">実績勤務日数</th>
+            <th class="py-3 text-muted small fw-semibold text-center" style="white-space: nowrap;">実績勤務日数</th>
+            <th class="py-3 text-muted small fw-semibold text-center" style="white-space: nowrap;">早番</th>
+            <th class="py-3 text-muted small fw-semibold text-center" style="white-space: nowrap;">ポスト当番</th>
+            <th class="py-3 text-muted small fw-semibold text-center" style="white-space: nowrap;">祝日ポスト当番</th>
             <th class="py-3 text-muted small fw-semibold">備考</th>
           </tr>
         </thead>
@@ -41,7 +44,22 @@
               <td class="py-2">
                 <input type="number" name="entries[<%= staff.id %>][working_days]"
                        value="<%= entry&.working_days %>"
-                       min="0" max="31" placeholder="日数" class="form-control form-control-sm text-center">
+                       min="0" max="31" placeholder="0" class="form-control form-control-sm" style="text-align: center;">
+              </td>
+              <td class="py-2">
+                <input type="number" name="entries[<%= staff.id %>][early_count]"
+                       value="<%= entry&.early_count %>"
+                       min="0" max="31" placeholder="0" class="form-control form-control-sm" style="text-align: center;">
+              </td>
+              <td class="py-2">
+                <input type="number" name="entries[<%= staff.id %>][post_duty_count]"
+                       value="<%= entry&.post_duty_count %>"
+                       min="0" max="31" placeholder="0" class="form-control form-control-sm" style="text-align: center;">
+              </td>
+              <td class="py-2">
+                <input type="number" name="entries[<%= staff.id %>][holiday_post_duty_count]"
+                       value="<%= entry&.holiday_post_duty_count %>"
+                       min="0" max="31" placeholder="0" class="form-control form-control-sm" style="text-align: center;">
               </td>
               <td class="py-2">
                 <input type="text" name="entries[<%= staff.id %>][note]"
