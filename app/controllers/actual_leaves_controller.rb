@@ -6,7 +6,8 @@ class ActualLeavesController < ApplicationController
     @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
 
     holidays = HolidayFetcher.fetch(@target_month.year)
-    closed = ClosedDayCalculator.new(@target_month, holidays).closed_days_with_labels
+    closed = ClosedDayCalculator.new(@target_month, holidays,
+               regular_closed_wday: current_library.regular_closed_wday).closed_days_with_labels
     @open_dates = (@target_month.beginning_of_month..@target_month.end_of_month)
                     .reject { |d| closed.key?(d) }
 
