@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_14_000003) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_14_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -51,6 +51,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_14_000003) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "daily_work_hours", precision: 4, scale: 2, default: "7.5", null: false
+    t.decimal "city_hall_daily_hours", precision: 4, scale: 2, default: "6.0", null: false
+    t.boolean "is_regular", default: false, null: false
   end
 
   create_table "leave_requests", force: :cascade do |t|
@@ -191,6 +194,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_14_000003) do
     t.integer "sort_order"
     t.string "unavailable_wdays", default: "[]", null: false
     t.string "access_token"
+    t.decimal "daily_work_hours", precision: 4, scale: 2
     t.index ["access_token"], name: "index_staffs_on_access_token", unique: true
     t.index ["employment_type_id"], name: "index_staffs_on_employment_type_id"
     t.index ["library_id"], name: "index_staffs_on_library_id"

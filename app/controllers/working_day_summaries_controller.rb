@@ -1,10 +1,6 @@
 class WorkingDaySummariesController < ApplicationController
   before_action :authenticate_admin!
 
-  REGULAR_DAILY_HOURS = 7.75
-  HOURLY_DAILY_HOURS = 7.5
-  CITY_HALL_REGULAR_DAILY_HOURS = 7.75
-  CITY_HALL_HOURLY_DAILY_HOURS = 6.0
 
   def index
     @fiscal_year = params[:fiscal_year]&.to_i || current_fiscal_year
@@ -75,9 +71,9 @@ class WorkingDaySummariesController < ApplicationController
   end
 
   def build_staff_summary
-    regular = @selected_staff.employment_type.name == "正規職員"
-    daily_hours = regular ? REGULAR_DAILY_HOURS : HOURLY_DAILY_HOURS
-    city_hall_daily = regular ? CITY_HALL_REGULAR_DAILY_HOURS : CITY_HALL_HOURLY_DAILY_HOURS
+    daily_hours = @selected_staff.effective_daily_work_hours
+    city_hall_daily = @selected_staff.employment_type.city_hall_daily_hours
+    regular = @selected_staff.employment_type.is_regular
 
     cumulative_diff = 0.0
     @summary = @fiscal_months.map do |month|
@@ -103,9 +99,9 @@ class WorkingDaySummariesController < ApplicationController
     months_up_to = months.select { |m| m <= @view_month }
 
     @staff_summaries = @staffs.map do |staff|
-      regular = staff.employment_type.name == "正規職員"
-      daily_hours = regular ? REGULAR_DAILY_HOURS : HOURLY_DAILY_HOURS
-      city_hall_daily = regular ? CITY_HALL_REGULAR_DAILY_HOURS : CITY_HALL_HOURLY_DAILY_HOURS
+      daily_hours = staff.effective_daily_work_hours
+      city_hall_daily = staff.employment_type.city_hall_daily_hours
+      regular = staff.employment_type.is_regular
 
       cumulative_actual = 0.0
       cumulative_city_hall = 0.0

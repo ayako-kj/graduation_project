@@ -83,13 +83,26 @@
     </div>
   </div>
 
-  <div class="mb-4">
+  <div class="mb-3">
     <%= f.label :weekly_work_days, class: "form-label fw-semibold small" do %>
       週勤務日数<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
     <% end %>
-    <div class="input-group">
+    <div class="input-group" style="max-width: 180px;">
       <%= f.number_field :weekly_work_days, class: "form-control", min: 1, max: 7, placeholder: "例：5" %>
       <span class="input-group-text">日</span>
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <%= f.label :daily_work_hours, class: "form-label fw-semibold small" do %>
+      1日の勤務時間<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+    <% end %>
+    <div class="form-text mb-1">空白の場合は雇用形態のデフォルト値を使用します。</div>
+    <div class="input-group" style="max-width: 180px;">
+      <%= f.number_field :daily_work_hours, class: "form-control", step: 0.25, min: 1, max: 12,
+          placeholder: staff.employment_type_id.present? ?
+            EmploymentType.find_by(id: staff.employment_type_id)&.daily_work_hours.to_s : "例：7.5" %>
+      <span class="input-group-text">時間</span>
     </div>
   </div>
 

@@ -1,6 +1,6 @@
 class EmploymentTypesController < ApplicationController
   before_action :authenticate_admin!
-  before_action :set_employment_type, only: %i[destroy]
+  before_action :set_employment_type, only: %i[update destroy]
 
   def create
     @employment_type = EmploymentType.new(employment_type_params)
@@ -11,6 +11,14 @@ class EmploymentTypesController < ApplicationController
       @staff_type = StaffType.new
       @employment_types = EmploymentType.order(:id)
       render "staff_types/index", status: :unprocessable_entity
+    end
+  end
+
+  def update
+    if @employment_type.update(employment_type_params)
+      redirect_to staff_types_path, notice: "「#{@employment_type.name}」の設定を更新しました。"
+    else
+      redirect_to staff_types_path, alert: @employment_type.errors.full_messages.first
     end
   end
 
@@ -29,6 +37,6 @@ class EmploymentTypesController < ApplicationController
   end
 
   def employment_type_params
-    params.require(:employment_type).permit(:name)
+    params.require(:employment_type).permit(:name, :daily_work_hours, :city_hall_daily_hours, :is_regular)
   end
 end

@@ -1,6 +1,4 @@
 class ConstraintExtractor
-  HOURLY_DAILY_HOURS = 7.5
-  CITY_HALL_HOURLY_DAILY_HOURS = 6.0
 
   def initialize(target_month, library)
     @target_month = target_month
@@ -20,6 +18,7 @@ class ConstraintExtractor
     wdays = @library.closed_wdays_array
     @closed_calc = ClosedDayCalculator.new(@target_month, @holidays, closed_wdays: wdays)
     @working_calc = WorkingDayCalculator.new(@target_month, @holidays, closed_wdays: wdays)
+    @n_city_hall = @working_calc.city_hall_days
     @closed_days_with_labels = @closed_calc.closed_days_with_labels
 
     {
@@ -120,18 +119,18 @@ class ConstraintExtractor
     staffs = @library.staffs.includes(:staff_type, :employment_type)
     actual_data = past_months.any? ? preload_past_actual_data(staffs, past_months) : {}
 
-    base_hourly = @working_calc.hourly_staff_days
-
     staffs.map do |staff|
-      is_regular = staff.employment_type.name == "正規職員"
+      is_regular = staff.employment_type.is_regular
       monthly_target = unless is_regular
-        calculate_hourly_monthly_target(staff, base_hourly, past_months, actual_data)
+        base_days = (@n_city_hall * staff.employment_type.city_hall_daily_hours / staff.effective_daily_work_hours).floor
+        calculate_hourly_monthly_target(staff, base_days, past_months, actual_data)
       end
 
       {
         name: staff.name,
         staff_type: staff.staff_type.name,
         employment_type: staff.employment_type.name,
+        is_regular: staff.employment_type.is_regular,
         weekly_work_days: staff.weekly_work_days,
         unavailable_wdays: staff.unavailable_wdays_array,
         monthly_target_days: monthly_target
@@ -161,10 +160,13 @@ class ConstraintExtractor
   end
 
   def calculate_hourly_monthly_target(staff, base_days, past_months, actual_data)
+    daily_hours = staff.effective_daily_work_hours
+    city_hall_daily = staff.employment_type.city_hall_daily_hours
+
     cumulative_diff = 0.0
     past_months.each do |month|
       n = WorkingDayCalculator.new(month, @all_holidays, closed_wdays: []).city_hall_days
-      target = (n * CITY_HALL_HOURLY_DAILY_HOURS / HOURLY_DAILY_HOURS).floor
+      target = (n * city_hall_daily / daily_hours).floor
 
       key = [staff.id, month.beginning_of_month]
       actual = if actual_data[:manual][key]
@@ -175,10 +177,10 @@ class ConstraintExtractor
         target
       end
 
-      cumulative_diff += actual * HOURLY_DAILY_HOURS - n * CITY_HALL_HOURLY_DAILY_HOURS
+      cumulative_diff += actual * daily_hours - n * city_hall_daily
     end
 
-    extra = (-cumulative_diff / HOURLY_DAILY_HOURS).truncate.clamp(-2, 2)
+    extra = (-cumulative_diff / daily_hours).truncate.clamp(-2, 2)
     base_days + extra
   end
 

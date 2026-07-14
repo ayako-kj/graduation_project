@@ -37,7 +37,7 @@ Rails.application.routes.draw do
       patch :move_down
     end
   end
-  resources :employment_types, only: %i[create destroy]
+  resources :employment_types, only: %i[create update destroy]
   resources :placement_rules
   resources :special_dates
   resources :leave_requests
