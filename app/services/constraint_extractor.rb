@@ -163,7 +163,7 @@ class ConstraintExtractor
   def calculate_hourly_monthly_target(staff, base_days, past_months, actual_data)
     cumulative_diff = 0.0
     past_months.each do |month|
-      n = WorkingDayCalculator.new(month, @all_holidays).regular_staff_days
+      n = WorkingDayCalculator.new(month, @all_holidays, closed_wdays: []).city_hall_days
       target = (n * CITY_HALL_HOURLY_DAILY_HOURS / HOURLY_DAILY_HOURS).floor
 
       key = [staff.id, month.beginning_of_month]

@@ -11,14 +11,20 @@ class WorkingDayCalculator
   end
 
   def hourly_staff_days
-    (n * 4 / 5.0).floor
+    (city_hall_days * 4 / 5.0).floor
+  end
+
+  def city_hall_days
+    @city_hall_days ||= (@start_date..@end_date).count do |d|
+      !d.saturday? && !d.sunday? && !@holidays.key?(d)
+    end
   end
 
   private
 
   def n
     @n ||= (@start_date..@end_date).count do |d|
-      !d.saturday? && !d.sunday? && !@holidays.key?(d) && !@closed_wdays.include?(d.wday)
+      !@closed_wdays.include?(d.wday) && !@holidays.key?(d)
     end
   end
 end
