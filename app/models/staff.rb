@@ -27,6 +27,10 @@ class Staff < ApplicationRecord
     unavailable_wdays_array.map { |w| "#{WDAY_NAMES[w]}曜日" }.join("・")
   end
 
+  def effective_daily_work_hours
+    daily_work_hours || employment_type.daily_work_hours
+  end
+
   def regenerate_token!
     update!(access_token: SecureRandom.urlsafe_base64(16))
   end

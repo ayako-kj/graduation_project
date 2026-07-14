@@ -18,7 +18,7 @@ class DutyAssigner
   private
 
   def assign_early_shifts
-    eligible = eligible_names("会計年度任用職員", EARLY_STAFF_TYPES)
+    eligible = eligible_names_non_regular(EARLY_STAFF_TYPES)
     return if eligible.empty?
 
     counts = historical_counts(eligible, :is_early)
@@ -33,7 +33,7 @@ class DutyAssigner
   end
 
   def assign_post_duties
-    eligible = eligible_names("正規職員", %w[司書])
+    eligible = eligible_names_regular(%w[司書])
     return if eligible.empty?
 
     counts = historical_counts(eligible, :is_post_duty)
@@ -48,7 +48,7 @@ class DutyAssigner
   end
 
   def assign_holiday_post_duties
-    eligible = eligible_names("正規職員", %w[司書])
+    eligible = eligible_names_regular(%w[司書])
     return if eligible.empty?
 
     counts = historical_counts(eligible, :is_holiday_post_duty)
@@ -63,9 +63,15 @@ class DutyAssigner
     end
   end
 
-  def eligible_names(employment_type, staff_types)
+  def eligible_names_regular(staff_types)
     @constraints[:staffs].select do |s|
-      s[:employment_type] == employment_type && staff_types.include?(s[:staff_type])
+      s[:is_regular] && staff_types.include?(s[:staff_type])
+    end.map { |s| s[:name] }
+  end
+
+  def eligible_names_non_regular(staff_types)
+    @constraints[:staffs].select do |s|
+      !s[:is_regular] && staff_types.include?(s[:staff_type])
     end.map { |s| s[:name] }
   end
 

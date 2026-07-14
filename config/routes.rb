@@ -31,6 +31,13 @@ Rails.application.routes.draw do
   # 職員向け希望休入力（トークン認証・ログイン不要）
   get  "/hope",      to: "staff_leave_requests#index", as: :staff_leave_input
   post "/hope/save", to: "staff_leave_requests#save",  as: :save_staff_leave_input
+  resources :staff_types, only: %i[index create destroy] do
+    member do
+      patch :move_up
+      patch :move_down
+    end
+  end
+  resources :employment_types, only: %i[create update destroy]
   resources :placement_rules
   resources :special_dates
   resources :leave_requests
