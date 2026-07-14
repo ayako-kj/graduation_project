@@ -12,7 +12,7 @@ class ShiftsController < ApplicationController
     closed_calc = ClosedDayCalculator.new(@target_month, holidays, closed_wdays: wdays)
     working_calc = WorkingDayCalculator.new(@target_month, holidays, closed_wdays: wdays)
     @closed_days = closed_calc.closed_days_with_labels
-    @working_days = { regular: working_calc.regular_staff_days, hourly: working_calc.hourly_staff_days }
+    @working_days = { regular: working_calc.city_hall_days, hourly: working_calc.hourly_staff_days }
 
     if @shift_group
       shifts = @shift_group.shifts.includes(:staff)
