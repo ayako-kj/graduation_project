@@ -112,7 +112,7 @@
         <% @existing_leaves.group_by { |_, v| v }.sort.each do |type, pairs| %>
           <div>
             <span class="fw-semibold"><%= type %>：</span>
-            <%= pairs.map { |d, _| "#{d.month}/#{d.day}" }.sort.join("、") %>
+            <%= pairs.sort_by { |d, _| d }.map { |d, _| "#{d.month}/#{d.day}" }.join("、") %>
           </div>
         <% end %>
       <% else %>
