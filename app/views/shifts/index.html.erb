@@ -2,9 +2,9 @@
 
 <div class="container-fluid py-4">
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <h1 class="fs-4 fw-bold mb-0">シフト表</h1>
+    <h1 class="fs-4 fw-bold mb-0">シフト表　<span class="fs-5 fw-normal text-muted"><%= @target_month.strftime("%Y年%-m月") %></span></h1>
 
-    <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div class="d-flex align-items-center gap-3 flex-wrap d-print-none">
       <%# 月選択 %>
       <%= form_with url: shifts_path, method: :get, class: "d-flex align-items-center gap-2" do |f| %>
         <%= f.month_field :month, value: @target_month.strftime("%Y-%m"), class: "form-control form-control-sm" %>
@@ -18,7 +18,7 @@
           data: { turbo_confirm: "#{@target_month.strftime('%Y年%m月')}のシフトをAIで生成しますか？既存のシフトは上書きされます。" },
           class: "btn btn-pitat rounded-pill px-4 fw-semibold" %>
 
-      <%# 確定・ダウンロードボタン %>
+      <%# 確定・ダウンロード・印刷ボタン %>
       <% if @shift_group %>
         <div class="d-flex gap-2 flex-wrap">
           <%= button_to confirm_shifts_path(month: @target_month.strftime("%Y-%m")),
@@ -35,6 +35,9 @@
               class: "btn btn-outline-success rounded-pill px-4 fw-semibold" do %>
             <i class="bi bi-file-earmark-excel me-1"></i>勤務予定表(Excel)
           <% end %>
+          <button type="button" onclick="window.print()" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold">
+            <i class="bi bi-printer me-1"></i>印刷する
+          </button>
         </div>
       <% end %>
     </div>
@@ -69,7 +72,7 @@
 
   <%# 確定済みバナー %>
   <% if @snapshot %>
-    <div class="alert alert-success d-flex align-items-center gap-3 mb-4 py-2 px-3" role="alert">
+    <div class="alert alert-success d-flex align-items-center gap-3 mb-4 py-2 px-3 d-print-none" role="alert">
       <i class="bi bi-check-circle-fill fs-5"></i>
       <div class="small">
         <span class="fw-semibold">確定済み</span>
@@ -90,7 +93,7 @@
       <p class="mb-3"><%= @target_month.strftime("%Y年%m月") %>のシフトはまだ生成されていません。</p>
     </div>
   <% else %>
-    <div class="mb-3 d-flex gap-3 small flex-wrap">
+    <div class="mb-3 d-flex gap-3 small flex-wrap d-print-none">
       <span><span class="badge bg-success me-1">○</span>出勤</span>
       <span><span class="badge bg-secondary me-1">－</span>休み</span>
       <span><span class="badge bg-danger me-1">!</span>バリデーションエラー</span>
@@ -226,7 +229,7 @@
 </div>
 
 <%# シフト編集モーダル %>
-<div class="modal fade" id="shiftEditModal" tabindex="-1" aria-labelledby="shiftEditModalLabel" aria-hidden="true">
+<div class="modal fade d-print-none" id="shiftEditModal" tabindex="-1" aria-labelledby="shiftEditModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <div class="modal-header py-2">

@@ -79,3 +79,14 @@ $pitat-cream: #FAF6F0;
 .pitat-footer {
   background-color: $pitat-cream;
 }
+
+// 印刷スタイル
+@media print {
+  .navbar, footer, .alert { display: none !important; }
+  body, .pitat-bg { background-color: white !important; }
+  .pitat-card { box-shadow: none !important; border: 1px solid #dee2e6 !important; }
+  .table-responsive { overflow: visible !important; }
+  .shift-table { font-size: 0.65rem !important; min-width: unset !important; }
+  .shift-table th, .shift-table td { padding: 2px 1px !important; }
+  @page { size: A4 landscape; margin: 8mm; }
+}
