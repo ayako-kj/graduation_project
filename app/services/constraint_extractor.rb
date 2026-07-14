@@ -29,7 +29,7 @@ class ConstraintExtractor
       leave_requests: leave_requests_data,
       closed_days: @closed_days_with_labels,
       working_days: {
-        regular: @working_calc.regular_staff_days,
+        regular: @working_calc.city_hall_days,
         hourly: @working_calc.hourly_staff_days
       },
       duty_constraints: duty_constraints_data,
