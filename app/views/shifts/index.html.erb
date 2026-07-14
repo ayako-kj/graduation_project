@@ -181,7 +181,7 @@
                       <% else %>
                         <% if is_leave %>
                           <% leave_label = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏" }[leave_reason] || "休" %>
-                          <span style="color:#92400E; font-weight:600; font-size:0.75rem;"><%= leave_label %></span>
+                          <span class="fw-bold" style="color:#92400E;"><%= leave_label %></span>
                         <% else %>
                           <span class="text-muted">－</span>
                         <% end %>
