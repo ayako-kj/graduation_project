@@ -1,0 +1,84 @@
+<% content_for :title, "職種・雇用形態設定 | Pitat" %>
+
+<div class="container py-5" style="max-width: 720px;">
+  <h1 class="fs-4 fw-bold mb-4">職種・雇用形態設定</h1>
+
+  <% if notice %>
+    <div class="alert alert-success rounded-3 mb-4"><%= notice %></div>
+  <% end %>
+  <% if alert %>
+    <div class="alert alert-danger rounded-3 mb-4"><%= alert %></div>
+  <% end %>
+
+  <%# ---- 職種 ---- %>
+  <div class="pitat-card p-4 mb-4">
+    <h2 class="fs-6 fw-bold mb-3">職種</h2>
+    <p class="small text-muted mb-3">「司書」「館長」など図書館の職種を設定します。上下ボタンで並び順を変更できます。</p>
+
+    <% if @staff_types.any? %>
+      <table class="table table-sm align-middle mb-3">
+        <tbody>
+          <% @staff_types.each_with_index do |st, i| %>
+            <tr>
+              <td class="fw-semibold"><%= st.name %></td>
+              <td class="text-end" style="width: 160px;">
+                <%= button_to "▲", move_up_staff_type_path(st), method: :patch,
+                    class: "btn btn-sm btn-outline-secondary me-1 #{'disabled' if i == 0}",
+                    disabled: i == 0 %>
+                <%= button_to "▼", move_down_staff_type_path(st), method: :patch,
+                    class: "btn btn-sm btn-outline-secondary me-1 #{'disabled' if i == @staff_types.size - 1}",
+                    disabled: i == @staff_types.size - 1 %>
+                <%= button_to "削除", staff_type_path(st), method: :delete,
+                    class: "btn btn-sm btn-outline-danger",
+                    data: { turbo_confirm: "「#{st.name}」を削除しますか？職員に割り当て中の場合は削除できません。" } %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p class="text-muted small mb-3">職種が登録されていません。</p>
+    <% end %>
+
+    <%= form_with model: @staff_type, url: staff_types_path, class: "d-flex gap-2" do |f| %>
+      <% if @staff_type.errors.any? %>
+        <div class="text-danger small"><%= @staff_type.errors.full_messages.first %></div>
+      <% end %>
+      <%= f.text_field :name, class: "form-control form-control-sm", placeholder: "例：司書", style: "max-width: 200px;" %>
+      <%= f.submit "追加", class: "btn btn-sm btn-pitat rounded-pill px-3" %>
+    <% end %>
+  </div>
+
+  <%# ---- 雇用形態 ---- %>
+  <div class="pitat-card p-4">
+    <h2 class="fs-6 fw-bold mb-3">雇用形態</h2>
+    <p class="small text-muted mb-3">「正規職員」「会計年度任用職員」など雇用形態を設定します。</p>
+
+    <% if @employment_types.any? %>
+      <table class="table table-sm align-middle mb-3">
+        <tbody>
+          <% @employment_types.each do |et| %>
+            <tr>
+              <td class="fw-semibold"><%= et.name %></td>
+              <td class="text-end" style="width: 80px;">
+                <%= button_to "削除", employment_type_path(et), method: :delete,
+                    class: "btn btn-sm btn-outline-danger",
+                    data: { turbo_confirm: "「#{et.name}」を削除しますか？職員に割り当て中の場合は削除できません。" } %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p class="text-muted small mb-3">雇用形態が登録されていません。</p>
+    <% end %>
+
+    <%= form_with model: @employment_type, url: employment_types_path, class: "d-flex gap-2" do |f| %>
+      <% if @employment_type.errors.any? %>
+        <div class="text-danger small"><%= @employment_type.errors.full_messages.first %></div>
+      <% end %>
+      <%= f.text_field :name, class: "form-control form-control-sm", placeholder: "例：正規職員", style: "max-width: 200px;" %>
+      <%= f.submit "追加", class: "btn btn-sm btn-pitat rounded-pill px-3" %>
+    <% end %>
+  </div>
+</div>
