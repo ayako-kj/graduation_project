@@ -32,7 +32,7 @@ event_blank_s = s.add_style base
 day_names = %w[日 月 火 水 木 金 土]
 
 # セルの値とスタイルを決定するヘルパー
-LEAVE_REASON_LABELS = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏" }.freeze
+leave_reason_labels = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏" }
 
 cell_val = lambda do |staff, date|
   shift = @shifts_map.dig(staff.id, date)
@@ -45,7 +45,7 @@ cell_val = lambda do |staff, date|
   if leave
     [ActualLeave::LEAVE_TYPES[leave.leave_type], leave_s]
   elsif lr_reason && !shift&.is_working
-    [LEAVE_REASON_LABELS[lr_reason] || "休", leave_s]
+    [leave_reason_labels[lr_reason] || "休", leave_s]
   elsif shift&.is_working
     if shift.is_early
       ["早", early_s]
