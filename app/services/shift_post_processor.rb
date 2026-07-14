@@ -27,6 +27,7 @@ class ShiftPostProcessor
 
   def process
     fix_closed_days
+    fix_leave_requests
     fix_special_dates
     fix_assignment_dates
     fix_excess_staff
@@ -124,6 +125,12 @@ class ShiftPostProcessor
   def fix_closed_days
     @shifts.each do |shift|
       shift[:is_working] = false if @closed_days.key?(shift[:date])
+    end
+  end
+
+  def fix_leave_requests
+    @shifts.each do |shift|
+      shift[:is_working] = false if @leave_set.include?([shift[:staff_name], shift[:date]])
     end
   end
 
