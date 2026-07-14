@@ -176,15 +176,19 @@
     }
   }
 
-  // ページ読み込み時に既存データのカードに色を適用
-  document.addEventListener('DOMContentLoaded', function () {
+  // ページ読み込み時に既存データのカードに色を適用（Turbo対応）
+  function initCards() {
     document.querySelectorAll('input[name="leave_dates[]"]').forEach(cb => {
       if (!cb.checked) return;
       const dateStr   = cb.value;
       const typeInput = document.getElementById('type-' + dateStr);
       const card      = document.getElementById('card-' + dateStr);
+      if (!card) return;
       const label     = card.querySelector('.leave-label');
       applyCardStyle(card, label, typeInput.value || '公休');
     });
-  });
+  }
+
+  document.addEventListener('DOMContentLoaded', initCards);
+  document.addEventListener('turbo:load', initCards);
 </script>
