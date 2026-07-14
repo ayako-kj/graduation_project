@@ -190,10 +190,11 @@
                   <% end %>
                 </td>
               <% end %>
-              <%# 月の出勤日数合計（年休等を含む、祝日ポスト当番は除外） %>
+              <%# 月の出勤日数合計（年休・夏期休暇を含む、祝日ポスト当番は除外） %>
               <% total = @dates.count { |d|
                    shift = @shifts_map.dig(staff.id, d)
-                   (shift&.is_working && !shift.is_holiday_post_duty) || @actual_leave_set.include?([staff.id, d])
+                   paid_leave = %w[年休 夏期休暇].include?(@leave_requests_map[[staff.id, d]])
+                   (shift&.is_working && !shift.is_holiday_post_duty) || @actual_leave_set.include?([staff.id, d]) || paid_leave
                  } %>
               <td class="fw-semibold"><%= total %></td>
             </tr>
