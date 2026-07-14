@@ -1,16 +1,14 @@
 <% content_for :title, "希望休入力 | LibShiftAI_Pitat" %>
 
 <style>
-  .date-toggle { cursor: pointer; }
-  .date-toggle input[type="checkbox"] { display: none; }
-  .date-toggle input[type="checkbox"]:checked + .date-card {
-    background-color: #FEF3C7 !important;
-    border-color: #f59e0b !important;
-    color: #92400E !important;
+  .date-card {
+    cursor: pointer;
+    transition: background-color 0.1s, border-color 0.1s, color 0.1s;
+    user-select: none;
   }
-  .date-toggle input[type="checkbox"]:checked + .date-card .date-hint { display: block !important; }
-  .date-toggle input[type="checkbox"]:not(:checked) + .date-card .date-hint { display: none !important; }
   .date-card:hover { opacity: 0.8; }
+  .type-btn { opacity: 0.45; transition: opacity 0.15s; }
+  .type-btn.active { opacity: 1; box-shadow: 0 0 0 2px rgba(0,0,0,0.15); }
 </style>
 
 <div class="container py-5" style="max-width: 720px;">
@@ -36,18 +34,45 @@
 
   <div class="pitat-card p-3 mb-3 small text-muted">
     <i class="bi bi-info-circle me-1"></i>
-    希望休にしたい日をクリックして選択し、最後に「保存する」を押してください。休館日は選択できません。
+    休暇の種別を選んでから日付をタップしてください。もう一度タップすると解除できます。休館日は選択できません。
   </div>
 
   <%= form_with url: save_staff_leave_input_path(token: params[:token], month: @target_month.strftime("%Y-%m")),
       method: :post do |f| %>
 
-    <div class="pitat-card p-3 mb-4">
+    <%# 種別選択 %>
+    <div class="pitat-card p-3 mb-3">
+      <div class="small fw-semibold mb-2 text-muted">① 休暇の種別を選ぶ</div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-sm type-btn active"
+                data-type="公休"
+                onclick="selectLeaveType('公休')"
+                style="background-color:#FEF3C7; border-color:#f59e0b; color:#92400E;">
+          ● 公休（希望休）
+        </button>
+        <button type="button" class="btn btn-sm type-btn"
+                data-type="年休"
+                onclick="selectLeaveType('年休')"
+                style="background-color:#D1FAE5; border-color:#059669; color:#065f46;">
+          ● 年休
+        </button>
+        <button type="button" class="btn btn-sm type-btn"
+                data-type="夏期休暇"
+                onclick="selectLeaveType('夏期休暇')"
+                style="background-color:#DBEAFE; border-color:#2563eb; color:#1e3a8a;">
+          ● 夏期休暇
+        </button>
+      </div>
+    </div>
+
+    <%# カレンダー %>
+    <div class="pitat-card p-3 mb-3">
+      <div class="small fw-semibold mb-2 text-muted">② 日付をタップする</div>
       <div class="d-flex flex-wrap gap-2 justify-content-start">
+        <% wday_names = %w[日 月 火 水 木 金 土] %>
         <% @dates.each do |date| %>
-          <% is_closed    = @closed_days.key?(date) %>
-          <% is_selected  = @existing_leave_dates.include?(date) %>
-          <% wday_names   = %w[日 月 火 水 木 金 土] %>
+          <% is_closed   = @closed_days.key?(date) %>
+          <% leave_type  = @existing_leaves[date] %>
 
           <% if is_closed %>
             <div class="text-center rounded border px-2 py-2"
@@ -57,27 +82,39 @@
               <div style="font-size:0.65rem;">休館</div>
             </div>
           <% else %>
-            <label class="date-toggle">
-              <input type="checkbox" name="dates[]" value="<%= date %>" <%= is_selected ? "checked" : "" %>>
-              <div class="date-card rounded border text-center px-2 py-2"
-                   style="min-width:52px; background-color:white;">
-                <div class="small fw-bold"><%= date.day %></div>
-                <div style="font-size:0.7rem;"><%= wday_names[date.wday] %></div>
-                <div class="date-hint fw-semibold" style="font-size:0.65rem; color:#92400E;">希望</div>
-              </div>
-            </label>
+            <input type="checkbox"
+                   id="check-<%= date %>"
+                   name="leave_dates[]"
+                   value="<%= date %>"
+                   <%= leave_type ? "checked" : "" %>
+                   style="display:none;">
+            <input type="hidden"
+                   id="type-<%= date %>"
+                   name="leave_types[<%= date %>]"
+                   value="<%= leave_type || '' %>">
+            <div class="date-card rounded border text-center px-2 py-2"
+                 id="card-<%= date %>"
+                 style="min-width:52px;"
+                 onclick="toggleDate('<%= date %>')">
+              <div class="small fw-bold"><%= date.day %></div>
+              <div style="font-size:0.7rem;"><%= wday_names[date.wday] %></div>
+              <div class="leave-label fw-semibold" style="font-size:0.65rem;"></div>
+            </div>
           <% end %>
         <% end %>
       </div>
     </div>
 
-    <%# 選択中の日付サマリー %>
+    <%# 選択サマリー %>
     <div class="pitat-card p-3 mb-4 small" id="selected-summary">
-      <span class="text-muted fw-semibold">現在の希望休：</span>
-      <% if @existing_leave_dates.any? %>
-        <span class="text-warning-emphasis fw-semibold">
-          <%= @existing_leave_dates.sort.map { |d| "#{d.month}/#{d.day}" }.join("、") %>
-        </span>
+      <div class="fw-semibold text-muted mb-1">現在の希望休：</div>
+      <% if @existing_leaves.any? %>
+        <% @existing_leaves.group_by { |_, v| v }.sort.each do |type, pairs| %>
+          <div>
+            <span class="fw-semibold"><%= type %>：</span>
+            <%= pairs.map { |d, _| "#{d.month}/#{d.day}" }.sort.join("、") %>
+          </div>
+        <% end %>
       <% else %>
         <span class="text-muted">なし</span>
       <% end %>
@@ -90,3 +127,64 @@
     </div>
   <% end %>
 </div>
+
+<script>
+  const TYPE_STYLES = {
+    '公休':   { bg: '#FEF3C7', border: '#f59e0b', color: '#92400E' },
+    '年休':   { bg: '#D1FAE5', border: '#059669', color: '#065f46' },
+    '夏期休暇': { bg: '#DBEAFE', border: '#2563eb', color: '#1e3a8a' }
+  };
+
+  let currentType = '公休';
+
+  function selectLeaveType(type) {
+    currentType = type;
+    document.querySelectorAll('.type-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.type === type);
+    });
+  }
+
+  function applyCardStyle(card, label, type) {
+    if (type && TYPE_STYLES[type]) {
+      const s = TYPE_STYLES[type];
+      card.style.backgroundColor = s.bg;
+      card.style.borderColor = s.border;
+      card.style.color = s.color;
+      label.textContent = type;
+    } else {
+      card.style.backgroundColor = 'white';
+      card.style.borderColor = '';
+      card.style.color = '';
+      label.textContent = '';
+    }
+  }
+
+  function toggleDate(dateStr) {
+    const checkbox  = document.getElementById('check-' + dateStr);
+    const typeInput = document.getElementById('type-'  + dateStr);
+    const card      = document.getElementById('card-'  + dateStr);
+    const label     = card.querySelector('.leave-label');
+
+    if (checkbox.checked && typeInput.value === currentType) {
+      checkbox.checked = false;
+      typeInput.value  = '';
+      applyCardStyle(card, label, null);
+    } else {
+      checkbox.checked = true;
+      typeInput.value  = currentType;
+      applyCardStyle(card, label, currentType);
+    }
+  }
+
+  // ページ読み込み時に既存データのカードに色を適用
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input[name="leave_dates[]"]').forEach(cb => {
+      if (!cb.checked) return;
+      const dateStr   = cb.value;
+      const typeInput = document.getElementById('type-' + dateStr);
+      const card      = document.getElementById('card-' + dateStr);
+      const label     = card.querySelector('.leave-label');
+      applyCardStyle(card, label, typeInput.value || '公休');
+    });
+  });
+</script>
