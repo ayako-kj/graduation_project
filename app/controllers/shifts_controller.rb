@@ -38,7 +38,7 @@ class ShiftsController < ApplicationController
     @special_dates_map   = {}
     @special_date_labels = {}
     SpecialDate.includes(:designated_staffs)
-               .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
+               .where(library: current_library, date: @target_month.beginning_of_month..@target_month.end_of_month)
                .each do |sd|
       if sd.label.present?
         @special_date_labels[sd.date] ||= []
