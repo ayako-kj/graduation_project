@@ -24,27 +24,33 @@ class ShiftsController < ApplicationController
       @shifts_map = {}
     end
 
-    # 希望休セット：[staff_id, date]
-    @leave_requests_set = LeaveRequest
+    # 希望休マップ：[staff_id, date] => reason
+    @leave_requests_map = LeaveRequest
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
-      .pluck(:staff_id, :date).to_set
+      .each_with_object({}) { |lr, h| h[[lr.staff_id, lr.date]] = lr.reason.presence || "公休" }
 
     # 年休・夏休・特別・病気休暇セット：[staff_id, date]（出勤日数にカウント）
     @actual_leave_set = ActualLeave
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .pluck(:staff_id, :date).to_set
 
-    # 特定日マップ：date => Set of staff_id（または :all）＋ラベル
-    @special_dates_map    = {}
-    @special_date_labels  = {}
+    # 特定日マップ：date => Set of staff_id（または :all）＋ラベル（複数対応）
+    @special_dates_map   = {}
+    @special_date_labels = {}
     SpecialDate.includes(:designated_staffs)
                .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                .each do |sd|
-      @special_date_labels[sd.date] = sd.label if sd.label.present?
+      if sd.label.present?
+        @special_date_labels[sd.date] ||= []
+        @special_date_labels[sd.date] << sd.label
+      end
       if sd.target_group == "全職員"
         @special_dates_map[sd.date] = :all
       elsif sd.designated_staffs.any?
-        @special_dates_map[sd.date] = sd.designated_staffs.map(&:id).to_set
+        unless @special_dates_map[sd.date] == :all
+          @special_dates_map[sd.date] ||= Set.new
+          @special_dates_map[sd.date].merge(sd.designated_staffs.map(&:id))
+        end
       end
     end
 

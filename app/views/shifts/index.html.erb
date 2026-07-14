@@ -58,8 +58,8 @@
         <div>
           <div class="text-muted small fw-semibold mb-1"><i class="bi bi-star-fill me-1" style="color:#059669;"></i>特定日</div>
           <div class="small">
-            <% @special_date_labels.sort.each do |date, label| %>
-              <span class="me-3"><%= date.strftime('%-m/%-d') %>（<span class="fw-semibold"><%= label %></span>）</span>
+            <% @special_date_labels.sort.each do |date, labels| %>
+              <span class="me-3"><%= date.strftime('%-m/%-d') %>（<span class="fw-semibold"><%= labels.join("・") %></span>）</span>
             <% end %>
           </div>
         </div>
@@ -98,7 +98,9 @@
       <span><span class="badge me-1" style="background-color:#f59e0b;">早</span>早番</span>
       <span><span class="badge me-1" style="background-color:#3b82f6;">p</span>ポスト当番</span>
       <span><span class="badge me-1" style="background-color:#ef4444;">P</span>祝日ポスト当番</span>
-      <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">休</span>希望休</span>
+      <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">休</span>公休</span>
+      <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">年</span>年休</span>
+      <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">夏</span>夏期休暇</span>
       <span><span class="badge me-1" style="background-color:#D1FAE5; color:#065F46; border:1px solid #6ee7b7;">○</span>特定日・移動図書館・定例会議</span>
     </div>
 
@@ -109,15 +111,15 @@
             <th class="text-start ps-3 py-2" style="min-width: 120px;">職員名</th>
             <% @dates.each do |date| %>
               <% is_closed = @closed_days.key?(date) %>
-              <% sd_label = @special_date_labels[date] %>
-              <% tooltip = [is_closed ? @closed_days[date] : nil, sd_label].compact.join(" / ") %>
+              <% sd_labels = @special_date_labels[date] || [] %>
+              <% tooltip = [is_closed ? @closed_days[date] : nil, *sd_labels].compact.join(" / ") %>
               <th class="py-2 <%= is_closed ? '' : (date.saturday? || date.sunday? ? 'table-info' : '') %>"
                   style="min-width: 36px; <%= is_closed ? 'background-color:#dee2e6;' : '' %>"
                   <%= tooltip.present? ? "title=\"#{tooltip}\" data-bs-toggle=\"tooltip\" data-bs-placement=\"top\"" : "" %>>
                 <div><%= date.day %></div>
                 <div class="text-muted" style="font-size: 0.7rem;"><%= %w[日 月 火 水 木 金 土][date.wday] %></div>
-                <% if sd_label.present? %>
-                  <div style="font-size: 0.6rem; color: #059669; line-height: 1; margin-top: 1px;">★</div>
+                <% if sd_labels.any? %>
+                  <div style="font-size: 0.6rem; color: #059669; line-height: 1; margin-top: 1px;">★<%= "×#{sd_labels.size}" if sd_labels.size > 1 %></div>
                 <% end %>
               </th>
             <% end %>
@@ -134,7 +136,8 @@
                 <% is_holiday_post = shift&.is_holiday_post_duty %>
                 <% errors = shift && shift.validation_errors.present? ? JSON.parse(shift.validation_errors) : [] %>
                 <% has_error = errors.any? %>
-                <% is_leave = @leave_requests_set.include?([staff.id, date]) %>
+                <% leave_reason = @leave_requests_map[[staff.id, date]] %>
+                <% is_leave = leave_reason.present? %>
                 <% sp = @special_dates_map[date]; is_special = sp == :all || sp&.include?(staff.id) %>
                 <% is_mobile = @mobile_library_map[date]&.include?(staff.id) %>
                 <% is_assignment = @assignment_map[date]&.include?(staff.id) %>
@@ -177,7 +180,8 @@
                         <% end %>
                       <% else %>
                         <% if is_leave %>
-                          <span style="color:#92400E; font-weight:600; font-size:0.75rem;">休</span>
+                          <% leave_label = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏" }[leave_reason] || "休" %>
+                          <span style="color:#92400E; font-weight:600; font-size:0.75rem;"><%= leave_label %></span>
                         <% else %>
                           <span class="text-muted">－</span>
                         <% end %>
