@@ -205,6 +205,10 @@ class ShiftsController < ApplicationController
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .index_by { |l| [l.staff_id, l.date] }
 
+    @leave_requests_map = LeaveRequest
+      .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
+      .each_with_object({}) { |lr, h| h[[lr.staff_id, lr.date]] = lr.reason.presence || "公休" }
+
     @special_date_labels = SpecialDate
       .where(library: current_library, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .where.not(label: [nil, ""])

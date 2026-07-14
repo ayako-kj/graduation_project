@@ -32,15 +32,20 @@ event_blank_s = s.add_style base
 day_names = %w[日 月 火 水 木 金 土]
 
 # セルの値とスタイルを決定するヘルパー
+LEAVE_REASON_LABELS = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏" }.freeze
+
 cell_val = lambda do |staff, date|
   shift = @shifts_map.dig(staff.id, date)
   # 閉館日でも指定出勤・祝日ポスト当番の場合は通常表示
   if @closed_days.key?(date) && !shift&.is_working && !shift&.is_holiday_post_duty
     return ["休", closed_s]
   end
-  leave = @leave_map[[staff.id, date]]
+  leave     = @leave_map[[staff.id, date]]
+  lr_reason = @leave_requests_map[[staff.id, date]]
   if leave
     [ActualLeave::LEAVE_TYPES[leave.leave_type], leave_s]
+  elsif lr_reason && !shift&.is_working
+    [LEAVE_REASON_LABELS[lr_reason] || "休", leave_s]
   elsif shift&.is_working
     if shift.is_early
       ["早", early_s]
@@ -60,11 +65,12 @@ end
 
 working_days_count = lambda do |staff|
   @dates.count do |date|
-    shift = @shifts_map.dig(staff.id, date)
-    # 閉館日でも指定出勤の場合はカウント
+    shift     = @shifts_map.dig(staff.id, date)
     next false if @closed_days.key?(date) && !shift&.is_working
-    leave = @leave_map[[staff.id, date]]
-    leave.present? || shift&.is_working
+    leave     = @leave_map[[staff.id, date]]
+    lr_reason = @leave_requests_map[[staff.id, date]]
+    paid_leave = %w[年休 夏期休暇].include?(lr_reason)
+    leave.present? || shift&.is_working || paid_leave
   end
 end
 
