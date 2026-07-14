@@ -159,11 +159,18 @@
                   <% if shift.nil? %>
                     <span class="text-muted" style="font-size:0.75rem;"><%= is_closed ? '閉' : '－' %></span>
                   <% else %>
-                    <%= button_to shift_path(shift), method: :patch,
-                        class: "btn btn-link p-0 w-100 h-100 d-flex align-items-center justify-content-center",
-                        style: "min-height:32px; text-decoration:none;",
-                        title: shift.is_working ? "クリックして休みに変更" : "クリックして出勤に変更",
-                        data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                    <div class="w-100 d-flex align-items-center justify-content-center"
+                         style="min-height:32px;<%= show_closed ? '' : ' cursor:pointer;' %>"
+                         <% unless show_closed %>
+                           data-shift-id="<%= shift.id %>"
+                           data-staff-name="<%= staff.name %>"
+                           data-date="<%= date.strftime('%-m月%-d日（') + %w[日 月 火 水 木 金 土][date.wday] + '）' %>"
+                           data-is-working="<%= shift.is_working %>"
+                           data-is-early="<%= shift.is_early %>"
+                           data-is-post-duty="<%= shift.is_post_duty %>"
+                           data-is-holiday-post-duty="<%= shift.is_holiday_post_duty %>"
+                           onclick="openShiftModal(this)"
+                         <% end %>>
                       <% if show_closed %>
                         <span class="text-muted" style="font-size:0.75rem;">閉</span>
                       <% elsif shift.is_working %>
@@ -186,7 +193,7 @@
                           <span class="text-muted">－</span>
                         <% end %>
                       <% end %>
-                    <% end %>
+                    </div>
                   <% end %>
                 </td>
               <% end %>
@@ -220,9 +227,88 @@
   <% end %>
 </div>
 
+<%# シフト編集モーダル %>
+<div class="modal fade" id="shiftEditModal" tabindex="-1" aria-labelledby="shiftEditModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title fw-bold" id="shiftEditModalLabel"></h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="shiftEditForm" method="post">
+        <input type="hidden" name="_method" value="patch">
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+        <div class="modal-body py-3">
+          <div class="form-check mb-3">
+            <input type="hidden" name="is_working" value="0">
+            <input class="form-check-input" type="checkbox" id="editIsWorking" name="is_working" value="1">
+            <label class="form-check-label fw-semibold" for="editIsWorking">出勤</label>
+          </div>
+          <div id="editDutyOptions" class="ms-3 d-flex flex-column gap-2">
+            <div class="form-check">
+              <input type="hidden" name="is_early" value="0">
+              <input class="form-check-input" type="checkbox" id="editIsEarly" name="is_early" value="1">
+              <label class="form-check-label" for="editIsEarly">早番</label>
+            </div>
+            <div class="form-check">
+              <input type="hidden" name="is_post_duty" value="0">
+              <input class="form-check-input" type="checkbox" id="editIsPostDuty" name="is_post_duty" value="1">
+              <label class="form-check-label" for="editIsPostDuty">ポスト当番</label>
+            </div>
+            <div class="form-check">
+              <input type="hidden" name="is_holiday_post_duty" value="0">
+              <input class="form-check-input" type="checkbox" id="editIsHolidayPostDuty" name="is_holiday_post_duty" value="1">
+              <label class="form-check-label" for="editIsHolidayPostDuty">祝日ポスト当番</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer py-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">キャンセル</button>
+          <button type="submit" class="btn btn-pitat btn-sm rounded-pill px-3 fw-semibold">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    var tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    tooltips.forEach(function(el) { new bootstrap.Tooltip(el); });
+  function initTooltips() {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+      new bootstrap.Tooltip(el);
+    });
+  }
+
+  function updateDutyOptions(isWorking) {
+    const options = document.getElementById('editDutyOptions');
+    options.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.disabled = !isWorking; });
+    options.style.opacity = isWorking ? '1' : '0.4';
+  }
+
+  function openShiftModal(el) {
+    const d = el.dataset;
+    document.getElementById('shiftEditModalLabel').textContent = d.staffName + '　' + d.date;
+    document.getElementById('shiftEditForm').action = '/shifts/' + d.shiftId;
+
+    const isWorking = d.isWorking === 'true';
+    document.getElementById('editIsWorking').checked         = isWorking;
+    document.getElementById('editIsEarly').checked           = d.isEarly === 'true';
+    document.getElementById('editIsPostDuty').checked        = d.isPostDuty === 'true';
+    document.getElementById('editIsHolidayPostDuty').checked = d.isHolidayPostDuty === 'true';
+    updateDutyOptions(isWorking);
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('shiftEditModal')).show();
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initTooltips();
+    document.getElementById('editIsWorking').addEventListener('change', function() {
+      if (!this.checked) {
+        ['editIsEarly', 'editIsPostDuty', 'editIsHolidayPostDuty'].forEach(function(id) {
+          document.getElementById(id).checked = false;
+        });
+      }
+      updateDutyOptions(this.checked);
+    });
   });
+  document.addEventListener('turbo:load', initTooltips);
 </script>

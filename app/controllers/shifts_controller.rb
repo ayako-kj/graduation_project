@@ -135,7 +135,13 @@ class ShiftsController < ApplicationController
     shift = Shift.joins(:shift_group)
                  .where(shift_groups: { library_id: current_library.id })
                  .find(params[:id])
-    shift.update!(is_working: !shift.is_working)
+
+    shift.update!(
+      is_working:           params[:is_working] == "1",
+      is_early:             params[:is_early] == "1",
+      is_post_duty:         params[:is_post_duty] == "1",
+      is_holiday_post_duty: params[:is_holiday_post_duty] == "1"
+    )
 
     shift_group = shift.shift_group
     holidays = HolidayFetcher.fetch(shift_group.target_month.year)
