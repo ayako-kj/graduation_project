@@ -14,7 +14,7 @@ class WorkingDaySummariesController < ApplicationController
     months = fiscal_year_months(@fiscal_year)
     holidays = HolidayFetcher.fetch(@fiscal_year).merge(HolidayFetcher.fetch(@fiscal_year + 1))
     # 市役所換算の比較基準は「平日 - 祝日」（図書館の定休曜日は除かない）
-    @n_by_month = months.index_with { |m| WorkingDayCalculator.new(m, holidays, closed_wdays: []).regular_staff_days }
+    @n_by_month = months.index_with { |m| WorkingDayCalculator.new(m, holidays, closed_wdays: []).city_hall_days }
     @fiscal_months = months
 
     preload_actual_data(months)
