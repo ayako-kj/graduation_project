@@ -159,18 +159,16 @@
                   <% if shift.nil? %>
                     <span class="text-muted" style="font-size:0.75rem;"><%= is_closed ? '閉' : '－' %></span>
                   <% else %>
-                    <div class="w-100 d-flex align-items-center justify-content-center"
+                    <div class="shift-cell w-100 d-flex align-items-center justify-content-center"
                          style="min-height:32px;<%= show_closed ? '' : ' cursor:pointer;' %>"
-                         <% unless show_closed %>
-                           data-shift-id="<%= shift.id %>"
-                           data-staff-name="<%= staff.name %>"
-                           data-date="<%= date.strftime('%-m月%-d日（') + %w[日 月 火 水 木 金 土][date.wday] + '）' %>"
-                           data-is-working="<%= shift.is_working %>"
-                           data-is-early="<%= shift.is_early %>"
-                           data-is-post-duty="<%= shift.is_post_duty %>"
-                           data-is-holiday-post-duty="<%= shift.is_holiday_post_duty %>"
-                           onclick="openShiftModal(this)"
-                         <% end %>>
+                         data-shift-id="<%= shift.id %>"
+                         data-clickable="<%= !show_closed %>"
+                         data-staff-name="<%= staff.name %>"
+                         data-date="<%= "#{date.strftime('%-m月%-d日（')}#{%w[日 月 火 水 木 金 土][date.wday]}）" %>"
+                         data-is-working="<%= shift.is_working %>"
+                         data-is-early="<%= shift.is_early %>"
+                         data-is-post-duty="<%= shift.is_post_duty %>"
+                         data-is-holiday-post-duty="<%= shift.is_holiday_post_duty %>">
                       <% if show_closed %>
                         <span class="text-muted" style="font-size:0.75rem;">閉</span>
                       <% elsif shift.is_working %>
@@ -272,43 +270,56 @@
 </div>
 
 <script>
-  function initTooltips() {
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
-      new bootstrap.Tooltip(el);
-    });
-  }
+  (function () {
+    function initTooltips() {
+      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+        bootstrap.Tooltip.getOrCreateInstance(el);
+      });
+    }
 
-  function updateDutyOptions(isWorking) {
-    const options = document.getElementById('editDutyOptions');
-    options.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.disabled = !isWorking; });
-    options.style.opacity = isWorking ? '1' : '0.4';
-  }
+    function updateDutyOptions(isWorking) {
+      var options = document.getElementById('editDutyOptions');
+      options.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.disabled = !isWorking; });
+      options.style.opacity = isWorking ? '1' : '0.4';
+    }
 
-  function openShiftModal(el) {
-    const d = el.dataset;
-    document.getElementById('shiftEditModalLabel').textContent = d.staffName + '　' + d.date;
-    document.getElementById('shiftEditForm').action = '/shifts/' + d.shiftId;
+    function openShiftModal(el) {
+      var d = el.dataset;
+      document.getElementById('shiftEditModalLabel').textContent = d.staffName + '　' + d.date;
+      document.getElementById('shiftEditForm').action = '/shifts/' + d.shiftId;
 
-    const isWorking = d.isWorking === 'true';
-    document.getElementById('editIsWorking').checked         = isWorking;
-    document.getElementById('editIsEarly').checked           = d.isEarly === 'true';
-    document.getElementById('editIsPostDuty').checked        = d.isPostDuty === 'true';
-    document.getElementById('editIsHolidayPostDuty').checked = d.isHolidayPostDuty === 'true';
-    updateDutyOptions(isWorking);
+      var isWorking = d.isWorking === 'true';
+      document.getElementById('editIsWorking').checked         = isWorking;
+      document.getElementById('editIsEarly').checked           = d.isEarly === 'true';
+      document.getElementById('editIsPostDuty').checked        = d.isPostDuty === 'true';
+      document.getElementById('editIsHolidayPostDuty').checked = d.isHolidayPostDuty === 'true';
+      updateDutyOptions(isWorking);
 
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('shiftEditModal')).show();
-  }
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('shiftEditModal')).show();
+    }
 
-  document.addEventListener('DOMContentLoaded', function() {
-    initTooltips();
-    document.getElementById('editIsWorking').addEventListener('change', function() {
-      if (!this.checked) {
-        ['editIsEarly', 'editIsPostDuty', 'editIsHolidayPostDuty'].forEach(function(id) {
-          document.getElementById(id).checked = false;
-        });
-      }
-      updateDutyOptions(this.checked);
-    });
-  });
-  document.addEventListener('turbo:load', initTooltips);
+    // イベント委任：document に一度だけ設定（Turbo 対応）
+    if (!window.__shiftModalReady) {
+      window.__shiftModalReady = true;
+
+      document.addEventListener('click', function (e) {
+        var cell = e.target.closest('.shift-cell');
+        if (!cell || cell.dataset.clickable !== 'true') return;
+        openShiftModal(cell);
+      });
+
+      document.addEventListener('change', function (e) {
+        if (e.target.id !== 'editIsWorking') return;
+        if (!e.target.checked) {
+          ['editIsEarly', 'editIsPostDuty', 'editIsHolidayPostDuty'].forEach(function (id) {
+            document.getElementById(id).checked = false;
+          });
+        }
+        updateDutyOptions(e.target.checked);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initTooltips);
+    document.addEventListener('turbo:load', initTooltips);
+  }());
 </script>
