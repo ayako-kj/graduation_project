@@ -101,7 +101,6 @@
           <thead class="table-light">
             <tr>
               <th class="ps-3 py-2 text-start">月</th>
-              <th class="py-2">N</th>
               <th class="py-2">目標日数</th>
               <th class="py-2">実績日数</th>
               <th class="py-2">データ元</th>
@@ -115,7 +114,6 @@
             <% @summary.each do |row| %>
               <tr class="<%= row[:monthly_diff] != 0 ? 'table-warning' : '' %>">
                 <td class="ps-3 text-start fw-semibold"><%= row[:month].strftime("%Y年%-m月") %></td>
-                <td><%= row[:n] %>日</td>
                 <td class="text-muted"><%= row[:target_days] %>日</td>
                 <td class="fw-semibold">
                   <%= row[:actual_days].nil? ? "－" : "#{row[:actual_days]}日" %>
@@ -144,7 +142,7 @@
           </tbody>
           <tfoot class="table-light fw-bold">
             <tr>
-              <td class="ps-3 text-start" colspan="5">年度合計</td>
+              <td class="ps-3 text-start" colspan="4">年度合計</td>
               <td><%= @summary.sum { |r| r[:used_hours] }.round(2) %>時間</td>
               <td><%= @summary.sum { |r| r[:city_hall_hours] }.round(2) %>時間</td>
               <td></td>
