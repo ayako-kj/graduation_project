@@ -24,12 +24,15 @@
               <td class="text-end" style="white-space: nowrap;">
                 <%= button_to "▲", move_up_staff_type_path(st), method: :patch,
                     class: "btn btn-sm btn-outline-secondary me-1",
+                    form: { class: "d-inline" },
                     disabled: i == 0 %>
                 <%= button_to "▼", move_down_staff_type_path(st), method: :patch,
                     class: "btn btn-sm btn-outline-secondary me-1",
+                    form: { class: "d-inline" },
                     disabled: i == @staff_types.size - 1 %>
                 <%= button_to "削除", staff_type_path(st), method: :delete,
                     class: "btn btn-sm btn-outline-danger",
+                    form: { class: "d-inline" },
                     data: { turbo_confirm: "「#{st.name}」を削除しますか？職員に割り当て中の場合は削除できません。" } %>
               </td>
             </tr>
@@ -40,14 +43,14 @@
       <p class="text-muted small mb-3">職種が登録されていません。</p>
     <% end %>
 
-    <%= form_with model: @staff_type, url: staff_types_path, class: "d-flex gap-2 align-items-start" do |f| %>
+    <%= form_with model: @staff_type, url: staff_types_path, class: "d-flex gap-2 align-items-center" do |f| %>
       <div>
         <% if @staff_type.errors[:name].any? %>
           <div class="text-danger small mb-1"><%= @staff_type.errors[:name].first %></div>
         <% end %>
-        <%= f.text_field :name, class: "form-control form-control-sm", placeholder: "例：司書", style: "width: 200px;" %>
+        <%= f.text_field :name, class: "form-control", placeholder: "例：司書", style: "width: 200px;" %>
       </div>
-      <%= f.submit "追加", class: "btn btn-sm btn-pitat rounded-pill px-3" %>
+      <%= f.submit "追加", class: "btn btn-pitat rounded-pill px-3" %>
     <% end %>
   </div>
 
@@ -84,6 +87,7 @@
                           data-bs-target="#et-edit-<%= et.id %>">編集</button>
                   <%= button_to "削除", employment_type_path(et), method: :delete,
                       class: "btn btn-sm btn-outline-danger",
+                      form: { class: "d-inline" },
                       data: { turbo_confirm: "「#{et.name}」を削除しますか？職員に割り当て中の場合は削除できません。" } %>
                 </td>
               </tr>
@@ -123,14 +127,14 @@
       <p class="text-muted small mb-3">雇用形態が登録されていません。</p>
     <% end %>
 
-    <%= form_with model: @employment_type, url: employment_types_path, class: "d-flex gap-2 align-items-start" do |f| %>
+    <%= form_with model: @employment_type, url: employment_types_path, class: "d-flex gap-2 align-items-center" do |f| %>
       <div>
         <% if @employment_type.errors[:name].any? %>
           <div class="text-danger small mb-1"><%= @employment_type.errors[:name].first %></div>
         <% end %>
-        <%= f.text_field :name, class: "form-control form-control-sm", placeholder: "例：パート職員", style: "width: 200px;" %>
+        <%= f.text_field :name, class: "form-control", placeholder: "例：パート職員", style: "width: 200px;" %>
       </div>
-      <%= f.submit "追加", class: "btn btn-sm btn-pitat rounded-pill px-3" %>
+      <%= f.submit "追加", class: "btn btn-pitat rounded-pill px-3" %>
     <% end %>
     <p class="small text-muted mt-2 mb-0">追加後に「編集」ボタンで勤務時間を設定してください。</p>
   </div>
