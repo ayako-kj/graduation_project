@@ -3,12 +3,7 @@
 <div class="container py-5">
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <h1 class="fs-4 fw-bold mb-0">職員一覧</h1>
-    <div class="d-flex gap-2">
-      <%= link_to hope_urls_staffs_path, class: "btn btn-outline-secondary rounded-pill px-4" do %>
-        <i class="bi bi-link-45deg me-1"></i>希望休URL一覧
-      <% end %>
-      <%= link_to "＋ 職員を登録する", new_staff_path, class: "btn btn-pitat rounded-pill px-4" %>
-    </div>
+    <%= link_to "＋ 職員を登録する", new_staff_path, class: "btn btn-pitat rounded-pill px-4" %>
   </div>
 
   <% if @staffs.empty? %>
