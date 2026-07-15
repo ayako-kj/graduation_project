@@ -90,7 +90,7 @@
                       <% lr_reason = @leave_requests_map[[staff.id, date]] %>
                       <% is_leave_request = lr_reason.present? %>
                       <%
-                        lr_leave_type = { "年休" => "annual", "夏期休暇" => "summer" }[lr_reason]
+                        lr_leave_type = { "年休" => "annual", "夏期休暇" => "summer", "病気休暇" => "sick", "特別休暇" => "special" }[lr_reason]
                         selected_type = leave ? leave.leave_type : lr_leave_type
                         cell_class = if date.saturday?
                           "table-info"

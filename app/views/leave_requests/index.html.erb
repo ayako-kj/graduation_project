@@ -37,8 +37,8 @@
         <tbody>
           <% @leave_requests.each do |leave_request| %>
             <tr>
-              <% lr_type = %w[公休 年休 夏期休暇].include?(leave_request.reason) ? leave_request.reason : "公休" %>
-              <% badge_color = { "公休" => "bg-warning text-dark", "年休" => "bg-success", "夏期休暇" => "bg-primary" }[lr_type] %>
+              <% lr_type = %w[公休 年休 夏期休暇 病気休暇 特別休暇].include?(leave_request.reason) ? leave_request.reason : "公休" %>
+              <% badge_color = { "公休" => "bg-warning text-dark", "年休" => "bg-success", "夏期休暇" => "bg-primary", "病気休暇" => "bg-danger", "特別休暇" => "bg-secondary" }[lr_type] %>
               <td class="ps-4 py-3 fw-semibold"><%= leave_request.date.strftime("%Y年%m月%d日") %></td>
               <td class="py-3"><%= leave_request.staff.name %></td>
               <td class="py-3"><span class="badge <%= badge_color %>"><%= lr_type %></span></td>
