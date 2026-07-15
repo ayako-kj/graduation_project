@@ -33,7 +33,7 @@
       休暇種別<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
     </label>
     <div class="d-flex gap-2 flex-wrap">
-      <% %w[公休 年休 夏期休暇].each do |type| %>
+      <% %w[公休 年休 夏期休暇 病気休暇 特別休暇].each do |type| %>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="leave_request[reason]"
                  id="reason_<%= type %>" value="<%= type %>"

@@ -158,6 +158,7 @@
                 <% has_error = errors.any? %>
                 <% leave_reason = @leave_requests_map[[staff.id, date]] %>
                 <% is_leave = leave_reason.present? %>
+                <% actual_leave_type = @actual_leave_map[[staff.id, date]] %>
                 <% sp = @special_dates_map[date]; is_special = sp == :all || sp&.include?(staff.id) %>
                 <% is_mobile = @mobile_library_map[date]&.include?(staff.id) %>
                 <% is_assignment = @assignment_map[date]&.include?(staff.id) %>
@@ -190,7 +191,8 @@
                          data-is-early="<%= shift.is_early %>"
                          data-is-post-duty="<%= shift.is_post_duty %>"
                          data-is-holiday-post-duty="<%= shift.is_holiday_post_duty %>"
-                         data-has-error="<%= has_error %>">
+                         data-has-error="<%= has_error %>"
+                         data-leave-type="<%= actual_leave_type || '' %>">
                       <% if show_closed %>
                         <span class="text-muted" style="font-size:0.75rem;">閉</span>
                       <% elsif shift.is_working %>
@@ -206,8 +208,10 @@
                           <span class="text-success fw-bold">○</span>
                         <% end %>
                       <% else %>
-                        <% if is_leave %>
-                          <% leave_label = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏" }[leave_reason] || "休" %>
+                        <% if actual_leave_type %>
+                          <span class="fw-bold" style="color:#92400E;"><%= ActualLeave::LEAVE_TYPES[actual_leave_type] %></span>
+                        <% elsif is_leave %>
+                          <% leave_label = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏", "病気休暇" => "病", "特別休暇" => "特" }[leave_reason] || "休" %>
                           <span class="fw-bold" style="color:#92400E;"><%= leave_label %></span>
                         <% else %>
                           <span class="text-muted">－</span>
@@ -264,6 +268,16 @@
             <input class="form-check-input" type="checkbox" id="editIsWorking" name="is_working" value="1">
             <label class="form-check-label fw-semibold" for="editIsWorking">出勤</label>
           </div>
+          <div id="editLeaveTypeSection" class="mb-3" style="display:none;">
+            <label class="form-label small fw-semibold mb-1">休暇種別</label>
+            <select name="leave_type" class="form-select form-select-sm" id="editLeaveType">
+              <option value="">公休（指定なし）</option>
+              <option value="annual">年休</option>
+              <option value="summer">夏季休暇</option>
+              <option value="sick">病気休暇</option>
+              <option value="special">特別休暇</option>
+            </select>
+          </div>
           <div id="editDutyOptions" class="ms-3 d-flex flex-column gap-2">
             <div class="form-check">
               <input type="hidden" name="is_early" value="0">
@@ -305,6 +319,10 @@
       options.style.opacity = isWorking ? '1' : '0.4';
     }
 
+    function updateLeaveTypeSection(isWorking) {
+      document.getElementById('editLeaveTypeSection').style.display = isWorking ? 'none' : 'block';
+    }
+
     function openShiftModal(el) {
       var d = el.dataset;
       var closedBadge = d.isClosed === 'true'
@@ -317,31 +335,40 @@
       document.getElementById('editIsEarly').checked           = d.isEarly === 'true';
       document.getElementById('editIsPostDuty').checked        = d.isPostDuty === 'true';
       document.getElementById('editIsHolidayPostDuty').checked = d.isHolidayPostDuty === 'true';
+      document.getElementById('editLeaveType').value           = d.leaveType || '';
       updateDutyOptions(isWorking);
+      updateLeaveTypeSection(isWorking);
 
       bootstrap.Modal.getOrCreateInstance(document.getElementById('shiftEditModal')).show();
     }
 
-    // イベント委任：document に一度だけ設定（Turbo 対応）
-    if (!window.__shiftModalReady) {
-      window.__shiftModalReady = true;
-
-      document.addEventListener('click', function (e) {
-        var cell = e.target.closest('.shift-cell');
-        if (!cell || cell.dataset.clickable !== 'true') return;
-        openShiftModal(cell);
-      });
-
-      document.addEventListener('change', function (e) {
-        if (e.target.id !== 'editIsWorking') return;
-        if (!e.target.checked) {
-          ['editIsEarly', 'editIsPostDuty', 'editIsHolidayPostDuty'].forEach(function (id) {
-            document.getElementById(id).checked = false;
-          });
-        }
-        updateDutyOptions(e.target.checked);
-      });
+    // イベント委任：古いハンドラを除去して毎回登録し直す（Turbo 対応）
+    if (window.__shiftClickHandler) {
+      document.removeEventListener('click', window.__shiftClickHandler);
     }
+    if (window.__shiftChangeHandler) {
+      document.removeEventListener('change', window.__shiftChangeHandler);
+    }
+
+    window.__shiftClickHandler = function (e) {
+      var cell = e.target.closest('.shift-cell');
+      if (!cell || cell.dataset.clickable !== 'true') return;
+      openShiftModal(cell);
+    };
+
+    window.__shiftChangeHandler = function (e) {
+      if (e.target.id !== 'editIsWorking') return;
+      if (!e.target.checked) {
+        ['editIsEarly', 'editIsPostDuty', 'editIsHolidayPostDuty'].forEach(function (id) {
+          document.getElementById(id).checked = false;
+        });
+      }
+      updateDutyOptions(e.target.checked);
+      updateLeaveTypeSection(e.target.checked);
+    };
+
+    document.addEventListener('click', window.__shiftClickHandler);
+    document.addEventListener('change', window.__shiftChangeHandler);
 
     document.addEventListener('DOMContentLoaded', initTooltips);
     document.addEventListener('turbo:load', initTooltips);

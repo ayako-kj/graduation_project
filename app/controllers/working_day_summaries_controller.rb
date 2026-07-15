@@ -48,10 +48,19 @@ class WorkingDaySummariesController < ApplicationController
     @manual_entries_map = manual_entries.index_by { |e| [e.staff_id, e.year_month] }
 
     shift_groups = current_library.shift_groups.where(target_month: start_date..end_date)
+    staff_ids = @staffs.map(&:id)
     @pitat_days_map = {}
     shift_groups.each do |sg|
+      month_start = sg.target_month.beginning_of_month
+      month_end   = sg.target_month.end_of_month
+
       Shift.where(shift_group: sg, is_working: true).group(:staff_id).count.each do |staff_id, count|
         @pitat_days_map[[staff_id, sg.target_month]] = count
+      end
+
+      ActualLeave.where(staff_id: staff_ids, date: month_start..month_end)
+                 .group(:staff_id).count.each do |staff_id, count|
+        @pitat_days_map[[staff_id, sg.target_month]] = (@pitat_days_map[[staff_id, sg.target_month]] || 0) + count
       end
     end
     @shift_group_months = Set.new(shift_groups.map(&:target_month))

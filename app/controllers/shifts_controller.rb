@@ -29,10 +29,11 @@ class ShiftsController < ApplicationController
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .each_with_object({}) { |lr, h| h[[lr.staff_id, lr.date]] = lr.reason.presence || "公休" }
 
-    # 年休・夏休・特別・病気休暇セット：[staff_id, date]（出勤日数にカウント）
-    @actual_leave_set = ActualLeave
+    # 年休・夏休・特別・病気休暇マップ：[staff_id, date] => leave_type（出勤日数にカウント）
+    @actual_leave_map = ActualLeave
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
-      .pluck(:staff_id, :date).to_set
+      .each_with_object({}) { |al, h| h[[al.staff_id, al.date]] = al.leave_type }
+    @actual_leave_set = @actual_leave_map.keys.to_set
 
     # 特定日マップ：date => Set of staff_id（または :all）＋ラベル（複数対応）
     @special_dates_map   = {}
@@ -136,12 +137,21 @@ class ShiftsController < ApplicationController
                  .where(shift_groups: { library_id: current_library.id })
                  .find(params[:id])
 
+    is_working = params[:is_working] == "1"
     shift.update!(
-      is_working:           params[:is_working] == "1",
+      is_working:           is_working,
       is_early:             params[:is_early] == "1",
       is_post_duty:         params[:is_post_duty] == "1",
       is_holiday_post_duty: params[:is_holiday_post_duty] == "1"
     )
+
+    leave_type = params[:leave_type]
+    if is_working || leave_type.blank? || !ActualLeave::LEAVE_TYPES.key?(leave_type)
+      ActualLeave.where(staff_id: shift.staff_id, date: shift.date).delete_all
+    else
+      al = ActualLeave.find_or_initialize_by(staff_id: shift.staff_id, date: shift.date)
+      al.update!(leave_type: leave_type)
+    end
 
     shift_group = shift.shift_group
     holidays = HolidayFetcher.fetch(shift_group.target_month.year)

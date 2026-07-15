@@ -62,6 +62,18 @@
                 style="background-color:#DBEAFE; border-color:#2563eb; color:#1e3a8a;">
           ● 夏期休暇
         </button>
+        <button type="button" class="btn btn-sm type-btn"
+                data-type="病気休暇"
+                onclick="selectLeaveType('病気休暇')"
+                style="background-color:#FEE2E2; border-color:#dc2626; color:#7f1d1d;">
+          ● 病気休暇
+        </button>
+        <button type="button" class="btn btn-sm type-btn"
+                data-type="特別休暇"
+                onclick="selectLeaveType('特別休暇')"
+                style="background-color:#EDE9FE; border-color:#7c3aed; color:#4c1d95;">
+          ● 特別休暇
+        </button>
       </div>
     </div>
 
@@ -132,7 +144,9 @@
   const TYPE_STYLES = {
     '公休':   { bg: '#FEF3C7', border: '#f59e0b', color: '#92400E' },
     '年休':   { bg: '#D1FAE5', border: '#059669', color: '#065f46' },
-    '夏期休暇': { bg: '#DBEAFE', border: '#2563eb', color: '#1e3a8a' }
+    '夏期休暇': { bg: '#DBEAFE', border: '#2563eb', color: '#1e3a8a' },
+    '病気休暇': { bg: '#FEE2E2', border: '#dc2626', color: '#7f1d1d' },
+    '特別休暇': { bg: '#EDE9FE', border: '#7c3aed', color: '#4c1d95' }
   };
 
   let currentType = '公休';
