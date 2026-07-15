@@ -81,8 +81,12 @@
                     <% shift = @shift_map[[staff.id, date]] %>
                     <% leave = @leave_map[[staff.id, date]] %>
                     <% is_working = shift&.is_working %>
-                    <% is_leave_request = @leave_requests_set.include?([staff.id, date]) %>
+                    <% lr_reason = @leave_requests_map[[staff.id, date]] %>
+                    <% is_leave_request = lr_reason.present? %>
                     <%
+                      # ActualLeaveがなく希望休種別が年休・夏期休暇の場合は初期値として反映
+                      lr_leave_type = { "年休" => "annual", "夏期休暇" => "summer" }[lr_reason]
+                      selected_type = leave ? leave.leave_type : lr_leave_type
                       cell_class = if date.saturday?
                         "table-info"
                       elsif date.sunday?
@@ -101,7 +105,7 @@
                                 title="<%= staff.name %> <%= date.strftime('%-m/%-d') %>">
                           <option value="">休</option>
                           <% ActualLeave::LEAVE_TYPES.each do |type, symbol| %>
-                            <option value="<%= type %>" <%= 'selected' if leave&.leave_type == type %>><%= symbol %></option>
+                            <option value="<%= type %>" <%= 'selected' if selected_type == type %>><%= symbol %></option>
                           <% end %>
                         </select>
                       <% end %>
