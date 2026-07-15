@@ -23,9 +23,9 @@ class ActualLeavesController < ApplicationController
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .index_by { |l| [l.staff_id, l.date] }
 
-    @leave_requests_set = LeaveRequest
+    @leave_requests_map = LeaveRequest
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
-      .pluck(:staff_id, :date).to_set
+      .each_with_object({}) { |lr, h| h[[lr.staff_id, lr.date]] = lr.reason.presence || "公休" }
   end
 
   def save
