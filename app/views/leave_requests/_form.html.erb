@@ -28,11 +28,27 @@
     <%= f.date_field :date, class: "form-control" %>
   </div>
 
+  <div class="mb-3">
+    <label class="form-label fw-semibold small">
+      休暇種別<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    </label>
+    <div class="d-flex gap-2 flex-wrap">
+      <% %w[公休 年休 夏期休暇].each do |type| %>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="leave_request[reason]"
+                 id="reason_<%= type %>" value="<%= type %>"
+                 <%= 'checked' if (leave_request.reason.presence || "公休") == type %>>
+          <label class="form-check-label" for="reason_<%= type %>"><%= type %></label>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
   <div class="mb-4">
-    <%= f.label :reason, class: "form-label fw-semibold small" do %>
+    <%= f.label :note, class: "form-label fw-semibold small" do %>
       理由<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
     <% end %>
-    <%= f.text_field :reason, class: "form-control", placeholder: "例：通院、私用など" %>
+    <%= f.text_field :note, class: "form-control", placeholder: "例：通院、私用など" %>
   </div>
 
   <%= f.submit leave_request.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>

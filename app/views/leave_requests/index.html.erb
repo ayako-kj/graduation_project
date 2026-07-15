@@ -29,6 +29,7 @@
           <tr>
             <th class="ps-4 py-3 text-muted small fw-semibold">日付</th>
             <th class="py-3 text-muted small fw-semibold">職員名</th>
+            <th class="py-3 text-muted small fw-semibold">休暇種別</th>
             <th class="py-3 text-muted small fw-semibold">理由</th>
             <th class="py-3"></th>
           </tr>
@@ -36,9 +37,12 @@
         <tbody>
           <% @leave_requests.each do |leave_request| %>
             <tr>
+              <% lr_type = %w[公休 年休 夏期休暇].include?(leave_request.reason) ? leave_request.reason : "公休" %>
+              <% badge_color = { "公休" => "bg-warning text-dark", "年休" => "bg-success", "夏期休暇" => "bg-primary" }[lr_type] %>
               <td class="ps-4 py-3 fw-semibold"><%= leave_request.date.strftime("%Y年%m月%d日") %></td>
               <td class="py-3"><%= leave_request.staff.name %></td>
-              <td class="py-3"><%= leave_request.reason.presence || "－" %></td>
+              <td class="py-3"><span class="badge <%= badge_color %>"><%= lr_type %></span></td>
+              <td class="py-3"><%= leave_request.note.presence || "－" %></td>
               <td class="py-3 pe-4 text-end">
                 <%= link_to "編集", edit_leave_request_path(leave_request), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
                 <%= link_to "削除", leave_request_path(leave_request),

@@ -54,6 +54,6 @@ class LeaveRequestsController < ApplicationController
   end
 
   def leave_request_params
-    params.require(:leave_request).permit(:staff_id, :date, :reason)
+    params.require(:leave_request).permit(:staff_id, :date, :reason, :note)
   end
 end
