@@ -180,9 +180,10 @@
                     <span class="text-muted" style="font-size:0.75rem;"><%= is_closed ? '閉' : '－' %></span>
                   <% else %>
                     <div class="shift-cell w-100 d-flex align-items-center justify-content-center"
-                         style="min-height:32px;<%= show_closed ? '' : ' cursor:pointer;' %>"
+                         style="min-height:32px; cursor:pointer;"
                          data-shift-id="<%= shift.id %>"
-                         data-clickable="<%= !show_closed %>"
+                         data-clickable="true"
+                         data-is-closed="<%= show_closed %>"
                          data-staff-name="<%= staff.name %>"
                          data-date="<%= "#{date.strftime('%-m月%-d日（')}#{%w[日 月 火 水 木 金 土][date.wday]}）" %>"
                          data-is-working="<%= shift.is_working %>"
@@ -306,7 +307,9 @@
 
     function openShiftModal(el) {
       var d = el.dataset;
-      document.getElementById('shiftEditModalLabel').textContent = d.staffName + '　' + d.date;
+      var closedBadge = d.isClosed === 'true'
+        ? ' <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">閉館日</span>' : '';
+      document.getElementById('shiftEditModalLabel').innerHTML = d.staffName + '　' + d.date + closedBadge;
       document.getElementById('shiftEditForm').action = '/shifts/' + d.shiftId;
 
       var isWorking = d.isWorking === 'true';
