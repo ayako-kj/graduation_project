@@ -152,6 +152,8 @@ class ShiftsController < ApplicationController
     end
     ShiftValidationSummary.new(shifts_for_validation, shift_group.target_month, closed_days).save_to_shifts(shift_group)
 
+    shift.update_column(:validation_errors, nil) if params[:clear_errors] == "1"
+
     redirect_to shifts_path(month: shift_group.target_month.strftime("%Y-%m")),
                 notice: "#{shift.date.strftime('%-m月%-d日')}の#{shift.staff.name}のシフトを変更しました。"
   end
@@ -209,14 +211,55 @@ class ShiftsController < ApplicationController
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .each_with_object({}) { |lr, h| h[[lr.staff_id, lr.date]] = lr.reason.presence || "公休" }
 
-    @special_date_labels = SpecialDate
+    @special_date_labels = {}
+    @special_dates_for_export = SpecialDate
+      .includes(:designated_staffs)
       .where(library: current_library, date: @target_month.beginning_of_month..@target_month.end_of_month)
-      .where.not(label: [nil, ""])
-      .pluck(:date, :label).to_h
+      .order(:date)
+    @special_dates_for_export.each do |sd|
+      next if sd.label.blank?
+      (@special_date_labels[sd.date] ||= []) << sd.label
+    end
 
     filename = "勤務予定表_#{@target_month.strftime('%Y年%m月')}.xlsx"
     response.headers["Content-Disposition"] = "attachment; filename*=UTF-8''#{ERB::Util.url_encode(filename)}"
     render "export", formats: [:xlsx]
+  end
+
+  def suppress_errors
+    target_month = parse_target_month
+    shift_group = current_library.shift_groups.find_by(target_month: target_month.beginning_of_month)
+
+    unless shift_group
+      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: "シフトが生成されていません。" and return
+    end
+
+    shift_group.update!(suppress_all_errors: true)
+    shift_group.shifts.update_all(validation_errors: nil)
+
+    redirect_to shifts_path(month: target_month.strftime("%Y-%m")),
+                notice: "バリデーションエラーを非表示にしました。"
+  end
+
+  def restore_errors
+    target_month = parse_target_month
+    shift_group = current_library.shift_groups.find_by(target_month: target_month.beginning_of_month)
+
+    unless shift_group
+      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: "シフトが生成されていません。" and return
+    end
+
+    shift_group.update!(suppress_all_errors: false)
+    holidays = HolidayFetcher.fetch(target_month.year)
+    closed_days = ClosedDayCalculator.new(target_month, holidays,
+                    closed_wdays: current_library.closed_wdays_array).closed_days_with_labels
+    shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
+      { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
+    end
+    ShiftValidationSummary.new(shifts_for_validation, target_month, closed_days).save_to_shifts(shift_group)
+
+    redirect_to shifts_path(month: target_month.strftime("%Y-%m")),
+                notice: "バリデーションエラーを再表示しました。"
   end
 
   def generate
@@ -258,6 +301,7 @@ class ShiftsController < ApplicationController
     end
 
     shift_group = saved[:shift_group]
+    shift_group.update!(suppress_all_errors: false)
     shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
       { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
     end

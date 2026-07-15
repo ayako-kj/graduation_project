@@ -213,7 +213,7 @@ class ConstraintExtractor
 
   def leave_requests_data
     LeaveRequest.includes(:staff)
-                .where(date: @start_date..@end_date)
+                .where(staff: @library.staffs, date: @start_date..@end_date)
                 .map do |lr|
       {
         staff_name: lr.staff.name,

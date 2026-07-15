@@ -12,6 +12,7 @@ ja:
         greater_than: "は%{count}より大きい値にしてください"
         less_than: "は%{count}より小さい値にしてください"
         required: "を選択してください"
+        confirmation: "が一致しません"
       models:
         admin:
           attributes:

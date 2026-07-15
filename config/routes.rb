@@ -51,6 +51,8 @@ Rails.application.routes.draw do
       post :generate
       post :confirm
       post :restore
+      post :suppress_errors
+      post :restore_errors
       get :download
       get :export
     end

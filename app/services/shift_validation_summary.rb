@@ -35,6 +35,8 @@ class ShiftValidationSummary
   end
 
   def save_to_shifts(shift_group)
+    return if shift_group.suppress_all_errors?
+
     errors_by_key = run
 
     shift_group.shifts.includes(:staff).each do |shift|
