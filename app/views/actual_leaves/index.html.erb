@@ -62,10 +62,12 @@
             <thead class="table-light">
               <tr>
                 <th class="text-start ps-3 py-2 text-muted fw-semibold" style="width:120px;">職員名</th>
-                <% @open_dates.each do |date| %>
-                  <th class="py-1 fw-semibold <%= date.saturday? ? 'table-info text-primary' : date.sunday? ? 'table-danger text-danger' : '' %>">
+                <% @all_dates.each do |date| %>
+                  <% is_closed_h = @closed_days.key?(date) %>
+                  <th class="py-1 fw-semibold <%= is_closed_h ? '' : (date.saturday? || date.sunday? ? 'table-info' : '') %>"
+                      style="<%= is_closed_h ? 'background-color:#dee2e6;' : '' %>">
                     <%= date.day %><br>
-                    <span class="fw-normal" style="font-size:0.7rem;"><%= %w[日 月 火 水 木 金 土][date.wday] %></span>
+                    <span class="fw-normal text-muted" style="font-size:0.7rem;"><%= %w[日 月 火 水 木 金 土][date.wday] %></span>
                   </th>
                 <% end %>
               </tr>
@@ -77,39 +79,43 @@
                     <div class="fw-semibold" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= staff.name %></div>
                     <div class="text-muted" style="font-size:0.7rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= staff.employment_type.name %></div>
                   </td>
-                  <% @open_dates.each do |date| %>
-                    <% shift = @shift_map[[staff.id, date]] %>
-                    <% leave = @leave_map[[staff.id, date]] %>
-                    <% is_working = shift&.is_working %>
-                    <% lr_reason = @leave_requests_map[[staff.id, date]] %>
-                    <% is_leave_request = lr_reason.present? %>
-                    <%
-                      # ActualLeaveがなく希望休種別が年休・夏期休暇の場合は初期値として反映
-                      lr_leave_type = { "年休" => "annual", "夏期休暇" => "summer" }[lr_reason]
-                      selected_type = leave ? leave.leave_type : lr_leave_type
-                      cell_class = if date.saturday?
-                        "table-info"
-                      elsif date.sunday?
-                        "table-danger"
-                      elsif is_working
-                        "bg-light"
-                      end
-                      cell_style = (!is_working && is_leave_request) ? "background-color:#FEF3C7;" : nil
-                    %>
-                    <td class="p-0 <%= cell_class %>" style="<%= cell_style %>">
-                      <% if is_working %>
-                        <span class="text-success fw-bold">○</span>
-                      <% else %>
-                        <select name="leaves[<%= staff.id %>][<%= date.strftime('%Y-%m-%d') %>]"
-                                class="leave-select"
-                                title="<%= staff.name %> <%= date.strftime('%-m/%-d') %>">
-                          <option value="">休</option>
-                          <% ActualLeave::LEAVE_TYPES.each do |type, symbol| %>
-                            <option value="<%= type %>" <%= 'selected' if selected_type == type %>><%= symbol %></option>
-                          <% end %>
-                        </select>
-                      <% end %>
-                    </td>
+                  <% @all_dates.each do |date| %>
+                    <% is_closed_c = @closed_days.key?(date) %>
+                    <% if is_closed_c %>
+                      <td class="p-0" style="background-color:#e5e7eb; color:#9ca3af; font-size:0.75rem;">閉</td>
+                    <% else %>
+                      <% shift = @shift_map[[staff.id, date]] %>
+                      <% leave = @leave_map[[staff.id, date]] %>
+                      <% is_working = shift&.is_working %>
+                      <% lr_reason = @leave_requests_map[[staff.id, date]] %>
+                      <% is_leave_request = lr_reason.present? %>
+                      <%
+                        lr_leave_type = { "年休" => "annual", "夏期休暇" => "summer" }[lr_reason]
+                        selected_type = leave ? leave.leave_type : lr_leave_type
+                        cell_class = if date.saturday?
+                          "table-info"
+                        elsif date.sunday?
+                          "table-danger"
+                        elsif is_working
+                          "bg-light"
+                        end
+                        cell_style = (!is_working && is_leave_request) ? "background-color:#FEF3C7;" : nil
+                      %>
+                      <td class="p-0 <%= cell_class %>" style="<%= cell_style %>">
+                        <% if is_working %>
+                          <span class="text-success fw-bold">○</span>
+                        <% else %>
+                          <select name="leaves[<%= staff.id %>][<%= date.strftime('%Y-%m-%d') %>]"
+                                  class="leave-select"
+                                  title="<%= staff.name %> <%= date.strftime('%-m/%-d') %>">
+                            <option value="">休</option>
+                            <% ActualLeave::LEAVE_TYPES.each do |type, symbol| %>
+                              <option value="<%= type %>" <%= 'selected' if selected_type == type %>><%= symbol %></option>
+                            <% end %>
+                          </select>
+                        <% end %>
+                      </td>
+                    <% end %>
                   <% end %>
                 </tr>
               <% end %>
