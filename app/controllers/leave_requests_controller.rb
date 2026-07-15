@@ -3,7 +3,11 @@ class LeaveRequestsController < ApplicationController
   before_action :set_leave_request, only: %i[edit update destroy]
 
   def index
-    @leave_requests = LeaveRequest.includes(:staff).where(staff: current_library.staffs).order(:date)
+    @target_month = params[:month].present? ? Date.parse("#{params[:month]}-01") : Date.today.beginning_of_month
+    @leave_requests = LeaveRequest.includes(:staff)
+                        .where(staff: current_library.staffs)
+                        .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
+                        .order(:date)
   end
 
   def new

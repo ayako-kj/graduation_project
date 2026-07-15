@@ -93,7 +93,7 @@
       <p class="mb-3"><%= @target_month.strftime("%Y年%m月") %>のシフトはまだ生成されていません。</p>
     </div>
   <% else %>
-    <div class="mb-3 d-flex gap-3 small flex-wrap d-print-none">
+    <div class="mb-3 d-flex gap-3 small flex-wrap align-items-center d-print-none">
       <span><span class="badge bg-success me-1">○</span>出勤</span>
       <span><span class="badge bg-secondary me-1">－</span>休み</span>
       <span><span class="badge bg-danger me-1">!</span>バリデーションエラー</span>
@@ -105,6 +105,23 @@
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">年</span>年休</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">夏</span>夏期休暇</span>
       <span><span class="badge me-1" style="background-color:#D1FAE5; color:#065F46; border:1px solid #6ee7b7;">○</span>特定日・移動図書館・定例会議</span>
+      <% if @shift_group&.suppress_all_errors? %>
+        <%= button_to restore_errors_shifts_path(month: @target_month.strftime("%Y-%m")),
+            method: :post,
+            class: "btn btn-sm btn-outline-secondary rounded-pill px-3 ms-auto" do %>
+          <i class="bi bi-eye me-1"></i>エラーを再表示
+        <% end %>
+      <% else %>
+        <% has_any_error = @shifts_map.values.any? { |date_map| date_map.values.any? { |s| s.validation_errors.present? } } %>
+        <% if has_any_error %>
+          <%= button_to suppress_errors_shifts_path(month: @target_month.strftime("%Y-%m")),
+              method: :post,
+              class: "btn btn-sm btn-outline-danger rounded-pill px-3 ms-auto",
+              data: { turbo_confirm: "バリデーションエラーを全て非表示にしますか？" } do %>
+            <i class="bi bi-eye-slash me-1"></i>エラーを全て非表示
+          <% end %>
+        <% end %>
+      <% end %>
     </div>
 
     <div class="table-responsive">
@@ -171,7 +188,8 @@
                          data-is-working="<%= shift.is_working %>"
                          data-is-early="<%= shift.is_early %>"
                          data-is-post-duty="<%= shift.is_post_duty %>"
-                         data-is-holiday-post-duty="<%= shift.is_holiday_post_duty %>">
+                         data-is-holiday-post-duty="<%= shift.is_holiday_post_duty %>"
+                         data-has-error="<%= has_error %>">
                       <% if show_closed %>
                         <span class="text-muted" style="font-size:0.75rem;">閉</span>
                       <% elsif shift.is_working %>

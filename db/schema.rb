@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_14_000004) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_15_125326) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -118,6 +118,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_14_000004) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "library_id"
+    t.boolean "suppress_all_errors", default: false, null: false
     t.index ["library_id"], name: "index_shift_groups_on_library_id"
   end
 
