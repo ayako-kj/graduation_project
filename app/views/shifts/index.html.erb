@@ -44,6 +44,12 @@
           <button type="button" onclick="window.print()" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold">
             <i class="bi bi-printer me-1"></i>印刷する
           </button>
+          <%= button_to destroy_group_shifts_path(month: @target_month.strftime("%Y-%m")),
+              method: :delete,
+              class: "btn btn-outline-danger rounded-pill px-3 fw-semibold",
+              data: { turbo_confirm: "#{@target_month.strftime('%Y年%-m月')}の生成データを削除しますか？\nシフト表・確定バックアップがすべて消えます。年間サマリーの手入力データは残ります。" } do %>
+            <i class="bi bi-trash me-1"></i>生成データを削除
+          <% end %>
         </div>
       <% end %>
     </div>
