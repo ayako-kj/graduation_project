@@ -59,6 +59,27 @@ class StaffsController < ApplicationController
     @base_url = request.base_url
   end
 
+  def special_date_urls
+    @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
+    @base_url = request.base_url
+  end
+
+  def special_date_qrcodes
+    @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
+    base_url = request.base_url
+    @qr_data = @staffs.each_with_object({}) do |staff, h|
+      url = "#{base_url}/special?token=#{staff.access_token}"
+      h[staff.id] = {
+        url: url,
+        svg: RQRCode::QRCode.new(url).as_svg(
+          offset: 0, color: "000", shape_rendering: "crispEdges",
+          module_size: 4, standalone: true
+        )
+      }
+    end
+    @library_name = current_library.name
+  end
+
   def hope_qrcodes
     @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
     base_url = request.base_url

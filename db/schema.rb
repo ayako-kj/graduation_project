@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_15_155110) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_16_143657) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -165,6 +165,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_15_155110) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "library_id"
+    t.integer "created_by_staff_id"
     t.index ["library_id"], name: "index_special_dates_on_library_id"
   end
 

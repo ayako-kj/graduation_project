@@ -2,12 +2,12 @@ class SpecialDatesController < ApplicationController
   before_action :authenticate_admin!
   before_action :set_special_date, only: %i[edit update destroy]
 
-  TARGET_GROUPS = %w[全職員 正規職員 専門司書 司書 行政職 一般事務].freeze
+  TARGET_GROUPS = SpecialDate::TARGET_GROUPS
 
   def index
     @target_month = params[:month].present? ? Date.parse("#{params[:month]}-01") : Date.today.beginning_of_month
     @special_dates = current_library.special_dates
-                       .includes(:designated_staffs)
+                       .includes(:designated_staffs, :created_by_staff)
                        .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                        .order(:date)
   end
