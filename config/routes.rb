@@ -63,6 +63,7 @@ Rails.application.routes.draw do
       post :restore
       post :suppress_errors
       post :restore_errors
+      delete :destroy_group
       get :download
       get :export
     end

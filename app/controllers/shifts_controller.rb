@@ -278,6 +278,21 @@ class ShiftsController < ApplicationController
                 notice: "バリデーションエラーを再表示しました。"
   end
 
+  def destroy_group
+    target_month = parse_target_month
+    shift_group = current_library.shift_groups.find_by(target_month: target_month.beginning_of_month)
+
+    unless shift_group
+      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: "削除するシフトデータがありません。" and return
+    end
+
+    ShiftSnapshot.where(library: current_library, target_month: target_month.beginning_of_month).destroy_all
+    shift_group.destroy
+
+    redirect_to shifts_path(month: target_month.strftime("%Y-%m")),
+                notice: "#{target_month.strftime('%Y年%-m月')}の生成データを削除しました。"
+  end
+
   def generate
     target_month = parse_target_month
 
