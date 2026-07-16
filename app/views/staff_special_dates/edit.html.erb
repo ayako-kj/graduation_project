@@ -1,0 +1,100 @@
+<% content_for :title, "特定日を編集 | LibShiftAI_Pitat" %>
+
+<div class="container py-5" style="max-width: 540px;">
+
+  <div class="text-center mb-4">
+    <p class="text-muted small mb-1">LibShiftAI Pitat</p>
+    <h1 class="fs-4 fw-bold mb-1">特定日を編集する</h1>
+  </div>
+
+  <% if @special_date.errors.any? %>
+    <div class="alert alert-danger rounded-3 mb-3">
+      <ul class="mb-0 ps-3">
+        <% @special_date.errors.full_messages.each do |msg| %>
+          <li class="small"><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="pitat-card p-4">
+    <%= form_with model: @special_date,
+        url: update_staff_special_date_path(@special_date, token: params[:token], month: params[:month]),
+        method: :patch do |f| %>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">日付<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span></label>
+        <%= f.date_field :date, class: "form-control" %>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">名称<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span></label>
+        <%= f.text_field :label, class: "form-control", placeholder: "例：定例会議" %>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">対象グループ<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
+        <%= f.select :target_group,
+            options_for_select(SpecialDate::TARGET_GROUPS, @special_date.target_group),
+            { prompt: "選択してください（任意）", include_blank: true },
+            { class: "form-select" } %>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label fw-semibold small mb-1">個別指定<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
+        <% assignments_with_staffs = @assignments.select { |a| a.staffs.any? } %>
+        <% if assignments_with_staffs.any? %>
+          <div class="mb-2">
+            <p class="small text-muted mb-1">担当から一括選択：</p>
+            <div class="d-flex flex-wrap gap-2">
+              <% assignments_with_staffs.each do |assignment| %>
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm rounded-pill"
+                        data-staff-ids="<%= assignment.staff_ids.to_json %>"
+                        onclick="selectAssignmentStaff(this)">
+                  <%= assignment.name %>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        <div class="border rounded-3 p-2" style="max-height: 180px; overflow-y: auto;">
+          <% @staffs.each do |staff| %>
+            <div class="form-check">
+              <%= check_box_tag "special_date[designated_staff_ids][]", staff.id,
+                  @special_date.designated_staffs.include?(staff),
+                  id: "staff_#{staff.id}", class: "form-check-input" %>
+              <label class="form-check-label small" for="staff_<%= staff.id %>">
+                <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span>
+              </label>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "更新する", class: "btn btn-pitat rounded-pill px-4 fw-semibold" %>
+        <%= link_to "キャンセル", staff_special_dates_path(token: params[:token], month: params[:month]),
+            class: "btn btn-outline-secondary rounded-pill px-4" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  function selectAssignmentStaff(button) {
+    const staffIds = JSON.parse(button.dataset.staffIds);
+    const isActive = button.classList.contains('btn-secondary');
+    staffIds.forEach(function(id) {
+      const checkbox = document.getElementById('staff_' + id);
+      if (checkbox) checkbox.checked = !isActive;
+    });
+    if (isActive) {
+      button.classList.remove('btn-secondary');
+      button.classList.add('btn-outline-secondary');
+    } else {
+      button.classList.remove('btn-outline-secondary');
+      button.classList.add('btn-secondary');
+    }
+  }
+</script>

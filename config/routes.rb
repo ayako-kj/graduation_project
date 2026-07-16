@@ -25,12 +25,21 @@ Rails.application.routes.draw do
     collection do
       get :hope_urls
       get :hope_qrcodes
+      get :special_date_urls
+      get :special_date_qrcodes
     end
   end
 
   # 職員向け希望休入力（トークン認証・ログイン不要）
   get  "/hope",      to: "staff_leave_requests#index", as: :staff_leave_input
   post "/hope/save", to: "staff_leave_requests#save",  as: :save_staff_leave_input
+
+  # 職員向け特定日入力（トークン認証・ログイン不要）
+  get    "/special",      to: "staff_special_dates#index",   as: :staff_special_dates
+  post   "/special",      to: "staff_special_dates#create",  as: :create_staff_special_date
+  get    "/special/:id/edit", to: "staff_special_dates#edit",   as: :edit_staff_special_date
+  patch  "/special/:id",  to: "staff_special_dates#update",  as: :update_staff_special_date
+  delete "/special/:id",  to: "staff_special_dates#destroy", as: :destroy_staff_special_date
   resources :staff_types, only: %i[index create destroy] do
     member do
       patch :move_up

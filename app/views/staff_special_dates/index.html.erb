@@ -1,0 +1,173 @@
+<% content_for :title, "特定日入力 | LibShiftAI_Pitat" %>
+
+<div class="container py-5" style="max-width: 720px;">
+
+  <div class="text-center mb-4">
+    <p class="text-muted small mb-1">LibShiftAI Pitat</p>
+    <h1 class="fs-3 fw-bold mb-1">特定日の入力</h1>
+    <p class="text-muted">こんにちは、<strong class="text-dark"><%= @current_staff.name %></strong>さん</p>
+  </div>
+
+  <%# 月ナビゲーション %>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <%= link_to staff_special_dates_path(token: params[:token], month: (@target_month << 1).strftime("%Y-%m")),
+        class: "btn btn-outline-secondary btn-sm rounded-pill px-3" do %>
+      ＜ 前月
+    <% end %>
+    <h2 class="fs-5 fw-bold mb-0"><%= @target_month.strftime("%Y年%-m月") %></h2>
+    <%= link_to staff_special_dates_path(token: params[:token], month: (@target_month >> 1).strftime("%Y-%m")),
+        class: "btn btn-outline-secondary btn-sm rounded-pill px-3" do %>
+      翌月 ＞
+    <% end %>
+  </div>
+
+  <div class="pitat-card p-3 mb-3 small text-muted">
+    <i class="bi bi-info-circle me-1"></i>
+    出張・研修・定例会議など、シフトに影響する予定を登録してください。
+    一覧には全職員の登録が表示されます。自分が登録した特定日のみ編集・削除できます。
+  </div>
+
+  <%# エラー表示 %>
+  <% if @special_date.errors.any? %>
+    <div class="alert alert-danger rounded-3 mb-3">
+      <ul class="mb-0 ps-3">
+        <% @special_date.errors.full_messages.each do |msg| %>
+          <li class="small"><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%# 登録フォーム %>
+  <div class="pitat-card p-3 mb-4">
+    <div class="small fw-semibold mb-3 text-muted">特定日を登録する</div>
+    <%= form_with model: @special_date,
+        url: create_staff_special_date_path(token: params[:token], month: @target_month.strftime("%Y-%m")),
+        method: :post do |f| %>
+
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">日付<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span></label>
+        <%= f.date_field :date, class: "form-control form-control-sm" %>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">名称<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span></label>
+        <%= f.text_field :label, class: "form-control form-control-sm", placeholder: "例：定例会議" %>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">対象グループ<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
+        <%= f.select :target_group,
+            options_for_select(SpecialDate::TARGET_GROUPS, @special_date.target_group),
+            { prompt: "選択してください（任意）", include_blank: true },
+            { class: "form-select form-select-sm" } %>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">個別指定<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
+        <% assignments_with_staffs = @assignments.select { |a| a.staffs.any? } %>
+        <% if assignments_with_staffs.any? %>
+          <div class="mb-2">
+            <p class="small text-muted mb-1">担当から一括選択：</p>
+            <div class="d-flex flex-wrap gap-2">
+              <% assignments_with_staffs.each do |assignment| %>
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm rounded-pill"
+                        data-staff-ids="<%= assignment.staff_ids.to_json %>"
+                        onclick="selectAssignmentStaff(this)">
+                  <%= assignment.name %>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        <div class="border rounded-3 p-2" style="max-height: 180px; overflow-y: auto;">
+          <% @staffs.each do |staff| %>
+            <div class="form-check">
+              <%= check_box_tag "special_date[designated_staff_ids][]", staff.id,
+                  @special_date.designated_staffs.include?(staff),
+                  id: "new_staff_#{staff.id}", class: "form-check-input" %>
+              <label class="form-check-label small" for="new_staff_<%= staff.id %>">
+                <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span>
+              </label>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%= f.submit "登録する", class: "btn btn-pitat btn-sm rounded-pill px-4 fw-semibold" %>
+    <% end %>
+  </div>
+
+  <%# 特定日一覧 %>
+  <% if @special_dates.empty? %>
+    <div class="pitat-card p-4 text-center text-muted small">
+      <i class="bi bi-calendar-event fs-2 d-block mb-2"></i>
+      この期間に登録された特定日はありません。
+    </div>
+  <% else %>
+    <div class="pitat-card p-0 overflow-hidden">
+      <table class="table table-hover mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3 py-2 text-muted fw-semibold">日付</th>
+            <th class="py-2 text-muted fw-semibold">名称</th>
+            <th class="py-2 text-muted fw-semibold">対象</th>
+            <th class="py-2 text-muted fw-semibold">登録者</th>
+            <th class="py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @special_dates.each do |sd| %>
+            <tr>
+              <td class="ps-3 py-2 fw-semibold"><%= sd.date.strftime("%-m/%-d（#{%w[日 月 火 水 木 金 土][sd.date.wday]}）") %></td>
+              <td class="py-2"><%= sd.label %></td>
+              <td class="py-2 text-muted">
+                <%= sd.target_group.presence %>
+                <% if sd.designated_staffs.any? %>
+                  <span class="<%= sd.target_group.present? ? 'ms-1' : '' %>"><%= sd.designated_staffs.map(&:name).join("・") %></span>
+                <% end %>
+                <% if sd.target_group.blank? && sd.designated_staffs.empty? %>
+                  <span class="text-muted">－</span>
+                <% end %>
+              </td>
+              <td class="py-2 text-muted">
+                <% if sd.created_by_staff %>
+                  <%= sd.created_by_staff_id == @current_staff.id ? "自分" : sd.created_by_staff.name %>
+                <% else %>
+                  管理者
+                <% end %>
+              </td>
+              <td class="py-2 pe-3 text-end text-nowrap">
+                <% if sd.created_by_staff_id == @current_staff.id %>
+                  <%= link_to "編集", edit_staff_special_date_path(sd, token: params[:token], month: @target_month.strftime("%Y-%m")),
+                      class: "btn btn-xs btn-outline-secondary rounded-pill px-2 py-0 me-1", style: "font-size:0.75rem;" %>
+                  <%= link_to "削除", destroy_staff_special_date_path(sd, token: params[:token], month: @target_month.strftime("%Y-%m")),
+                      data: { turbo_method: :delete, turbo_confirm: "「#{sd.label}」を削除しますか？" },
+                      class: "btn btn-xs btn-outline-danger rounded-pill px-2 py-0", style: "font-size:0.75rem;" %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  function selectAssignmentStaff(button) {
+    const staffIds = JSON.parse(button.dataset.staffIds);
+    const isActive = button.classList.contains('btn-secondary');
+    staffIds.forEach(function(id) {
+      const checkbox = document.getElementById('new_staff_' + id);
+      if (checkbox) checkbox.checked = !isActive;
+    });
+    if (isActive) {
+      button.classList.remove('btn-secondary');
+      button.classList.add('btn-outline-secondary');
+    } else {
+      button.classList.remove('btn-outline-secondary');
+      button.classList.add('btn-secondary');
+    }
+  }
+</script>

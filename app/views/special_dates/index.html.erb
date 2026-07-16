@@ -3,7 +3,12 @@
 <div class="container py-5">
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h1 class="fs-4 fw-bold mb-0">特定日一覧</h1>
-    <%= link_to "＋ 特定日を登録する", new_special_date_path, class: "btn btn-pitat rounded-pill px-4" %>
+    <div class="d-flex gap-2">
+      <%= link_to special_date_urls_staffs_path, class: "btn btn-outline-secondary rounded-pill px-4" do %>
+        <i class="bi bi-link-45deg me-1"></i>特定日入力URL一覧
+      <% end %>
+      <%= link_to "＋ 特定日を登録する", new_special_date_path, class: "btn btn-pitat rounded-pill px-4" %>
+    </div>
   </div>
 
   <%= form_with url: special_dates_path, method: :get, class: "d-flex align-items-center gap-2 mb-4" do |f| %>
@@ -26,6 +31,7 @@
             <th class="py-3 text-muted small fw-semibold">名称</th>
             <th class="py-3 text-muted small fw-semibold">対象グループ</th>
             <th class="py-3 text-muted small fw-semibold">個別指定職員</th>
+            <th class="py-3 text-muted small fw-semibold">登録者</th>
             <th class="py-3"></th>
           </tr>
         </thead>
@@ -41,6 +47,9 @@
                 <% else %>
                   <span class="text-muted">－</span>
                 <% end %>
+              </td>
+              <td class="py-3 text-muted small">
+                <%= special_date.created_by_staff&.name || "管理者" %>
               </td>
               <td class="py-3 pe-4 text-end">
                 <%= link_to "編集", edit_special_date_path(special_date), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
