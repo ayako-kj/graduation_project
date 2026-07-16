@@ -11,6 +11,12 @@
         <%= f.submit "表示", class: "btn btn-sm btn-outline-secondary rounded-pill px-3" %>
       <% end %>
 
+      <%# 臨時休館日設定ボタン %>
+      <%= link_to temporary_closed_dates_path(month: @target_month.strftime("%Y-%m")),
+          class: "btn btn-outline-secondary rounded-pill px-3 fw-semibold" do %>
+        <i class="bi bi-door-closed me-1"></i>臨時休館日
+      <% end %>
+
       <%# シフト生成ボタン %>
       <%= button_to "AIでシフトを生成する",
           generate_shifts_path(month: @target_month.strftime("%Y-%m")),
@@ -56,6 +62,15 @@
             <%= slice.map { |date, label| "#{date.strftime('%-m/%-d')}(#{label})" }.join("　") %><br>
           <% end %>
         </div>
+        <% if @temporary_closed_dates_in_month.any? %>
+          <div class="mt-1">
+            <% @temporary_closed_dates_in_month.each do |date, label| %>
+              <span class="badge rounded-pill text-bg-danger me-1" style="font-size:0.7rem;">
+                臨時 <%= date.strftime('%-m/%-d') %>（<%= label %>）
+              </span>
+            <% end %>
+          </div>
+        <% end %>
       </div>
       <% if @special_date_labels.any? %>
         <div>

@@ -25,4 +25,10 @@ class ApplicationController < ActionController::Base
   def after_sign_out_path_for(resource_or_scope)
     root_path
   end
+
+  def temporary_closed_dates_map(library, target_month)
+    TemporaryClosedDate
+      .where(library: library, date: target_month.beginning_of_month..target_month.end_of_month)
+      .each_with_object({}) { |tcd, h| h[tcd.date] = tcd.label.presence || "臨時休館日" }
+  end
 end

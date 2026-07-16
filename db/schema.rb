@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_16_143657) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_16_151526) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -204,6 +204,16 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_16_143657) do
     t.index ["staff_type_id"], name: "index_staffs_on_staff_type_id"
   end
 
+  create_table "temporary_closed_dates", force: :cascade do |t|
+    t.bigint "library_id", null: false
+    t.date "date", null: false
+    t.string "label"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["library_id", "date"], name: "index_temporary_closed_dates_on_library_id_and_date", unique: true
+    t.index ["library_id"], name: "index_temporary_closed_dates_on_library_id"
+  end
+
   create_table "workday_manual_entries", force: :cascade do |t|
     t.bigint "staff_id", null: false
     t.date "year_month", null: false
@@ -241,5 +251,6 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_16_143657) do
   add_foreign_key "staffs", "employment_types"
   add_foreign_key "staffs", "libraries"
   add_foreign_key "staffs", "staff_types"
+  add_foreign_key "temporary_closed_dates", "libraries"
   add_foreign_key "workday_manual_entries", "staffs"
 end

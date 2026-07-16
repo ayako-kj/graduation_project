@@ -1,0 +1,116 @@
+<% content_for :title, "臨時休館日設定 | LibShiftAI_Pitat" %>
+
+<div class="container py-5" style="max-width: 720px;">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="fs-4 fw-bold mb-1">臨時休館日の設定</h1>
+      <p class="text-muted small mb-0">
+        図書館システム更新・蔵書点検など、不定期に発生する臨時休館日を登録します。<br>
+        登録した日はシフト表で「閉」と表示され、AIシフト生成でも休館日として扱われます。
+      </p>
+    </div>
+    <%= link_to shifts_path(month: @target_month.strftime("%Y-%m")),
+        class: "btn btn-outline-secondary rounded-pill px-3" do %>
+      ← シフト表に戻る
+    <% end %>
+  </div>
+
+  <%# 月ナビゲーション %>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <%= link_to temporary_closed_dates_path(month: (@target_month << 1).strftime("%Y-%m")),
+        class: "btn btn-outline-secondary btn-sm rounded-pill px-3" do %>
+      ＜ 前月
+    <% end %>
+    <h2 class="fs-5 fw-bold mb-0"><%= @target_month.strftime("%Y年%-m月") %></h2>
+    <%= link_to temporary_closed_dates_path(month: (@target_month >> 1).strftime("%Y-%m")),
+        class: "btn btn-outline-secondary btn-sm rounded-pill px-3" do %>
+      翌月 ＞
+    <% end %>
+  </div>
+
+  <%# エラー表示 %>
+  <% if @temporary_closed_date.errors.any? %>
+    <div class="alert alert-danger rounded-3 mb-3">
+      <ul class="mb-0 ps-3">
+        <% @temporary_closed_date.errors.full_messages.each do |msg| %>
+          <li class="small"><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%# 登録フォーム %>
+  <div class="pitat-card p-3 mb-4">
+    <div class="small fw-semibold text-muted mb-3">臨時休館日を追加する</div>
+    <%= form_with model: @temporary_closed_date,
+        url: temporary_closed_dates_path(month: @target_month.strftime("%Y-%m")),
+        method: :post do |f| %>
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-4">
+          <label class="form-label small fw-semibold mb-1">
+            日付<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+          </label>
+          <%= f.date_field :date, class: "form-control form-control-sm",
+              min: @target_month.beginning_of_month,
+              max: @target_month.end_of_month %>
+        </div>
+        <div class="col-sm-5">
+          <label class="form-label small fw-semibold mb-1">
+            理由・名称<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+          </label>
+          <%= f.text_field :label, class: "form-control form-control-sm",
+              placeholder: "例：蔵書点検、システム更新" %>
+        </div>
+        <div class="col-sm-3">
+          <%= f.submit "追加する", class: "btn btn-pitat btn-sm rounded-pill px-4 fw-semibold w-100" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# 一覧 %>
+  <% if @temporary_closed_dates.empty? %>
+    <div class="pitat-card p-4 text-center text-muted small">
+      <i class="bi bi-door-closed fs-2 d-block mb-2"></i>
+      <%= @target_month.strftime("%Y年%-m月") %>に登録された臨時休館日はありません。
+    </div>
+  <% else %>
+    <div class="pitat-card p-0 overflow-hidden">
+      <table class="table table-hover mb-0 small align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3 py-2 text-muted fw-semibold">日付</th>
+            <th class="py-2 text-muted fw-semibold">理由・名称</th>
+            <th class="py-2 pe-3 text-muted fw-semibold text-end">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @temporary_closed_dates.each do |tcd| %>
+            <tr>
+              <td class="ps-3 py-2 fw-semibold">
+                <%= tcd.date.strftime("%-m月%-d日（#{%w[日 月 火 水 木 金 土][tcd.date.wday]}）") %>
+              </td>
+              <td class="py-2">
+                <span class="badge rounded-pill text-bg-danger me-1">臨時休館</span>
+                <%= tcd.label %>
+              </td>
+              <td class="py-2 pe-3 text-end text-nowrap">
+                <%= link_to "編集",
+                    edit_temporary_closed_date_path(tcd, month: @target_month.strftime("%Y-%m")),
+                    class: "btn btn-xs btn-outline-secondary rounded-pill px-2 py-0 me-1",
+                    style: "font-size:0.75rem;" %>
+                <%= button_to "削除",
+                    temporary_closed_date_path(tcd),
+                    method: :delete,
+                    data: { turbo_confirm: "#{tcd.date.strftime('%-m月%-d日')}「#{tcd.label}」を削除しますか？" },
+                    class: "btn btn-xs btn-outline-danger rounded-pill px-2 py-0",
+                    style: "font-size:0.75rem;",
+                    form: { class: "d-inline" } %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>
