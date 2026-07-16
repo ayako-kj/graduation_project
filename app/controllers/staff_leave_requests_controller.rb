@@ -7,9 +7,11 @@ class StaffLeaveRequestsController < ApplicationController
     @target_month = parse_target_month
     @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
 
+    library = @current_staff.library
     holidays = HolidayFetcher.fetch(@target_month.year)
+    extra = temporary_closed_dates_map(library, @target_month)
     @closed_days = ClosedDayCalculator.new(@target_month, holidays,
-                     closed_wdays: @current_staff.library.closed_wdays_array).closed_days_with_labels
+                     closed_wdays: library.closed_wdays_array, extra_closed_dates: extra).closed_days_with_labels
 
     @existing_leaves = LeaveRequest
       .where(staff: @current_staff, date: @target_month.beginning_of_month..@target_month.end_of_month)

@@ -9,7 +9,9 @@ class ShiftsController < ApplicationController
 
     holidays = HolidayFetcher.fetch(@target_month.year)
     wdays = current_library.closed_wdays_array
-    closed_calc = ClosedDayCalculator.new(@target_month, holidays, closed_wdays: wdays)
+    extra = temporary_closed_dates_map(current_library, @target_month)
+    @temporary_closed_dates_in_month = extra
+    closed_calc = ClosedDayCalculator.new(@target_month, holidays, closed_wdays: wdays, extra_closed_dates: extra)
     working_calc = WorkingDayCalculator.new(@target_month, holidays, closed_wdays: wdays)
     @closed_days = closed_calc.closed_days_with_labels
     @working_days = { regular: working_calc.city_hall_days, hourly: working_calc.hourly_staff_days }
@@ -155,8 +157,9 @@ class ShiftsController < ApplicationController
 
     shift_group = shift.shift_group
     holidays = HolidayFetcher.fetch(shift_group.target_month.year)
+    extra = temporary_closed_dates_map(current_library, shift_group.target_month)
     closed_days = ClosedDayCalculator.new(shift_group.target_month, holidays,
-                    closed_wdays: current_library.closed_wdays_array).closed_days_with_labels
+                    closed_wdays: current_library.closed_wdays_array, extra_closed_dates: extra).closed_days_with_labels
     shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
       { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
     end
@@ -175,8 +178,9 @@ class ShiftsController < ApplicationController
     @shift_group = current_library.shift_groups.find_by(target_month: @target_month.beginning_of_month)
 
     holidays = HolidayFetcher.fetch(@target_month.year)
+    extra = temporary_closed_dates_map(current_library, @target_month)
     @closed_days = ClosedDayCalculator.new(@target_month, holidays,
-                     closed_wdays: current_library.closed_wdays_array).closed_days_with_labels
+                     closed_wdays: current_library.closed_wdays_array, extra_closed_dates: extra).closed_days_with_labels
 
     if @shift_group
       shifts = @shift_group.shifts.includes(:staff)
@@ -199,8 +203,9 @@ class ShiftsController < ApplicationController
     @shift_group = current_library.shift_groups.find_by(target_month: @target_month.beginning_of_month)
 
     holidays = HolidayFetcher.fetch(@target_month.year)
+    extra = temporary_closed_dates_map(current_library, @target_month)
     @closed_days = ClosedDayCalculator.new(@target_month, holidays,
-                     closed_wdays: current_library.closed_wdays_array).closed_days_with_labels
+                     closed_wdays: current_library.closed_wdays_array, extra_closed_dates: extra).closed_days_with_labels
     @holidays_in_month = holidays.select { |d, _| d >= @target_month.beginning_of_month && d <= @target_month.end_of_month }
     @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
 
@@ -261,8 +266,9 @@ class ShiftsController < ApplicationController
 
     shift_group.update!(suppress_all_errors: false)
     holidays = HolidayFetcher.fetch(target_month.year)
+    extra = temporary_closed_dates_map(current_library, target_month)
     closed_days = ClosedDayCalculator.new(target_month, holidays,
-                    closed_wdays: current_library.closed_wdays_array).closed_days_with_labels
+                    closed_wdays: current_library.closed_wdays_array, extra_closed_dates: extra).closed_days_with_labels
     shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
       { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
     end

@@ -49,6 +49,7 @@ Rails.application.routes.draw do
   resources :employment_types, only: %i[create update destroy]
   resources :placement_rules
   resources :special_dates
+  resources :temporary_closed_dates
   resources :leave_requests
   resources :assignments
   resources :mobile_libraries do

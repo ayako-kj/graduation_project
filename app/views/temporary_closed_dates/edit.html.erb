@@ -1,0 +1,40 @@
+<% content_for :title, "臨時休館日を編集 | LibShiftAI_Pitat" %>
+
+<div class="container py-5" style="max-width: 480px;">
+  <h1 class="fs-4 fw-bold mb-4">臨時休館日を編集する</h1>
+
+  <% if @temporary_closed_date.errors.any? %>
+    <div class="alert alert-danger rounded-3 mb-3">
+      <ul class="mb-0 ps-3">
+        <% @temporary_closed_date.errors.full_messages.each do |msg| %>
+          <li class="small"><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="pitat-card p-4">
+    <%= form_with model: @temporary_closed_date,
+        url: temporary_closed_date_path(@temporary_closed_date, month: @target_month.strftime("%Y-%m")),
+        method: :patch do |f| %>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">
+          日付<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+        </label>
+        <%= f.date_field :date, class: "form-control" %>
+      </div>
+      <div class="mb-4">
+        <label class="form-label small fw-semibold mb-1">
+          理由・名称<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+        </label>
+        <%= f.text_field :label, class: "form-control", placeholder: "例：蔵書点検、システム更新" %>
+      </div>
+      <div class="d-flex gap-2">
+        <%= f.submit "更新する", class: "btn btn-pitat rounded-pill px-4 fw-semibold" %>
+        <%= link_to "キャンセル",
+            temporary_closed_dates_path(month: @target_month.strftime("%Y-%m")),
+            class: "btn btn-outline-secondary rounded-pill px-4" %>
+      </div>
+    <% end %>
+  </div>
+</div>
