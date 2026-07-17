@@ -86,7 +86,7 @@ class ConstraintExtractor
   end
 
   def mobile_library_constraints_data
-    MobileLibrary.includes(mobile_library_routes: :staffs).flat_map do |ml|
+    MobileLibrary.includes(mobile_library_routes: :staffs).where(library: @library).flat_map do |ml|
       ml.mobile_library_routes.filter_map do |route|
         next if route.staffs.empty?
         dates_of_wday = (@start_date..@end_date).select { |d| d.wday == route.wday }
@@ -102,7 +102,7 @@ class ConstraintExtractor
   end
 
   def assignment_constraints_data
-    Assignment.includes(:staffs).where.not(meeting_wday: nil).map do |assignment|
+    Assignment.includes(:staffs).where(library: @library).where.not(meeting_wday: nil).map do |assignment|
       dates = (@start_date..@end_date).select { |d| d.wday == assignment.meeting_wday && !@closed_days_with_labels.key?(d) }
       next if dates.empty? || assignment.staffs.empty?
       {
@@ -204,7 +204,7 @@ class ConstraintExtractor
   end
 
   def special_dates_data
-    SpecialDate.includes(:designated_staffs).where(date: @start_date..@end_date).map do |sd|
+    SpecialDate.includes(:designated_staffs).where(library: @library, date: @start_date..@end_date).map do |sd|
       {
         date: sd.date.strftime("%Y-%m-%d"),
         label: sd.label,
