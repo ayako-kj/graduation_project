@@ -1,4 +1,4 @@
-<% content_for :title, "希望休QRコード印刷 | LibShiftAI_Pitat" %>
+<% content_for :title, "希望休2次元コード印刷 | LibShiftAI_Pitat" %>
 
 <style>
   @media print {
@@ -8,7 +8,7 @@
     .qr-card { break-inside: avoid; border: 1px solid #ccc !important; }
     .print-title { display: block !important; }
   }
-  .qr-card svg { width: 140px; height: 140px; display: block; margin: 0 auto; }
+  .qr-card svg { width: 155px; height: 155px; display: block; margin: 0 auto; }
   .print-title { display: none; }
 </style>
 
@@ -16,7 +16,7 @@
 <div class="container py-4 no-print">
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
-      <h1 class="fs-4 fw-bold mb-1">希望休入力QRコード</h1>
+      <h1 class="fs-4 fw-bold mb-1">希望休入力2次元コード</h1>
       <p class="text-muted small mb-0">印刷して各職員に配布してください。</p>
     </div>
     <div class="d-flex gap-2">
@@ -37,10 +37,10 @@
 
 <%# 印刷タイトル（印刷時のみ表示） %>
 <div class="print-title text-center mb-3" style="font-size:14pt; font-weight:bold;">
-  <%= @library_name %> ― 希望休入力QRコード一覧
+  <%= @library_name %> ― 希望休入力2次元コード一覧
 </div>
 
-<%# QRコードカード一覧 %>
+<%# 2次元コードカード一覧 %>
 <div class="container">
   <div class="qr-grid d-flex flex-wrap gap-3 justify-content-start">
     <% @staffs.each do |staff| %>
@@ -51,7 +51,7 @@
         <div class="text-muted mb-2" style="font-size: 0.75rem;"><%= staff.staff_type.name %></div>
         <%= raw data[:svg] %>
         <div class="mt-2 text-muted" style="font-size: 0.6rem; word-break: break-all; line-height: 1.3;">
-          希望休入力用QRコード
+          希望休入力用2次元コード
         </div>
       </div>
     <% end %>

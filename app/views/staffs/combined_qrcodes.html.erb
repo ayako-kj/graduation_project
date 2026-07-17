@@ -1,0 +1,77 @@
+<% content_for :title, "2次元コード一括印刷 | LibShiftAI_Pitat" %>
+
+<style>
+  @media print {
+    nav, footer, .no-print { display: none !important; }
+    body { background: white !important; margin: 0; }
+    .staff-page {
+      page-break-after: always;
+      break-after: page;
+    }
+    .staff-page:last-child {
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+    .print-title { display: block !important; }
+  }
+  .staff-page svg { width: 160px; height: 160px; display: block; margin: 0 auto; }
+  .print-title { display: none; }
+</style>
+
+<%# 画面表示用ヘッダー %>
+<div class="container py-4 no-print">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <h1 class="fs-4 fw-bold mb-1">2次元コード一括印刷</h1>
+      <p class="text-muted small mb-0">希望休・特定日の2次元コードを職員ごとに1枚ずつ印刷できます。</p>
+    </div>
+    <div class="d-flex gap-2">
+      <%= link_to hope_urls_staffs_path, class: "btn btn-outline-secondary rounded-pill px-3" do %>
+        ← URL一覧に戻る
+      <% end %>
+      <button type="button" onclick="window.print()" class="btn btn-pitat rounded-pill px-4 fw-semibold">
+        <i class="bi bi-printer me-1"></i>印刷する
+      </button>
+    </div>
+  </div>
+  <div class="pitat-card p-3 mb-4 small text-muted">
+    <i class="bi bi-info-circle me-1"></i>
+    「印刷する」ボタンを押すと職員1人につき1枚ずつ出力されます。そのまま配布してください。
+  </div>
+</div>
+
+<%# 印刷タイトル（印刷時のみ表示） %>
+<div class="print-title text-center mb-3" style="font-size:12pt; font-weight:bold;">
+  <%= @library_name %>
+</div>
+
+<%# 職員ごとのページ %>
+<% @staffs.each do |staff| %>
+  <% data = @qr_data[staff.id] %>
+  <div class="staff-page d-flex flex-column align-items-center justify-content-center"
+       style="min-height: 60vh; background: white; padding: 24px 0;">
+
+    <%# 名前（中央・両コードの上） %>
+    <div class="text-center mb-3">
+      <div class="fw-bold" style="font-size: 1.2rem;"><%= staff.name %></div>
+      <div class="text-muted" style="font-size: 0.8rem;"><%= staff.staff_type.name %></div>
+    </div>
+
+    <%# 2つの2次元コードを横並び %>
+    <div class="d-flex gap-5 align-items-start justify-content-center">
+
+      <%# 特定日 %>
+      <div class="text-center">
+        <%= raw data[:special_svg] %>
+        <div class="fw-semibold mt-2" style="font-size: 0.8rem;">特定日入力用の2次元コード</div>
+      </div>
+
+      <%# 希望休 %>
+      <div class="text-center">
+        <%= raw data[:hope_svg] %>
+        <div class="fw-semibold mt-2" style="font-size: 0.8rem;">希望休入力用の2次元コード</div>
+      </div>
+
+    </div>
+  </div>
+<% end %>
