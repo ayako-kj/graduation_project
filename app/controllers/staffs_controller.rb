@@ -72,7 +72,7 @@ class StaffsController < ApplicationController
       h[staff.id] = {
         url: url,
         svg: RQRCode::QRCode.new(url).as_svg(
-          offset: 0, color: "000", shape_rendering: "crispEdges",
+          offset: 20, color: "000", shape_rendering: "crispEdges",
           module_size: 4, standalone: true
         )
       }
@@ -88,7 +88,7 @@ class StaffsController < ApplicationController
       h[staff.id] = {
         url: url,
         svg: RQRCode::QRCode.new(url).as_svg(
-          offset: 0, color: "000", shape_rendering: "crispEdges",
+          offset: 20, color: "000", shape_rendering: "crispEdges",
           module_size: 4, standalone: true
         )
       }
