@@ -321,7 +321,8 @@ class ShiftsController < ApplicationController
     fixed_shifts = ShiftPostProcessor.new(
       parsed[:shifts], constraints[:closed_days],
       constraints[:leave_requests], constraints[:special_dates],
-      staff_target_days, constraints[:assignment_constraints]
+      staff_target_days, constraints[:assignment_constraints],
+      constraints[:mobile_library_constraints]
     ).process
     assigned_shifts = DutyAssigner.new(fixed_shifts, constraints, target_month).assign
     saver = ShiftSaver.new(target_month, assigned_shifts, current_library)

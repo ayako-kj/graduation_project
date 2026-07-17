@@ -1,5 +1,5 @@
 class ShiftPostProcessor
-  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [], staff_target_days = {}, assignment_constraints = [])
+  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [], staff_target_days = {}, assignment_constraints = [], mobile_library_constraints = [])
     @shifts = parsed_shifts
     @closed_days = closed_days
     @staff_target_days = staff_target_days
@@ -21,6 +21,12 @@ class ShiftPostProcessor
         h[date].concat(ac[:staff_names])
       end
     end
+    # 移動図書館巡回日: {date => [staff_name, ...]}
+    @mobile_dates = (mobile_library_constraints || []).each_with_object({}) do |ml, h|
+      date = Date.parse(ml[:date])
+      h[date] ||= []
+      h[date].concat(ml[:staff_names])
+    end
     @staff_info = build_staff_info
     @rules = build_rules
   end
@@ -30,6 +36,7 @@ class ShiftPostProcessor
     fix_leave_requests
     fix_special_dates
     fix_assignment_dates
+    fix_mobile_library_dates
     fix_excess_staff
     fix_weekend_consecutive
     5.times do
@@ -159,9 +166,20 @@ class ShiftPostProcessor
     end
   end
 
+  def fix_mobile_library_dates
+    @mobile_dates.each do |date, staff_names|
+      next if @closed_days.key?(date)
+      @shifts.select { |s| s[:date] == date && staff_names.include?(s[:staff_name]) }.each do |shift|
+        shift[:is_working] = true unless @leave_set.include?([shift[:staff_name], date])
+      end
+    end
+  end
+
   def assignment_protected?(staff_name, date)
     return false if @leave_set.include?([staff_name, date])
-    @assignment_dates[date]&.include?(staff_name) || @designated_dates[date]&.include?(staff_name)
+    @assignment_dates[date]&.include?(staff_name) ||
+      @designated_dates[date]&.include?(staff_name) ||
+      @mobile_dates[date]&.include?(staff_name)
   end
 
   def fix_excess_staff
