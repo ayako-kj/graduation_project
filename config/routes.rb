@@ -27,6 +27,7 @@ Rails.application.routes.draw do
       get :hope_qrcodes
       get :special_date_urls
       get :special_date_qrcodes
+      get :combined_qrcodes
     end
   end
 

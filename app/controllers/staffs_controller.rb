@@ -69,13 +69,7 @@ class StaffsController < ApplicationController
     base_url = request.base_url
     @qr_data = @staffs.each_with_object({}) do |staff, h|
       url = "#{base_url}/special?token=#{staff.access_token}"
-      h[staff.id] = {
-        url: url,
-        svg: RQRCode::QRCode.new(url).as_svg(
-          offset: 20, color: "000", shape_rendering: "crispEdges",
-          module_size: 4, standalone: true
-        )
-      }
+      h[staff.id] = { url: url, svg: build_qr_svg(url) }
     end
     @library_name = current_library.name
   end
@@ -85,12 +79,20 @@ class StaffsController < ApplicationController
     base_url = request.base_url
     @qr_data = @staffs.each_with_object({}) do |staff, h|
       url = "#{base_url}/hope?token=#{staff.access_token}"
+      h[staff.id] = { url: url, svg: build_qr_svg(url) }
+    end
+    @library_name = current_library.name
+  end
+
+  def combined_qrcodes
+    @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
+    base_url = request.base_url
+    @qr_data = @staffs.each_with_object({}) do |staff, h|
+      hope_url    = "#{base_url}/hope?token=#{staff.access_token}"
+      special_url = "#{base_url}/special?token=#{staff.access_token}"
       h[staff.id] = {
-        url: url,
-        svg: RQRCode::QRCode.new(url).as_svg(
-          offset: 20, color: "000", shape_rendering: "crispEdges",
-          module_size: 4, standalone: true
-        )
+        hope_svg:    build_qr_svg(hope_url),
+        special_svg: build_qr_svg(special_url)
       }
     end
     @library_name = current_library.name
@@ -107,6 +109,19 @@ class StaffsController < ApplicationController
     a_order = a.sort_order
     a.update_column(:sort_order, b.sort_order)
     b.update_column(:sort_order, a_order)
+  end
+
+  def build_qr_svg(url)
+    offset      = 16
+    module_size = 4
+    qr          = RQRCode::QRCode.new(url, level: :l)
+    total_size  = qr.modules.length * module_size + offset * 2
+    svg = qr.as_svg(
+      offset: offset, color: "000", shape_rendering: "crispEdges",
+      module_size: module_size, standalone: true
+    )
+    # viewBox を付与してCSSによるスケーリングを有効にする
+    svg.sub("<svg ", %(<svg viewBox="0 0 #{total_size} #{total_size}" ))
   end
 
   def set_staff
