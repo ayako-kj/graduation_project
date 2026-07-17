@@ -217,25 +217,45 @@ class ShiftPostProcessor
 
   def fix_weekend_consecutive
     by_staff = @shifts.group_by { |s| s[:staff_name] }
-    by_staff.each do |staff_name, staff_shifts|
-      shifts_by_date = staff_shifts.each_with_object({}) { |s, h| h[s[:date]] = s }
+    weekends = @shifts.map { |s| s[:date] }.select(&:saturday?).uniq.sort
 
-      staff_shifts.select { |s| s[:is_working] && s[:date].saturday? }.each do |sat_shift|
-        sun_shift = shifts_by_date[sat_shift[:date] + 1]
-        next unless sun_shift&.[](:is_working)
+    weekends.each do |saturday|
+      sunday = saturday + 1
+      monday = saturday + 2
 
-        # 土日連続：前の金曜か後の月曜を休みにする（出勤者が多い日を優先、担当会議日は保護）
-        friday = sat_shift[:date] - 1
-        monday = sat_shift[:date] + 2
-        candidates = [friday, monday].filter_map do |date|
-          s = shifts_by_date[date]
-          s if s&.[](:is_working) && !@leave_set.include?([staff_name, date]) &&
-               !@closed_days.key?(date) && !assignment_protected?(staff_name, date)
+      by_staff.each do |staff_name, staff_shifts|
+        shifts_map = staff_shifts.each_with_object({}) { |s, h| h[s[:date]] = s }
+        sat_shift = shifts_map[saturday]
+        sun_shift = shifts_map[sunday]
+
+        next unless sat_shift&.[](:is_working) && sun_shift&.[](:is_working)
+
+        sat_protected = assignment_protected?(staff_name, saturday)
+        sun_protected = assignment_protected?(staff_name, sunday)
+
+        if sat_protected && sun_protected
+          # 両日とも保護されており土日連続が避けられない → 月曜を休みにする
+          mon_shift = shifts_map[monday]
+          if mon_shift&.[](:is_working) &&
+             !@closed_days.key?(monday) &&
+             !assignment_protected?(staff_name, monday) &&
+             !@leave_set.include?([staff_name, monday])
+            mon_shift[:is_working] = false
+          end
+        elsif sat_protected
+          sun_shift[:is_working] = false
+        elsif sun_protected
+          sat_shift[:is_working] = false
+        else
+          # どちらも保護なし：出勤者が多い日（影響が小さい方）を休みにする
+          sat_workers = @shifts.count { |s| s[:date] == saturday && s[:is_working] }
+          sun_workers = @shifts.count { |s| s[:date] == sunday && s[:is_working] }
+          if sat_workers >= sun_workers
+            sat_shift[:is_working] = false
+          else
+            sun_shift[:is_working] = false
+          end
         end
-        next if candidates.empty?
-
-        target = candidates.max_by { |s| @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] } }
-        target[:is_working] = false
       end
     end
   end
