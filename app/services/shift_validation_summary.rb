@@ -1,8 +1,9 @@
 class ShiftValidationSummary
-  def initialize(shifts, target_month, closed_days = {})
+  def initialize(shifts, target_month, closed_days = {}, library = nil)
     @shifts = shifts
     @target_month = target_month
     @closed_days = closed_days
+    @library = library
   end
 
   def run
@@ -29,6 +30,12 @@ class ShiftValidationSummary
 
     ManagerPresenceValidator.new(@shifts, @closed_days).validate.each do |v|
       errors_by_key[v[:date].to_s] << v[:message]
+    end
+
+    if @library
+      DesignatedStaffValidator.new(@shifts, @target_month, @closed_days, @library).validate.each do |v|
+        errors_by_key["#{v[:date]}_#{v[:staff_name]}"] << v[:message]
+      end
     end
 
     errors_by_key
