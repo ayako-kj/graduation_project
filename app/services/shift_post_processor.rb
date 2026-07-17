@@ -220,22 +220,31 @@ class ShiftPostProcessor
     by_staff.each do |staff_name, staff_shifts|
       shifts_by_date = staff_shifts.each_with_object({}) { |s, h| h[s[:date]] = s }
 
-      staff_shifts.select { |s| s[:is_working] && s[:date].saturday? }.each do |sat_shift|
+      staff_shifts.select { |s| s[:is_working] && s[:date].saturday? }.sort_by { |s| s[:date] }.each do |sat_shift|
         sun_shift = shifts_by_date[sat_shift[:date] + 1]
         next unless sun_shift&.[](:is_working)
 
-        # 土日連続：前の金曜か後の月曜を休みにする（出勤者が多い日を優先、担当会議日は保護）
-        friday = sat_shift[:date] - 1
-        monday = sat_shift[:date] + 2
-        candidates = [friday, monday].filter_map do |date|
-          s = shifts_by_date[date]
-          s if s&.[](:is_working) && !@leave_set.include?([staff_name, date]) &&
-               !@closed_days.key?(date) && !assignment_protected?(staff_name, date)
-        end
-        next if candidates.empty?
+        sat_protected = assignment_protected?(staff_name, sat_shift[:date])
+        sun_protected = assignment_protected?(staff_name, sun_shift[:date])
 
-        target = candidates.max_by { |s| @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] } }
-        target[:is_working] = false
+        if sat_protected ^ sun_protected
+          # 片方だけ保護されている場合 → 保護されていない方を休みにする
+          if sun_protected && !@leave_set.include?([staff_name, sat_shift[:date]])
+            sat_shift[:is_working] = false
+          elsif !@leave_set.include?([staff_name, sun_shift[:date]])
+            sun_shift[:is_working] = false
+          end
+        else
+          # 両方保護なし（やむを得ない）or 両方保護 → 月曜を休みにする
+          monday = sat_shift[:date] + 2
+          mon_shift = shifts_by_date[monday]
+          if mon_shift&.[](:is_working) &&
+             !@leave_set.include?([staff_name, monday]) &&
+             !@closed_days.key?(monday) &&
+             !assignment_protected?(staff_name, monday)
+            mon_shift[:is_working] = false
+          end
+        end
       end
     end
   end
