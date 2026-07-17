@@ -227,14 +227,15 @@ class ShiftPostProcessor
         sat_protected = assignment_protected?(staff_name, sat_shift[:date])
         sun_protected = assignment_protected?(staff_name, sun_shift[:date])
 
-        if !sun_protected && !@leave_set.include?([staff_name, sun_shift[:date]])
-          # 日曜を休みにする（基本ケース）
-          sun_shift[:is_working] = false
-        elsif !sat_protected && !@leave_set.include?([staff_name, sat_shift[:date]])
-          # 日曜が保護されている場合は土曜を休みにする
-          sat_shift[:is_working] = false
+        if sat_protected ^ sun_protected
+          # 片方だけ保護されている場合 → 保護されていない方を休みにする
+          if sun_protected && !@leave_set.include?([staff_name, sat_shift[:date]])
+            sat_shift[:is_working] = false
+          elsif !@leave_set.include?([staff_name, sun_shift[:date]])
+            sun_shift[:is_working] = false
+          end
         else
-          # 土日両方保護されている場合のみ月曜を休みにする（やむを得ない場合）
+          # 両方保護なし（やむを得ない）or 両方保護 → 月曜を休みにする
           monday = sat_shift[:date] + 2
           mon_shift = shifts_by_date[monday]
           if mon_shift&.[](:is_working) &&
