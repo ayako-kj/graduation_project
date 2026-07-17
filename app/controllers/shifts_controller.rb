@@ -163,7 +163,7 @@ class ShiftsController < ApplicationController
     shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
       { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
     end
-    ShiftValidationSummary.new(shifts_for_validation, shift_group.target_month, closed_days).save_to_shifts(shift_group)
+    ShiftValidationSummary.new(shifts_for_validation, shift_group.target_month, closed_days, current_library).save_to_shifts(shift_group)
 
     shift.update_column(:validation_errors, nil) if params[:clear_errors] == "1"
 
@@ -272,7 +272,7 @@ class ShiftsController < ApplicationController
     shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
       { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
     end
-    ShiftValidationSummary.new(shifts_for_validation, target_month, closed_days).save_to_shifts(shift_group)
+    ShiftValidationSummary.new(shifts_for_validation, target_month, closed_days, current_library).save_to_shifts(shift_group)
 
     redirect_to shifts_path(month: target_month.strftime("%Y-%m")),
                 notice: "バリデーションエラーを再表示しました。"
@@ -337,7 +337,7 @@ class ShiftsController < ApplicationController
     shifts_for_validation = shift_group.shifts.includes(:staff).map do |s|
       { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
     end
-    summary = ShiftValidationSummary.new(shifts_for_validation, target_month, constraints[:closed_days])
+    summary = ShiftValidationSummary.new(shifts_for_validation, target_month, constraints[:closed_days], current_library)
     summary.save_to_shifts(shift_group)
 
     redirect_to shifts_path(month: target_month.strftime("%Y-%m")), notice: "シフトを生成しました。"
