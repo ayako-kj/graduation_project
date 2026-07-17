@@ -9,9 +9,9 @@ class ShiftPostProcessor
     @all_staff_dates = special_dates.each_with_object(Set.new) do |sd, set|
       set << Date.parse(sd[:date]) if sd[:target_group] == "全職員"
     end
-    @designated_dates = special_dates.each_with_object({}) do |sd, h|
+    @designated_dates = special_dates.each_with_object(Hash.new { |h, k| h[k] = [] }) do |sd, h|
       next if sd[:designated_staffs].empty?
-      h[Date.parse(sd[:date])] = sd[:designated_staffs]
+      h[Date.parse(sd[:date])].concat(sd[:designated_staffs])
     end
     # 担当会議日: {date => [staff_name, ...]}
     @assignment_dates = assignment_constraints.each_with_object({}) do |ac, h|

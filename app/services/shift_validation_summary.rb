@@ -33,8 +33,10 @@ class ShiftValidationSummary
     end
 
     if @library
+      # 担当者が休みのため is_working=false のシフトにはエラーを保存できない
+      # 日付レベルキーでその日の出勤者全員のセルに表示する
       DesignatedStaffValidator.new(@shifts, @target_month, @closed_days, @library).validate.each do |v|
-        errors_by_key["#{v[:date]}_#{v[:staff_name]}"] << v[:message]
+        errors_by_key[v[:date].to_s] << v[:message]
       end
     end
 
