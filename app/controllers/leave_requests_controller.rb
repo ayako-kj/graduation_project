@@ -18,7 +18,7 @@ class LeaveRequestsController < ApplicationController
   def create
     @leave_request = LeaveRequest.new(leave_request_params)
     if @leave_request.save
-      redirect_to leave_requests_path, notice: "希望休を登録しました。"
+      redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m")), notice: "希望休を登録しました。"
     else
       set_form_options
       render :new, status: :unprocessable_entity
@@ -31,7 +31,7 @@ class LeaveRequestsController < ApplicationController
 
   def update
     if @leave_request.update(leave_request_params)
-      redirect_to leave_requests_path, notice: "希望休を更新しました。"
+      redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m")), notice: "希望休を更新しました。"
     else
       set_form_options
       render :edit, status: :unprocessable_entity
@@ -40,7 +40,7 @@ class LeaveRequestsController < ApplicationController
 
   def destroy
     @leave_request.destroy
-    redirect_to leave_requests_path, notice: "希望休を削除しました。"
+    redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m")), notice: "希望休を削除しました。"
   end
 
   private
