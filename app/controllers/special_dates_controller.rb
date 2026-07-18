@@ -21,7 +21,7 @@ class SpecialDatesController < ApplicationController
     @special_date = current_library.special_dates.build(special_date_params)
     if @special_date.save
       sync_designated_staffs
-      redirect_to special_dates_path, notice: "特定日を登録しました。"
+      redirect_to special_dates_path(month: @special_date.date.strftime("%Y-%m")), notice: "特定日を登録しました。"
     else
       set_form_options
       render :new, status: :unprocessable_entity
@@ -35,7 +35,7 @@ class SpecialDatesController < ApplicationController
   def update
     if @special_date.update(special_date_params)
       sync_designated_staffs
-      redirect_to special_dates_path, notice: "特定日を更新しました。"
+      redirect_to special_dates_path(month: @special_date.date.strftime("%Y-%m")), notice: "特定日を更新しました。"
     else
       set_form_options
       render :edit, status: :unprocessable_entity
@@ -44,7 +44,7 @@ class SpecialDatesController < ApplicationController
 
   def destroy
     @special_date.destroy
-    redirect_to special_dates_path, notice: "#{@special_date.label}を削除しました。"
+    redirect_to special_dates_path(month: @special_date.date.strftime("%Y-%m")), notice: "#{@special_date.label}を削除しました。"
   end
 
   private
