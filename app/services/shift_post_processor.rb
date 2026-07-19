@@ -13,6 +13,13 @@ class ShiftPostProcessor
       next if sd[:designated_staffs].empty?
       h[Date.parse(sd[:date])].concat(sd[:designated_staffs])
     end
+    # target_group が職種名（全職員以外）のスケジュール: {date => [group_name, ...]}
+    # designated_staffs が同時に設定されていてもグループ全員を保護する
+    @group_dates = special_dates.each_with_object(Hash.new { |h, k| h[k] = [] }) do |sd, h|
+      next if sd[:target_group] == "全職員"
+      next if sd[:target_group].blank?
+      h[Date.parse(sd[:date])] << sd[:target_group]
+    end
     # 担当会議日: {date => [staff_name, ...]}
     @assignment_dates = assignment_constraints.each_with_object({}) do |ac, h|
       ac[:dates].each do |date_str|
@@ -155,6 +162,15 @@ class ShiftPostProcessor
         shift[:is_working] = true unless @leave_set.include?([shift[:staff_name], date])
       end
     end
+    # グループ指定出勤日：該当職種の職員を出勤にする
+    @group_dates.each do |date, group_names|
+      next if @closed_days.key?(date)
+      @shifts.select { |s| s[:date] == date }.each do |shift|
+        info = @staff_info[shift[:staff_name]]
+        next unless info && group_names.include?(info[:staff_type])
+        shift[:is_working] = true unless @leave_set.include?([shift[:staff_name], date])
+      end
+    end
   end
 
   def fix_assignment_dates
@@ -177,9 +193,14 @@ class ShiftPostProcessor
 
   def assignment_protected?(staff_name, date)
     return false if @leave_set.include?([staff_name, date])
-    @assignment_dates[date]&.include?(staff_name) ||
-      @designated_dates[date]&.include?(staff_name) ||
-      @mobile_dates[date]&.include?(staff_name)
+    return true if @assignment_dates[date]&.include?(staff_name)
+    return true if @designated_dates[date]&.include?(staff_name)
+    return true if @mobile_dates[date]&.include?(staff_name)
+    if @group_dates[date]&.any?
+      info = @staff_info[staff_name]
+      return true if info && @group_dates[date].include?(info[:staff_type])
+    end
+    false
   end
 
   def fix_excess_staff

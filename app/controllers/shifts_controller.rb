@@ -49,10 +49,15 @@ class ShiftsController < ApplicationController
       end
       if sd.target_group == "全職員"
         @special_dates_map[sd.date] = :all
-      elsif sd.designated_staffs.any?
+      else
         unless @special_dates_map[sd.date] == :all
           @special_dates_map[sd.date] ||= Set.new
-          @special_dates_map[sd.date].merge(sd.designated_staffs.map(&:id))
+          if sd.target_group.present?
+            @staffs.select { |s| s.staff_type.name == sd.target_group }.each do |s|
+              @special_dates_map[sd.date] << s.id
+            end
+          end
+          @special_dates_map[sd.date].merge(sd.designated_staffs.map(&:id)) if sd.designated_staffs.any?
         end
       end
     end
@@ -241,8 +246,11 @@ class ShiftsController < ApplicationController
     @special_dates_for_export.each do |sd|
       if sd.target_group == "全職員"
         @staffs.each { |s| @schedule_map[[s.id, sd.date]] = true }
-      elsif sd.designated_staffs.any?
-        sd.designated_staffs.each { |s| @schedule_map[[s.id, sd.date]] = true }
+      else
+        if sd.target_group.present?
+          @staffs.select { |s| s.staff_type.name == sd.target_group }.each { |s| @schedule_map[[s.id, sd.date]] = true }
+        end
+        sd.designated_staffs.each { |s| @schedule_map[[s.id, sd.date]] = true } if sd.designated_staffs.any?
       end
     end
     MobileLibrary.includes(mobile_library_routes: :staffs).where(library: current_library).each do |ml|
