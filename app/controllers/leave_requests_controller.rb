@@ -7,7 +7,9 @@ class LeaveRequestsController < ApplicationController
     @leave_requests = LeaveRequest.includes(:staff)
                         .where(staff: current_library.staffs)
                         .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
-                        .order(:date)
+                        .order(:date, "staffs.sort_order", "staffs.id")
+    @leave_requests_by_staff = @leave_requests.group_by(&:staff)
+                                 .sort_by { |staff, _| [staff.sort_order, staff.id] }
   end
 
   def new

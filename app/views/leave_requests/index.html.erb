@@ -23,36 +23,94 @@
       <%= link_to "希望休を登録する", new_leave_request_path, class: "btn btn-pitat rounded-pill px-4" %>
     </div>
   <% else %>
-    <div class="pitat-card p-0 overflow-hidden">
-      <table class="table table-hover mb-0">
-        <thead class="table-light">
-          <tr>
-            <th class="ps-4 py-3 text-muted small fw-semibold">日付</th>
-            <th class="py-3 text-muted small fw-semibold">職員名</th>
-            <th class="py-3 text-muted small fw-semibold">休暇種別</th>
-            <th class="py-3 text-muted small fw-semibold">理由</th>
-            <th class="py-3"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @leave_requests.each do |leave_request| %>
-            <tr>
-              <% lr_type = %w[公休 年休 夏期休暇 病気休暇 特別休暇].include?(leave_request.reason) ? leave_request.reason : "公休" %>
-              <% badge_color = { "公休" => "bg-warning text-dark", "年休" => "bg-success", "夏期休暇" => "bg-primary", "病気休暇" => "bg-danger", "特別休暇" => "bg-secondary" }[lr_type] %>
-              <td class="ps-4 py-3 fw-semibold"><%= leave_request.date.strftime("%Y年%m月%d日") %></td>
-              <td class="py-3"><%= leave_request.staff.name %></td>
-              <td class="py-3"><span class="badge <%= badge_color %>"><%= lr_type %></span></td>
-              <td class="py-3"><%= leave_request.note.presence || "－" %></td>
-              <td class="py-3 pe-4 text-end">
-                <%= link_to "編集", edit_leave_request_path(leave_request), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
-                <%= link_to "削除", leave_request_path(leave_request),
-                    data: { turbo_method: :delete, turbo_confirm: "#{leave_request.staff.name}の#{leave_request.date.strftime("%m月%d日")}の希望休を削除しますか？" },
-                    class: "btn btn-sm btn-outline-danger rounded-pill px-3" %>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
+    <ul class="nav nav-tabs mb-3" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="by-date-tab" data-bs-toggle="tab" data-bs-target="#by-date" type="button" role="tab">
+          <i class="bi bi-calendar3 me-1"></i>日付順
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="by-staff-tab" data-bs-toggle="tab" data-bs-target="#by-staff" type="button" role="tab">
+          <i class="bi bi-person-lines-fill me-1"></i>職員別
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <%# 日付順タブ %>
+      <div class="tab-pane fade show active" id="by-date" role="tabpanel">
+        <div class="pitat-card p-0 overflow-hidden">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4 py-3 text-muted small fw-semibold">日付</th>
+                <th class="py-3 text-muted small fw-semibold">職員名</th>
+                <th class="py-3 text-muted small fw-semibold">休暇種別</th>
+                <th class="py-3 text-muted small fw-semibold">理由</th>
+                <th class="py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @leave_requests.each do |leave_request| %>
+                <tr>
+                  <% lr_type = %w[公休 年休 夏期休暇 病気休暇 特別休暇].include?(leave_request.reason) ? leave_request.reason : "公休" %>
+                  <% badge_color = { "公休" => "bg-warning text-dark", "年休" => "bg-success", "夏期休暇" => "bg-primary", "病気休暇" => "bg-danger", "特別休暇" => "bg-secondary" }[lr_type] %>
+                  <td class="ps-4 py-3 fw-semibold"><%= leave_request.date.strftime("%Y年%m月%d日") %></td>
+                  <td class="py-3"><%= leave_request.staff.name %></td>
+                  <td class="py-3"><span class="badge <%= badge_color %>"><%= lr_type %></span></td>
+                  <td class="py-3"><%= leave_request.note.presence || "－" %></td>
+                  <td class="py-3 pe-4 text-end">
+                    <%= link_to "編集", edit_leave_request_path(leave_request), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
+                    <%= link_to "削除", leave_request_path(leave_request),
+                        data: { turbo_method: :delete, turbo_confirm: "#{leave_request.staff.name}の#{leave_request.date.strftime("%m月%d日")}の希望休を削除しますか？" },
+                        class: "btn btn-sm btn-outline-danger rounded-pill px-3" %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <%# 職員別タブ %>
+      <div class="tab-pane fade" id="by-staff" role="tabpanel">
+        <% @leave_requests_by_staff.each do |staff, leaves| %>
+          <div class="pitat-card p-0 overflow-hidden mb-3">
+            <div class="px-4 py-2 fw-semibold" style="background-color: #F0F4FF; border-bottom: 1px solid #dee2e6;">
+              <i class="bi bi-person me-1"></i><%= staff.name %>
+              <span class="text-muted fw-normal small ms-2"><%= staff.staff_type.name %></span>
+              <span class="badge bg-secondary ms-2"><%= leaves.size %>件</span>
+            </div>
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4 py-2 text-muted small fw-semibold">日付</th>
+                  <th class="py-2 text-muted small fw-semibold">休暇種別</th>
+                  <th class="py-2 text-muted small fw-semibold">理由</th>
+                  <th class="py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% leaves.sort_by(&:date).each do |leave_request| %>
+                  <tr>
+                    <% lr_type = %w[公休 年休 夏期休暇 病気休暇 特別休暇].include?(leave_request.reason) ? leave_request.reason : "公休" %>
+                    <% badge_color = { "公休" => "bg-warning text-dark", "年休" => "bg-success", "夏期休暇" => "bg-primary", "病気休暇" => "bg-danger", "特別休暇" => "bg-secondary" }[lr_type] %>
+                    <td class="ps-4 py-2 fw-semibold"><%= leave_request.date.strftime("%m月%d日（#{%w[日 月 火 水 木 金 土][leave_request.date.wday]}）") %></td>
+                    <td class="py-2"><span class="badge <%= badge_color %>"><%= lr_type %></span></td>
+                    <td class="py-2"><%= leave_request.note.presence || "－" %></td>
+                    <td class="py-2 pe-4 text-end">
+                      <%= link_to "編集", edit_leave_request_path(leave_request), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
+                      <%= link_to "削除", leave_request_path(leave_request),
+                          data: { turbo_method: :delete, turbo_confirm: "#{staff.name}の#{leave_request.date.strftime("%m月%d日")}の希望休を削除しますか？" },
+                          class: "btn btn-sm btn-outline-danger rounded-pill px-3" %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
     </div>
   <% end %>
 </div>
