@@ -16,10 +16,11 @@ sun_s         = s.add_style center.merge(bg_color: "FEE2E2", fg_color: "DC2626",
 hol_s         = s.add_style center.merge(bg_color: "FEE2E2", fg_color: "DC2626", b: true)
 closed_s      = s.add_style center.merge(bg_color: "E5E7EB", fg_color: "9CA3AF")
 name_s        = s.add_style left.merge(b: true, sz: 9)
-type_s        = s.add_style left.merge(sz: 8, fg_color: "6B7280")
+type_s        = s.add_style left.merge(sz: 8)
 off_s         = s.add_style center.merge(bg_color: "F3F4F6", fg_color: "9CA3AF")
-leave_s       = s.add_style center.merge(bg_color: "FEF9C3", fg_color: "92400E", b: true)
+leave_s       = s.add_style center.merge(bg_color: "FDE68A", fg_color: "92400E", b: true)
 work_s        = s.add_style center.merge(fg_color: "16A34A", b: true)
+schedule_s    = s.add_style center.merge(bg_color: "6EE7B7", fg_color: "065F46", b: true)
 early_s       = s.add_style center.merge(fg_color: "D97706", b: true)
 post_s        = s.add_style center.merge(fg_color: "2563EB", b: true)
 hol_post_s    = s.add_style center.merge(bg_color: "FEE2E2", fg_color: "DC2626", b: true)
@@ -32,9 +33,9 @@ event_blank_s = s.add_style base
 # スケジュール一覧（右側）用スタイル
 sd_sep_s   = s.add_style base
 sd_head_s  = s.add_style center.merge(bg_color: "C5D3F0", b: true, sz: 9)
-sd_date_s  = s.add_style left.merge(bg_color: "EFF6FF", fg_color: "1E40AF", b: true, sz: 9)
+sd_date_s  = s.add_style left.merge(bg_color: "EFF6FF", b: true, sz: 9)
 sd_name_s  = s.add_style left.merge(sz: 9)
-sd_staff_s = s.add_style left.merge(sz: 9, fg_color: "6B7280")
+sd_staff_s = s.add_style left.merge(sz: 9)
 
 day_names = %w[日 月 火 水 木 金 土]
 
@@ -59,6 +60,8 @@ cell_val = lambda do |staff, date|
       ["Ｐ", hol_post_s]
     elsif shift.is_post_duty
       ["ｐ", post_s]
+    elsif @schedule_map[[staff.id, date]]
+      ["○", schedule_s]
     else
       ["○", work_s]
     end

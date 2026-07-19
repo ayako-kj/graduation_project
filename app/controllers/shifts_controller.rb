@@ -236,6 +236,28 @@ class ShiftsController < ApplicationController
       (@special_date_labels[sd.date] ||= []) << sd.label
     end
 
+    # スケジュール・移動図書館・担当会議マップ: [staff_id, date] => true
+    @schedule_map = {}
+    @special_dates_for_export.each do |sd|
+      if sd.target_group == "全職員"
+        @staffs.each { |s| @schedule_map[[s.id, sd.date]] = true }
+      elsif sd.designated_staffs.any?
+        sd.designated_staffs.each { |s| @schedule_map[[s.id, sd.date]] = true }
+      end
+    end
+    MobileLibrary.includes(mobile_library_routes: :staffs).where(library: current_library).each do |ml|
+      ml.mobile_library_routes.each do |route|
+        date = @dates.select { |d| d.wday == route.wday }[route.week_number - 1]
+        next if date.nil? || @closed_days.key?(date)
+        route.staffs.each { |s| @schedule_map[[s.id, date]] = true }
+      end
+    end
+    current_library.assignments.includes(:staffs).where.not(meeting_wday: nil).each do |assignment|
+      @dates.select { |d| d.wday == assignment.meeting_wday && !@closed_days.key?(d) }.each do |date|
+        assignment.staffs.each { |s| @schedule_map[[s.id, date]] = true }
+      end
+    end
+
     filename = "勤務予定表_#{@target_month.strftime('%Y年%m月')}.xlsx"
     response.headers["Content-Disposition"] = "attachment; filename*=UTF-8''#{ERB::Util.url_encode(filename)}"
     render "export", formats: [:xlsx]
