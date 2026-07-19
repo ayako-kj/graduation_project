@@ -33,7 +33,8 @@ class LeaveRequestsController < ApplicationController
 
   def update
     if @leave_request.update(leave_request_params)
-      redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m")), notice: "希望休を更新しました。"
+      tab = params[:from] == "by-staff" ? "by-staff" : nil
+      redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m"), tab: tab), notice: "希望休を更新しました。"
     else
       set_form_options
       render :edit, status: :unprocessable_entity
@@ -42,7 +43,8 @@ class LeaveRequestsController < ApplicationController
 
   def destroy
     @leave_request.destroy
-    redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m")), notice: "希望休を削除しました。"
+    tab = params[:from] == "by-staff" ? "by-staff" : nil
+    redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m"), tab: tab), notice: "希望休を削除しました。"
   end
 
   private

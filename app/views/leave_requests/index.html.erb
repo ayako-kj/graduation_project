@@ -23,14 +23,15 @@
       <%= link_to "希望休を登録する", new_leave_request_path, class: "btn btn-pitat rounded-pill px-4" %>
     </div>
   <% else %>
+    <% active_tab = params[:tab] == "by-staff" ? "by-staff" : "by-date" %>
     <ul class="nav nav-tabs mb-3" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="by-date-tab" data-bs-toggle="tab" data-bs-target="#by-date" type="button" role="tab">
+        <button class="nav-link <%= active_tab == 'by-date' ? 'active' : '' %>" id="by-date-tab" data-bs-toggle="tab" data-bs-target="#by-date" type="button" role="tab">
           <i class="bi bi-calendar3 me-1"></i>日付順
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="by-staff-tab" data-bs-toggle="tab" data-bs-target="#by-staff" type="button" role="tab">
+        <button class="nav-link <%= active_tab == 'by-staff' ? 'active' : '' %>" id="by-staff-tab" data-bs-toggle="tab" data-bs-target="#by-staff" type="button" role="tab">
           <i class="bi bi-person-lines-fill me-1"></i>職員別
         </button>
       </li>
@@ -38,7 +39,7 @@
 
     <div class="tab-content">
       <%# 日付順タブ %>
-      <div class="tab-pane fade show active" id="by-date" role="tabpanel">
+      <div class="tab-pane fade <%= active_tab == 'by-date' ? 'show active' : '' %>" id="by-date" role="tabpanel">
         <div class="pitat-card p-0 overflow-hidden">
           <table class="table table-hover mb-0">
             <thead class="table-light">
@@ -73,7 +74,7 @@
       </div>
 
       <%# 職員別タブ %>
-      <div class="tab-pane fade" id="by-staff" role="tabpanel">
+      <div class="tab-pane fade <%= active_tab == 'by-staff' ? 'show active' : '' %>" id="by-staff" role="tabpanel">
         <% @leave_requests_by_staff.each do |staff, leaves| %>
           <div class="pitat-card p-0 overflow-hidden mb-3">
             <div class="px-4 py-2 fw-semibold" style="background-color: #F0F4FF; border-bottom: 1px solid #dee2e6;">
@@ -99,8 +100,8 @@
                     <td class="py-2"><span class="badge <%= badge_color %>"><%= lr_type %></span></td>
                     <td class="py-2"><%= leave_request.note.presence || "－" %></td>
                     <td class="py-2 pe-4 text-end">
-                      <%= link_to "編集", edit_leave_request_path(leave_request), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
-                      <%= link_to "削除", leave_request_path(leave_request),
+                      <%= link_to "編集", edit_leave_request_path(leave_request, from: "by-staff"), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
+                      <%= link_to "削除", leave_request_path(leave_request, from: "by-staff"),
                           data: { turbo_method: :delete, turbo_confirm: "#{staff.name}の#{leave_request.date.strftime("%m月%d日")}の希望休を削除しますか？" },
                           class: "btn btn-sm btn-outline-danger rounded-pill px-3" %>
                     </td>
