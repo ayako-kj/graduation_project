@@ -13,10 +13,10 @@ class ShiftPostProcessor
       next if sd[:designated_staffs].empty?
       h[Date.parse(sd[:date])].concat(sd[:designated_staffs])
     end
-    # target_group が職種名（全職員・指定職員以外）のスケジュール: {date => [group_name, ...]}
+    # target_group が職種名（全職員以外）のスケジュール: {date => [group_name, ...]}
+    # designated_staffs が同時に設定されていてもグループ全員を保護する
     @group_dates = special_dates.each_with_object(Hash.new { |h, k| h[k] = [] }) do |sd, h|
       next if sd[:target_group] == "全職員"
-      next if sd[:designated_staffs].any?
       next if sd[:target_group].blank?
       h[Date.parse(sd[:date])] << sd[:target_group]
     end
