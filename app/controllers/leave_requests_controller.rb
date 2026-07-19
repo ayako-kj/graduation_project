@@ -7,7 +7,9 @@ class LeaveRequestsController < ApplicationController
     @leave_requests = LeaveRequest.includes(:staff)
                         .where(staff: current_library.staffs)
                         .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
-                        .order(:date)
+                        .order(:date, "staffs.sort_order", "staffs.id")
+    @leave_requests_by_staff = @leave_requests.group_by(&:staff)
+                                 .sort_by { |staff, _| [staff.sort_order, staff.id] }
   end
 
   def new
@@ -31,7 +33,8 @@ class LeaveRequestsController < ApplicationController
 
   def update
     if @leave_request.update(leave_request_params)
-      redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m")), notice: "希望休を更新しました。"
+      tab = params[:from] == "by-staff" ? "by-staff" : nil
+      redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m"), tab: tab), notice: "希望休を更新しました。"
     else
       set_form_options
       render :edit, status: :unprocessable_entity
@@ -40,7 +43,8 @@ class LeaveRequestsController < ApplicationController
 
   def destroy
     @leave_request.destroy
-    redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m")), notice: "希望休を削除しました。"
+    tab = params[:from] == "by-staff" ? "by-staff" : nil
+    redirect_to leave_requests_path(month: @leave_request.date.strftime("%Y-%m"), tab: tab), notice: "希望休を削除しました。"
   end
 
   private

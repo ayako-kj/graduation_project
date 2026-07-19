@@ -10,6 +10,7 @@
 <% end %>
 
 <%= form_with model: leave_request do |f| %>
+  <%= hidden_field_tag :from, params[:from] %>
 
   <div class="mb-3">
     <%= f.label :staff_id, class: "form-label fw-semibold small" do %>
