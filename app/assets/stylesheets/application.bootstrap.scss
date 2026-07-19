@@ -87,6 +87,22 @@ $pitat-cream: #FAF6F0;
   .pitat-card { box-shadow: none !important; border: 1px solid #dee2e6 !important; }
   .table-responsive { overflow: visible !important; }
   .shift-table { font-size: 0.65rem !important; min-width: unset !important; }
-  .shift-table th, .shift-table td { padding: 2px 1px !important; }
+  .shift-table th, .shift-table td {
+    padding: 2px 1px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  // 希望休セル：画面より濃いアンバー（スケジュールと差別化）
+  .cell-leave {
+    background-color: #fbbf24 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  // スケジュール・移動図書館・定例会議セル：画面より濃いグリーン
+  .cell-schedule {
+    background-color: #6ee7b7 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   @page { size: A4 landscape; margin: 8mm; }
 }

@@ -197,7 +197,16 @@
                     "background-color:#D1FAE5;"
                   end
                 %>
-                <td class="<%= has_error ? 'table-danger' : '' %> p-0" style="<%= cell_bg %>">
+                <%
+                  cell_type_class = if is_leave && shift && !shift.is_working
+                    "cell-leave"
+                  elsif (is_special || is_mobile || is_assignment) && shift&.is_working
+                    "cell-schedule"
+                  else
+                    ""
+                  end
+                %>
+                <td class="<%= has_error ? 'table-danger' : '' %> <%= cell_type_class %> p-0" style="<%= cell_bg %>">
                   <% if shift.nil? %>
                     <span class="text-muted" style="font-size:0.75rem;"><%= is_closed ? '閉' : '－' %></span>
                   <% else %>
