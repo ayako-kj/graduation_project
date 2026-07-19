@@ -23,10 +23,10 @@
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
       <h1 class="fs-4 fw-bold mb-1">2次元コード一括印刷</h1>
-      <p class="text-muted small mb-0">希望休・特定日の2次元コードを職員ごとに1枚ずつ印刷できます。</p>
+      <p class="text-muted small mb-0">希望休・スケジュールの2次元コードを職員ごとに1枚ずつ印刷できます。</p>
     </div>
     <div class="d-flex gap-2">
-      <%= link_to hope_urls_staffs_path, class: "btn btn-outline-secondary rounded-pill px-3" do %>
+      <%= link_to (params[:from] == "special" ? special_date_urls_staffs_path : hope_urls_staffs_path), class: "btn btn-outline-secondary rounded-pill px-3" do %>
         ← URL一覧に戻る
       <% end %>
       <button type="button" onclick="window.print()" class="btn btn-pitat rounded-pill px-4 fw-semibold">
@@ -60,10 +60,10 @@
     <%# 2つの2次元コードを横並び %>
     <div class="d-flex gap-5 align-items-start justify-content-center">
 
-      <%# 特定日 %>
+      <%# スケジュール %>
       <div class="text-center">
         <%= raw data[:special_svg] %>
-        <div class="fw-semibold mt-2" style="font-size: 0.8rem;">特定日入力用の2次元コード</div>
+        <div class="fw-semibold mt-2" style="font-size: 0.8rem;">スケジュール入力用の2次元コード</div>
       </div>
 
       <%# 希望休 %>

@@ -37,7 +37,7 @@ class ShiftsController < ApplicationController
       .each_with_object({}) { |al, h| h[[al.staff_id, al.date]] = al.leave_type }
     @actual_leave_set = @actual_leave_map.keys.to_set
 
-    # 特定日マップ：date => Set of staff_id（または :all）＋ラベル（複数対応）
+    # スケジュールマップ：date => Set of staff_id（または :all）＋ラベル（複数対応）
     @special_dates_map   = {}
     @special_date_labels = {}
     SpecialDate.includes(:designated_staffs)

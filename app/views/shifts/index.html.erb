@@ -80,7 +80,7 @@
       </div>
       <% if @special_date_labels.any? %>
         <div>
-          <div class="text-muted small fw-semibold mb-1"><i class="bi bi-star-fill me-1" style="color:#059669;"></i>特定日</div>
+          <div class="text-muted small fw-semibold mb-1"><i class="bi bi-star-fill me-1" style="color:#059669;"></i>スケジュール</div>
           <div class="small">
             <% @special_date_labels.sort.each do |date, labels| %>
               <span class="me-3"><%= date.strftime('%-m/%-d') %>（<span class="fw-semibold"><%= labels.join("・") %></span>）</span>
@@ -125,7 +125,7 @@
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">休</span>公休</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">年</span>年休</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">夏</span>夏期休暇</span>
-      <span><span class="badge me-1" style="background-color:#D1FAE5; color:#065F46; border:1px solid #6ee7b7;">○</span>特定日・移動図書館・定例会議</span>
+      <span><span class="badge me-1" style="background-color:#D1FAE5; color:#065F46; border:1px solid #6ee7b7;">○</span>スケジュール・移動図書館・定例会議</span>
       <% if @shift_group&.suppress_all_errors? %>
         <%= button_to restore_errors_shifts_path(month: @target_month.strftime("%Y-%m")),
             method: :post,
