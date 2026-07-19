@@ -21,7 +21,7 @@ class StaffSpecialDatesController < ApplicationController
     if @special_date.save
       sync_designated_staffs
       redirect_to staff_special_dates_path(token: params[:token], month: params[:month]),
-                  notice: "特定日を登録しました。"
+                  notice: "スケジュールを登録しました。"
     else
       @target_month  = parse_target_month
       @special_dates = @current_staff.library.special_dates
@@ -42,7 +42,7 @@ class StaffSpecialDatesController < ApplicationController
     if @special_date.update(special_date_params)
       sync_designated_staffs
       redirect_to staff_special_dates_path(token: params[:token], month: params[:month]),
-                  notice: "特定日を更新しました。"
+                  notice: "スケジュールを更新しました。"
     else
       @target_month = parse_target_month
       load_form_data
@@ -53,7 +53,7 @@ class StaffSpecialDatesController < ApplicationController
   def destroy
     @special_date.destroy
     redirect_to staff_special_dates_path(token: params[:token], month: params[:month]),
-                notice: "特定日を削除しました。"
+                notice: "スケジュールを削除しました。"
   end
 
   private
@@ -72,7 +72,7 @@ class StaffSpecialDatesController < ApplicationController
   def authorize_own!
     unless @special_date.created_by_staff_id == @current_staff.id
       redirect_to staff_special_dates_path(token: params[:token], month: params[:month]),
-                  alert: "自分が登録した特定日のみ編集・削除できます。"
+                  alert: "自分が登録したスケジュールのみ編集・削除できます。"
     end
   end
 

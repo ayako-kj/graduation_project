@@ -29,7 +29,7 @@ label_s       = s.add_style left.merge(bg_color: "F3F4F6", b: true, sz: 9)
 event_s       = s.add_style center.merge(bg_color: "ECFDF5", fg_color: "065F46", sz: 8, b: true)
 event_blank_s = s.add_style base
 
-# 特定日一覧（右側）用スタイル
+# スケジュール一覧（右側）用スタイル
 sd_sep_s   = s.add_style base
 sd_head_s  = s.add_style center.merge(bg_color: "C5D3F0", b: true, sz: 9)
 sd_date_s  = s.add_style left.merge(bg_color: "EFF6FF", fg_color: "1E40AF", b: true, sz: 9)
@@ -98,7 +98,7 @@ sheet_name  = "R#{reiwa_year}.#{@target_month.month}月"
 wb.add_worksheet(name: sheet_name) do |sheet|
   col_count = @dates.size + 4  # A(区分) B(職種) C(氏名) + 日付列 + 勤務日数列
 
-  # ---- 特定日一覧（右側）の準備 ----
+  # ---- スケジュール一覧（右側）の準備 ----
   sd_list = @special_dates_for_export.to_a
   # 同じ日付が左右に分かれないよう、日付単位でグループ化してから半分に分割
   date_groups = sd_list.group_by(&:date).sort_by { |date, _| date }.map { |_, sds| sds }
@@ -126,7 +126,7 @@ wb.add_worksheet(name: sheet_name) do |sheet|
     when :blank
       [Array.new(7, ""), Array.new(7, sd_sep_s)]
     when :header
-      cells  = ["", "特定日", "名称", "担当者", "特定日", "名称", "担当者"]
+      cells  = ["", "スケジュール", "名称", "担当者", "スケジュール", "名称", "担当者"]
       styles = [sd_sep_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s]
       [cells, styles]
     when :data

@@ -16,7 +16,7 @@ class PromptBuilder
 
       【ルール】
       - 希望休を必ず反映する
-      - 特定日は対象グループ全員を出勤にする
+      - スケジュールは対象グループ全員を出勤にする
       - 休館日は全員休みにする
       - 月の勤務日数目標を守る
       - 開館日は毎日12人以上出勤させる
@@ -42,7 +42,7 @@ class PromptBuilder
     max_per_day = (total_staff * 0.75).ceil
     lines << "【出勤人数の目安】"
     lines << "- 1日あたり12〜#{max_per_day}名（開館日数：#{open_days}日、職員総数：#{total_staff}名）"
-    lines << "- 特定日（全員出勤日）を除き、毎日必ず#{total_staff - max_per_day}名以上は休みにすること"
+    lines << "- スケジュール（全員出勤日）を除き、毎日必ず#{total_staff - max_per_day}名以上は休みにすること"
     lines << ""
 
     wday_names = %w[日 月 火 水 木 金 土]
@@ -78,7 +78,7 @@ class PromptBuilder
     end
     lines << ""
 
-    lines << "【特定日】"
+    lines << "【スケジュール】"
     if @constraints[:special_dates].empty?
       lines << "- なし"
     else

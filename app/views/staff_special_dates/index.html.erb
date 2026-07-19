@@ -1,10 +1,10 @@
-<% content_for :title, "特定日入力 | LibShiftAI_Pitat" %>
+<% content_for :title, "スケジュール入力 | LibShiftAI_Pitat" %>
 
 <div class="container py-5" style="max-width: 720px;">
 
   <div class="text-center mb-4">
     <p class="text-muted small mb-1">LibShiftAI Pitat</p>
-    <h1 class="fs-3 fw-bold mb-1">特定日の入力</h1>
+    <h1 class="fs-3 fw-bold mb-1">スケジュールの入力</h1>
     <p class="text-muted">こんにちは、<strong class="text-dark"><%= @current_staff.name %></strong>さん</p>
   </div>
 
@@ -24,7 +24,7 @@
   <div class="pitat-card p-3 mb-3 small text-muted">
     <i class="bi bi-info-circle me-1"></i>
     出張・研修・定例会議など、シフトに影響する予定を登録してください。
-    一覧には全職員の登録が表示されます。自分が登録した特定日のみ編集・削除できます。
+    一覧には全職員の登録が表示されます。自分が登録したスケジュールのみ編集・削除できます。
   </div>
 
   <%# エラー表示 %>
@@ -40,7 +40,7 @@
 
   <%# 登録フォーム %>
   <div class="pitat-card p-3 mb-4">
-    <div class="small fw-semibold mb-3 text-muted">特定日を登録する</div>
+    <div class="small fw-semibold mb-3 text-muted">スケジュールを登録する</div>
     <%= form_with model: @special_date,
         url: create_staff_special_date_path(token: params[:token], month: @target_month.strftime("%Y-%m")),
         method: :post do |f| %>
@@ -98,11 +98,11 @@
     <% end %>
   </div>
 
-  <%# 特定日一覧 %>
+  <%# スケジュール一覧 %>
   <% if @special_dates.empty? %>
     <div class="pitat-card p-4 text-center text-muted small">
       <i class="bi bi-calendar-event fs-2 d-block mb-2"></i>
-      この期間に登録された特定日はありません。
+      この期間に登録されたスケジュールはありません。
     </div>
   <% else %>
     <div class="pitat-card p-0 overflow-hidden">

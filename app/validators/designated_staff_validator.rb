@@ -34,7 +34,7 @@ class DesignatedStaffValidator
         violations << {
           staff_name: staff.name,
           date: sd.date,
-          message: "#{staff.name}の#{sd.date.strftime('%-m月%-d日')}は特定日（#{sd.label}）の担当ですが休みになっています"
+          message: "#{staff.name}の#{sd.date.strftime('%-m月%-d日')}はスケジュール（#{sd.label}）の担当ですが休みになっています"
         }
       end
     end
