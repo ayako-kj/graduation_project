@@ -126,7 +126,7 @@ wb.add_worksheet(name: sheet_name) do |sheet|
     when :blank
       [Array.new(7, ""), Array.new(7, sd_sep_s)]
     when :header
-      cells  = ["", "スケジュール", "名称", "担当者", "スケジュール", "名称", "担当者"]
+      cells  = ["", "日付", "名称", "担当者", "日付", "名称", "担当者"]
       styles = [sd_sep_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s]
       [cells, styles]
     when :data
