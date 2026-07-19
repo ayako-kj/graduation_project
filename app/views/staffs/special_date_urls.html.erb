@@ -7,7 +7,7 @@
       <p class="text-muted small mb-0">各職員に固有のURLを配布することで、ログイン不要でスケジュールを入力してもらえます。</p>
     </div>
     <div class="d-flex gap-2">
-      <%= link_to combined_qrcodes_staffs_path, class: "btn btn-pitat rounded-pill px-4 fw-semibold" do %>
+      <%= link_to combined_qrcodes_staffs_path(from: "special"), class: "btn btn-pitat rounded-pill px-4 fw-semibold" do %>
         <i class="bi bi-qr-code me-1"></i>2次元コードを一括印刷
       <% end %>
       <%= link_to special_date_qrcodes_staffs_path, class: "btn btn-outline-secondary rounded-pill px-3" do %>
