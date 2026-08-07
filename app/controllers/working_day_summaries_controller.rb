@@ -82,24 +82,28 @@ class WorkingDaySummariesController < ApplicationController
   def build_staff_summary
     daily_hours = @selected_staff.effective_daily_work_hours
     city_hall_daily = @selected_staff.employment_type.city_hall_daily_hours
-    regular = @selected_staff.employment_type.is_regular
 
     cumulative_diff = 0.0
     @summary = @fiscal_months.map do |month|
       n = @n_by_month[month]
-      target_days = target_days_for(n, regular, daily_hours, city_hall_daily)
       actual_info = actual_data_for(@selected_staff.id, month)
       actual_days = actual_info[:days]
       source = actual_info[:source]
+      confirmed = source != "未入力"
 
-      used_days = actual_days || target_days
-      used_hours = (used_days * daily_hours).round(2)
       city_hall_hours = (n * city_hall_daily).round(2)
-      monthly_diff = (used_hours - city_hall_hours).round(2)
-      cumulative_diff = (cumulative_diff + monthly_diff).round(2)
 
-      { month: month, n: n, target_days: target_days, actual_days: actual_days,
-        source: source, used_hours: used_hours, city_hall_hours: city_hall_hours,
+      if confirmed
+        used_hours = (actual_days * daily_hours).round(2)
+        monthly_diff = (used_hours - city_hall_hours).round(2)
+        cumulative_diff = (cumulative_diff + monthly_diff).round(2)
+      else
+        used_hours = nil
+        monthly_diff = nil
+      end
+
+      { month: month, n: n, actual_days: actual_days, source: source, confirmed: confirmed,
+        used_hours: used_hours, city_hall_hours: city_hall_hours,
         monthly_diff: monthly_diff, cumulative_diff: cumulative_diff }
     end
   end
@@ -112,23 +116,43 @@ class WorkingDaySummariesController < ApplicationController
       city_hall_daily = staff.employment_type.city_hall_daily_hours
       regular = staff.employment_type.is_regular
 
+      cumulative_actual_days = 0
       cumulative_actual = 0.0
+      cumulative_n_days = 0
       cumulative_city_hall = 0.0
-      has_any_data = false
+      all_confirmed = true
 
       months_up_to.each do |month|
         n = @n_by_month[month]
-        actual_info = actual_data_for(staff.id, month)
-        days = actual_info[:days] || target_days_for(n, regular, daily_hours, city_hall_daily)
-        has_any_data = true if actual_info[:source] != "未入力"
-        cumulative_actual += days * daily_hours
+        cumulative_n_days += n
         cumulative_city_hall += n * city_hall_daily
+
+        actual_info = actual_data_for(staff.id, month)
+        if actual_info[:source] == "未入力"
+          all_confirmed = false
+          next
+        end
+
+        cumulative_actual_days += actual_info[:days]
+        cumulative_actual += actual_info[:days] * daily_hours
       end
 
-      diff = (cumulative_actual - cumulative_city_hall).round(2)
-      { staff: staff, cumulative_actual: cumulative_actual.round(2),
-        cumulative_city_hall: cumulative_city_hall.round(2),
-        cumulative_diff: diff, has_any_data: has_any_data }
+      cumulative_city_hall = cumulative_city_hall.round(2)
+
+      if all_confirmed
+        { staff: staff, regular: regular, all_confirmed: true,
+          cumulative_actual_days: cumulative_actual_days,
+          cumulative_actual: cumulative_actual.round(2),
+          cumulative_n_days: cumulative_n_days,
+          cumulative_city_hall: cumulative_city_hall,
+          cumulative_diff: (cumulative_actual - cumulative_city_hall).round(2) }
+      else
+        { staff: staff, regular: regular, all_confirmed: false,
+          cumulative_actual_days: nil, cumulative_actual: nil,
+          cumulative_n_days: cumulative_n_days,
+          cumulative_city_hall: cumulative_city_hall,
+          cumulative_diff: nil }
+      end
     end
   end
 
@@ -158,10 +182,5 @@ class WorkingDaySummariesController < ApplicationController
         holiday_post_duty_count: (holiday_post_counts[staff.id] || 0) + manual_holiday_post[staff.id]
       }
     end
-  end
-
-  def target_days_for(n, regular, daily_hours, city_hall_daily)
-    return n if regular
-    (n * city_hall_daily / daily_hours).floor
   end
 end

@@ -101,7 +101,6 @@
           <thead class="table-light">
             <tr>
               <th class="ps-3 py-2 text-start">月</th>
-              <th class="py-2">目標日数</th>
               <th class="py-2">実績日数</th>
               <th class="py-2">データ元</th>
               <th class="py-2">実績時間</th>
@@ -112,9 +111,8 @@
           </thead>
           <tbody>
             <% @summary.each do |row| %>
-              <tr class="<%= row[:monthly_diff] != 0 ? 'table-warning' : '' %>">
+              <tr class="<%= row[:confirmed] && row[:monthly_diff] != 0 ? 'table-warning' : '' %>">
                 <td class="ps-3 text-start fw-semibold"><%= row[:month].strftime("%Y年%-m月") %></td>
-                <td class="text-muted"><%= row[:target_days] %>日</td>
                 <td class="fw-semibold">
                   <%= row[:actual_days].nil? ? "－" : "#{row[:actual_days]}日" %>
                 </td>
@@ -129,10 +127,14 @@
                         class: "badge bg-light text-muted border text-decoration-none" %>
                   <% end %>
                 </td>
-                <td><%= row[:used_hours] %>時間</td>
+                <td><%= row[:used_hours].nil? ? "－" : "#{row[:used_hours]}時間" %></td>
                 <td><%= row[:city_hall_hours] %>時間</td>
-                <td class="<%= row[:monthly_diff] < 0 ? 'text-danger' : (row[:monthly_diff] > 0 ? 'text-primary' : '') %>">
-                  <%= row[:monthly_diff] >= 0 ? "+#{row[:monthly_diff]}" : row[:monthly_diff] %>時間
+                <td class="<%= row[:monthly_diff].nil? ? '' : (row[:monthly_diff] < 0 ? 'text-danger' : (row[:monthly_diff] > 0 ? 'text-primary' : '')) %>">
+                  <% if row[:monthly_diff].nil? %>
+                    －
+                  <% else %>
+                    <%= row[:monthly_diff] >= 0 ? "+#{row[:monthly_diff]}" : row[:monthly_diff] %>時間
+                  <% end %>
                 </td>
                 <td class="<%= row[:cumulative_diff] < 0 ? 'text-danger' : (row[:cumulative_diff] > 0 ? 'text-primary' : 'text-success') %> fw-semibold">
                   <%= row[:cumulative_diff] >= 0 ? "+#{row[:cumulative_diff]}" : row[:cumulative_diff] %>時間
@@ -142,9 +144,9 @@
           </tbody>
           <tfoot class="table-light fw-bold">
             <tr>
-              <td class="ps-3 text-start" colspan="4">年度合計</td>
-              <td><%= @summary.sum { |r| r[:used_hours] }.round(2) %>時間</td>
-              <td><%= @summary.sum { |r| r[:city_hall_hours] }.round(2) %>時間</td>
+              <td class="ps-3 text-start" colspan="3">年度合計（実績が確定した月のみ）</td>
+              <td><%= @summary.select { |r| r[:confirmed] }.sum { |r| r[:used_hours] }.round(2) %>時間</td>
+              <td><%= @summary.select { |r| r[:confirmed] }.sum { |r| r[:city_hall_hours] }.round(2) %>時間</td>
               <td></td>
               <td class="<%= @summary.last[:cumulative_diff] < 0 ? 'text-danger' : (@summary.last[:cumulative_diff] > 0 ? 'text-primary' : 'text-success') %>">
                 <%= @summary.last[:cumulative_diff] >= 0 ? "+#{@summary.last[:cumulative_diff]}" : @summary.last[:cumulative_diff] %>時間
@@ -173,7 +175,9 @@
     <div class="pitat-card p-3 mb-4 small text-muted">
       <i class="bi bi-info-circle me-1"></i>
       <%= @view_month.strftime("%Y年%-m月") %>末時点の累計差を全職員で一覧表示します。
-      累計差がマイナスの場合は市役所より少ない勤務時間です。
+      市役所基準は実績の入力有無にかかわらず、暦通りに毎月更新されます。
+      正規職員は日数、会計年度任用職員は時間で比較します（1日あたりの勤務時間が市役所と異なるため）。
+      表示月までの間に勤務実績（シフト表の自動生成または手入力）が未入力の月が1つでもある場合、図書館実績・差は「－」と表示されます。
       Pitat導入前の実績は<%= link_to "勤務実績の手入力", workday_manual_entries_path, class: "text-muted" %>から入力できます。
     </div>
 
@@ -185,23 +189,42 @@
             <th class="py-2">職種</th>
             <th class="py-2">雇用形態</th>
             <th class="py-2">週勤務日数</th>
-            <th class="py-2">累計目標時間</th>
-            <th class="py-2">市役所換算時間</th>
-            <th class="py-2">累計差（時間）</th>
+            <th class="py-2">市役所基準</th>
+            <th class="py-2">図書館実績</th>
+            <th class="py-2">差</th>
           </tr>
         </thead>
         <tbody>
           <% @staff_summaries.each do |row| %>
-            <% has_diff = row[:cumulative_diff] != 0 %>
+            <% has_diff = row[:all_confirmed] && row[:cumulative_diff] != 0 %>
+            <% diff_days = row[:all_confirmed] ? row[:cumulative_actual_days] - row[:cumulative_n_days] : nil %>
             <tr class="<%= has_diff ? 'table-warning' : '' %>">
               <td class="ps-3 text-start fw-semibold"><%= row[:staff].name %></td>
               <td><%= row[:staff].staff_type.name %></td>
               <td><%= row[:staff].employment_type.name %></td>
               <td><%= row[:staff].weekly_work_days %>日</td>
-              <td><%= row[:cumulative_actual] %>時間</td>
-              <td><%= row[:cumulative_city_hall] %>時間</td>
-              <td class="<%= row[:cumulative_diff] < 0 ? 'text-danger' : (row[:cumulative_diff] > 0 ? 'text-primary' : 'text-success') %> fw-semibold">
-                <%= row[:cumulative_diff] >= 0 ? "+#{row[:cumulative_diff]}" : row[:cumulative_diff] %>時間
+              <td>
+                <% if row[:regular] %>
+                  <%= row[:cumulative_n_days] %>日
+                <% else %>
+                  <%= row[:cumulative_city_hall] %>時間
+                <% end %>
+              </td>
+              <td>
+                <% if row[:all_confirmed] %>
+                  <%= row[:cumulative_actual_days] %>日（<%= row[:cumulative_actual] %>時間）
+                <% else %>
+                  －
+                <% end %>
+              </td>
+              <td class="<%= row[:all_confirmed] ? (row[:cumulative_diff] < 0 ? 'text-danger' : (row[:cumulative_diff] > 0 ? 'text-primary' : 'text-success')) : '' %> fw-semibold">
+                <% if !row[:all_confirmed] %>
+                  －
+                <% elsif row[:regular] %>
+                  <%= diff_days >= 0 ? "+#{diff_days}" : diff_days %>日
+                <% else %>
+                  <%= row[:cumulative_diff] >= 0 ? "+#{row[:cumulative_diff]}" : row[:cumulative_diff] %>時間
+                <% end %>
               </td>
             </tr>
           <% end %>
