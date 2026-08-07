@@ -82,8 +82,11 @@ class WorkingDaySummariesController < ApplicationController
   def build_staff_summary
     daily_hours = @selected_staff.effective_daily_work_hours
     city_hall_daily = @selected_staff.employment_type.city_hall_daily_hours
+    regular = @selected_staff.employment_type.is_regular
+    unit = regular ? "日" : "時間"
 
     cumulative_diff = 0.0
+    cumulative_valid = true
     @summary = @fiscal_months.map do |month|
       n = @n_by_month[month]
       actual_info = actual_data_for(@selected_staff.id, month)
@@ -91,20 +94,22 @@ class WorkingDaySummariesController < ApplicationController
       source = actual_info[:source]
       confirmed = source != "未入力"
 
-      city_hall_hours = (n * city_hall_daily).round(2)
+      city_hall_value = regular ? n : (n * city_hall_daily).round(2)
 
       if confirmed
-        used_hours = (actual_days * daily_hours).round(2)
-        monthly_diff = (used_hours - city_hall_hours).round(2)
+        used_value = regular ? actual_days : (actual_days * daily_hours).round(2)
+        monthly_diff = (used_value - city_hall_value).round(2)
         cumulative_diff = (cumulative_diff + monthly_diff).round(2)
       else
-        used_hours = nil
+        used_value = nil
         monthly_diff = nil
+        cumulative_valid = false
       end
 
       { month: month, n: n, actual_days: actual_days, source: source, confirmed: confirmed,
-        used_hours: used_hours, city_hall_hours: city_hall_hours,
-        monthly_diff: monthly_diff, cumulative_diff: cumulative_diff }
+        regular: regular, unit: unit, used_value: used_value, city_hall_value: city_hall_value,
+        monthly_diff: monthly_diff, cumulative_diff: cumulative_diff,
+        cumulative_valid: cumulative_valid }
     end
   end
 

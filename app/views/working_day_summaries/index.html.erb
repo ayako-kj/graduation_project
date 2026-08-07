@@ -103,8 +103,8 @@
               <th class="ps-3 py-2 text-start">月</th>
               <th class="py-2">実績日数</th>
               <th class="py-2">データ元</th>
-              <th class="py-2">実績時間</th>
-              <th class="py-2">市役所時間</th>
+              <th class="py-2">実績</th>
+              <th class="py-2">市役所基準</th>
               <th class="py-2">月の差</th>
               <th class="py-2">累計差</th>
             </tr>
@@ -127,17 +127,21 @@
                         class: "badge bg-light text-muted border text-decoration-none" %>
                   <% end %>
                 </td>
-                <td><%= row[:used_hours].nil? ? "－" : "#{row[:used_hours]}時間" %></td>
-                <td><%= row[:city_hall_hours] %>時間</td>
+                <td><%= row[:used_value].nil? ? "－" : "#{row[:used_value]}#{row[:unit]}" %></td>
+                <td><%= row[:city_hall_value] %><%= row[:unit] %></td>
                 <td class="<%= row[:monthly_diff].nil? ? '' : (row[:monthly_diff] < 0 ? 'text-danger' : (row[:monthly_diff] > 0 ? 'text-primary' : '')) %>">
                   <% if row[:monthly_diff].nil? %>
                     －
                   <% else %>
-                    <%= row[:monthly_diff] >= 0 ? "+#{row[:monthly_diff]}" : row[:monthly_diff] %>時間
+                    <%= row[:monthly_diff] >= 0 ? "+#{row[:monthly_diff]}" : row[:monthly_diff] %><%= row[:unit] %>
                   <% end %>
                 </td>
-                <td class="<%= row[:cumulative_diff] < 0 ? 'text-danger' : (row[:cumulative_diff] > 0 ? 'text-primary' : 'text-success') %> fw-semibold">
-                  <%= row[:cumulative_diff] >= 0 ? "+#{row[:cumulative_diff]}" : row[:cumulative_diff] %>時間
+                <td class="<%= row[:cumulative_valid] ? (row[:cumulative_diff] < 0 ? 'text-danger' : (row[:cumulative_diff] > 0 ? 'text-primary' : 'text-success')) : '' %> fw-semibold">
+                  <% if row[:cumulative_valid] %>
+                    <%= row[:cumulative_diff] >= 0 ? "+#{row[:cumulative_diff]}" : row[:cumulative_diff] %><%= row[:unit] %>
+                  <% else %>
+                    －
+                  <% end %>
                 </td>
               </tr>
             <% end %>
@@ -145,11 +149,15 @@
           <tfoot class="table-light fw-bold">
             <tr>
               <td class="ps-3 text-start" colspan="3">年度合計（実績が確定した月のみ）</td>
-              <td><%= @summary.select { |r| r[:confirmed] }.sum { |r| r[:used_hours] }.round(2) %>時間</td>
-              <td><%= @summary.select { |r| r[:confirmed] }.sum { |r| r[:city_hall_hours] }.round(2) %>時間</td>
+              <td><%= @summary.select { |r| r[:confirmed] }.sum { |r| r[:used_value] }.round(2) %><%= @summary.first[:unit] %></td>
+              <td><%= @summary.select { |r| r[:confirmed] }.sum { |r| r[:city_hall_value] }.round(2) %><%= @summary.first[:unit] %></td>
               <td></td>
-              <td class="<%= @summary.last[:cumulative_diff] < 0 ? 'text-danger' : (@summary.last[:cumulative_diff] > 0 ? 'text-primary' : 'text-success') %>">
-                <%= @summary.last[:cumulative_diff] >= 0 ? "+#{@summary.last[:cumulative_diff]}" : @summary.last[:cumulative_diff] %>時間
+              <td class="<%= @summary.last[:cumulative_valid] ? (@summary.last[:cumulative_diff] < 0 ? 'text-danger' : (@summary.last[:cumulative_diff] > 0 ? 'text-primary' : 'text-success')) : '' %>">
+                <% if @summary.last[:cumulative_valid] %>
+                  <%= @summary.last[:cumulative_diff] >= 0 ? "+#{@summary.last[:cumulative_diff]}" : @summary.last[:cumulative_diff] %><%= @summary.first[:unit] %>
+                <% else %>
+                  －
+                <% end %>
               </td>
             </tr>
           </tfoot>
