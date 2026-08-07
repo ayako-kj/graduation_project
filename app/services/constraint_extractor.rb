@@ -124,10 +124,12 @@ class ConstraintExtractor
 
     staffs.map do |staff|
       is_regular = staff.employment_type.is_regular
-      monthly_target = unless is_regular
-        base_days = (@n_city_hall * staff.employment_type.city_hall_daily_hours / staff.effective_daily_work_hours).floor
-        calculate_hourly_monthly_target(staff, base_days, past_months, actual_data)
+      base_days = if is_regular
+        @n_city_hall
+      else
+        (@n_city_hall * staff.employment_type.city_hall_daily_hours / staff.effective_daily_work_hours).floor
       end
+      monthly_target = calculate_monthly_target(staff, base_days, past_months, actual_data)
 
       {
         name: staff.name,
@@ -162,29 +164,36 @@ class ConstraintExtractor
     { manual: manual_map, pitat: pitat_map, sg_months: sg_months }
   end
 
-  def calculate_hourly_monthly_target(staff, base_days, past_months, actual_data)
+  # 正規職員・会計年度任用職員共通の、過去月の累積誤差を今月の目標日数に
+  # 繰り越すための調整計算。1日あたりの勤務時間は雇用形態・職員ごとに異なる
+  # （正規職員=市役所と同一、会計年度任用職員=7.5h/市役所6.0h）ため、
+  # 誤差は一旦「時間」で積算し、最後に自分の1日あたり時間で日数に変換する。
+  def calculate_monthly_target(staff, base_days, past_months, actual_data)
     daily_hours = staff.effective_daily_work_hours
     city_hall_daily = staff.employment_type.city_hall_daily_hours
 
     cumulative_diff = 0.0
     past_months.each do |month|
-      n = WorkingDayCalculator.new(month, @all_holidays, closed_wdays: []).city_hall_days
-      target = (n * city_hall_daily / daily_hours).floor
-
       key = [staff.id, month.beginning_of_month]
       actual = if actual_data[:manual][key]
         actual_data[:manual][key].working_days
       elsif actual_data[:sg_months].include?(month.beginning_of_month)
         actual_data[:pitat][key] || 0
-      else
-        target
       end
 
+      # 実績未記録の月はfloor丸めの目標値を実績とみなすとベースラインに誤差が
+      # 蓄積するため、誤差計算の対象から除外する
+      next if actual.nil?
+
+      n = WorkingDayCalculator.new(month, @all_holidays, closed_wdays: []).city_hall_days
       cumulative_diff += actual * daily_hours - n * city_hall_daily
     end
 
-    extra = (-cumulative_diff / daily_hours).truncate.clamp(-2, 2)
-    base_days + extra
+    # 累計差は毎月0に近づけることを目標にする。1日単位でしかシフトを組めない
+    # ため、四捨五入で達成可能な範囲で最も0に近い日数にする（端数が残っても
+    # 日あたり勤務時間分＝正規職員1日・会計年度任用職員7.5時間以内に収まる）。
+    extra = (-cumulative_diff / daily_hours).round
+    [[base_days + extra, 0].max, @n_city_hall].min
   end
 
   def placement_rules_data
