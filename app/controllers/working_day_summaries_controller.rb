@@ -144,19 +144,29 @@ class WorkingDaySummariesController < ApplicationController
 
       cumulative_city_hall = cumulative_city_hall.round(2)
 
+      month_n = @n_by_month[@view_month]
+      month_city_hall = (month_n * city_hall_daily).round(2)
+      month_actual_info = actual_data_for(staff.id, @view_month)
+      month_confirmed = month_actual_info[:source] != "未入力"
+      month_actual_days = month_confirmed ? month_actual_info[:days] : nil
+      month_actual = month_confirmed ? (month_actual_days * daily_hours).round(2) : nil
+
+      base = { staff: staff, regular: regular,
+               month_n_days: month_n, month_city_hall: month_city_hall,
+               month_confirmed: month_confirmed,
+               month_actual_days: month_actual_days, month_actual: month_actual,
+               cumulative_n_days: cumulative_n_days,
+               cumulative_city_hall: cumulative_city_hall }
+
       if all_confirmed
-        { staff: staff, regular: regular, all_confirmed: true,
+        base.merge(all_confirmed: true,
           cumulative_actual_days: cumulative_actual_days,
           cumulative_actual: cumulative_actual.round(2),
-          cumulative_n_days: cumulative_n_days,
-          cumulative_city_hall: cumulative_city_hall,
-          cumulative_diff: (cumulative_actual - cumulative_city_hall).round(2) }
+          cumulative_diff: (cumulative_actual - cumulative_city_hall).round(2))
       else
-        { staff: staff, regular: regular, all_confirmed: false,
+        base.merge(all_confirmed: false,
           cumulative_actual_days: nil, cumulative_actual: nil,
-          cumulative_n_days: cumulative_n_days,
-          cumulative_city_hall: cumulative_city_hall,
-          cumulative_diff: nil }
+          cumulative_diff: nil)
       end
     end
   end
