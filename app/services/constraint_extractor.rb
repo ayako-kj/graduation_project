@@ -1,5 +1,4 @@
 class ConstraintExtractor
-
   def initialize(target_month, library)
     @target_month = target_month
     @library = library

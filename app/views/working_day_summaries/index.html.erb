@@ -171,7 +171,7 @@
       <%= f.hidden_field :fiscal_year, value: @fiscal_year %>
       <%= f.hidden_field :tab, value: "monthly" %>
       <div class="d-flex align-items-center gap-2">
-        <label class="form-label small fw-semibold mb-0">表示月（その月までの累計）：</label>
+        <label class="form-label small fw-semibold mb-0">表示月：</label>
         <%= f.select :view_month,
             options_for_select(@fiscal_months.map { |m| [m.strftime("%Y年%-m月"), m.strftime("%Y-%m")] }, @view_month.strftime("%Y-%m")),
             {},
@@ -182,10 +182,10 @@
 
     <div class="pitat-card p-3 mb-4 small text-muted">
       <i class="bi bi-info-circle me-1"></i>
-      <%= @view_month.strftime("%Y年%-m月") %>末時点の累計差を全職員で一覧表示します。
+      <%= @view_month.strftime("%Y年%-m月") %>単月の実績・基準と、年度開始から<%= @view_month.strftime("%Y年%-m月") %>末までの累計を全職員で一覧表示します。
       市役所基準は実績の入力有無にかかわらず、暦通りに毎月更新されます。
       正規職員は日数、会計年度任用職員は時間で比較します（1日あたりの勤務時間が市役所と異なるため）。
-      表示月までの間に勤務実績（シフト表の自動生成または手入力）が未入力の月が1つでもある場合、図書館実績・差は「－」と表示されます。
+      該当月の勤務実績が未入力の場合は該当月欄が、表示月までの間に未入力の月が1つでもある場合は累計欄・差欄が「－」と表示されます。
       Pitat導入前の実績は<%= link_to "勤務実績の手入力", workday_manual_entries_path, class: "text-muted" %>から入力できます。
     </div>
 
@@ -196,10 +196,11 @@
             <th class="ps-3 py-2 text-start">職員名</th>
             <th class="py-2">職種</th>
             <th class="py-2">雇用形態</th>
-            <th class="py-2">週勤務日数</th>
-            <th class="py-2">市役所基準</th>
-            <th class="py-2">図書館実績</th>
-            <th class="py-2">差</th>
+            <th class="py-2">市役所基準<br>（<%= @view_month.month %>月）</th>
+            <th class="py-2">図書館実績<br>（<%= @view_month.month %>月）</th>
+            <th class="py-2">市役所基準<br>（累計）</th>
+            <th class="py-2">図書館実績<br>（累計）</th>
+            <th class="py-2">差<br>（累計）</th>
           </tr>
         </thead>
         <tbody>
@@ -210,7 +211,24 @@
               <td class="ps-3 text-start fw-semibold"><%= row[:staff].name %></td>
               <td><%= row[:staff].staff_type.name %></td>
               <td><%= row[:staff].employment_type.name %></td>
-              <td><%= row[:staff].weekly_work_days %>日</td>
+              <td>
+                <% if row[:regular] %>
+                  <%= row[:month_n_days] %>日
+                <% else %>
+                  <%= row[:month_city_hall] %>時間
+                <% end %>
+              </td>
+              <td>
+                <% if row[:month_confirmed] %>
+                  <% if row[:regular] %>
+                    <%= row[:month_actual_days] %>日
+                  <% else %>
+                    <%= row[:month_actual] %>時間
+                  <% end %>
+                <% else %>
+                  －
+                <% end %>
+              </td>
               <td>
                 <% if row[:regular] %>
                   <%= row[:cumulative_n_days] %>日
@@ -220,7 +238,11 @@
               </td>
               <td>
                 <% if row[:all_confirmed] %>
-                  <%= row[:cumulative_actual_days] %>日（<%= row[:cumulative_actual] %>時間）
+                  <% if row[:regular] %>
+                    <%= row[:cumulative_actual_days] %>日
+                  <% else %>
+                    <%= row[:cumulative_actual] %>時間
+                  <% end %>
                 <% else %>
                   －
                 <% end %>
