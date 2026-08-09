@@ -3,7 +3,7 @@ class WorkingDaySummariesController < ApplicationController
 
 
   def index
-    @fiscal_year = params[:fiscal_year]&.to_i || current_fiscal_year
+    @fiscal_year = params[:fiscal_year]&.to_i || default_fiscal_year
     @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
     @active_tab = %w[staff duty].include?(params[:tab]) ? params[:tab] : "monthly"
 
@@ -21,7 +21,7 @@ class WorkingDaySummariesController < ApplicationController
     elsif @active_tab == "duty"
       build_duty_summary(months)
     else
-      default_month = months.select { |m| m <= Date.today }.last || months.first
+      default_month = default_view_month(months)
       raw_month = params[:view_month].presence || default_month.strftime("%Y-%m")
       @view_month = Date.parse("#{raw_month}-01")
       build_monthly_all_staff_summary(months)
@@ -30,9 +30,19 @@ class WorkingDaySummariesController < ApplicationController
 
   private
 
-  def current_fiscal_year
-    today = Date.today
-    today.month >= 4 ? today.year : today.year - 1
+  # 8月中に9月分の作業をするなど、当月中は翌月を基準に確認することが多いため
+  def next_month
+    Date.today.beginning_of_month.next_month
+  end
+
+  def default_fiscal_year
+    next_month.month >= 4 ? next_month.year : next_month.year - 1
+  end
+
+  def default_view_month(months)
+    return next_month if months.include?(next_month)
+
+    months.select { |m| m <= Date.today }.last || months.first
   end
 
   def fiscal_year_months(year)

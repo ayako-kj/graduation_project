@@ -379,9 +379,9 @@ class ShiftsController < ApplicationController
     if params[:month].present?
       Date.parse("#{params[:month]}-01")
     else
-      Date.today.beginning_of_month
+      Date.today.beginning_of_month.next_month
     end
   rescue Date::Error
-    Date.today.beginning_of_month
+    Date.today.beginning_of_month.next_month
   end
 end
