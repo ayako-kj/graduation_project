@@ -354,7 +354,7 @@ class ShiftsController < ApplicationController
       staff_target_days, constraints[:assignment_constraints],
       constraints[:mobile_library_constraints]
     ).process
-    assigned_shifts = DutyAssigner.new(fixed_shifts, constraints, target_month).assign
+    assigned_shifts = DutyAssigner.new(fixed_shifts, constraints, target_month, current_library).assign
     saver = ShiftSaver.new(target_month, assigned_shifts, current_library)
     saved = saver.save
 

@@ -1,10 +1,11 @@
 class DutyAssigner
   EARLY_STAFF_TYPES = %w[専門司書 司書].freeze
 
-  def initialize(parsed_shifts, constraints, target_month)
+  def initialize(parsed_shifts, constraints, target_month, library)
     @shifts = parsed_shifts
     @constraints = constraints
     @target_month = target_month
+    @library = library
     @dc = constraints[:duty_constraints] || {}
   end
 
@@ -21,12 +22,12 @@ class DutyAssigner
     eligible = eligible_names_non_regular(EARLY_STAFF_TYPES)
     return if eligible.empty?
 
-    counts = historical_counts(eligible, :is_early)
+    counts = historical_counts(eligible, :is_early, :early_count)
     (@dc[:early_shift_dates] || []).each do |date|
       working = working_eligible(eligible, date)
       next if working.empty?
 
-      assignee = working.min_by { |name| counts[name] }
+      assignee = working.shuffle.min_by { |name| counts[name] }
       set_field(assignee, date, :is_early, true)
       counts[assignee] += 1
     end
@@ -36,12 +37,12 @@ class DutyAssigner
     eligible = eligible_names_regular(%w[司書])
     return if eligible.empty?
 
-    counts = historical_counts(eligible, :is_post_duty)
+    counts = historical_counts(eligible, :is_post_duty, :post_duty_count)
     (@dc[:post_duty_dates] || []).each do |date|
       working = working_eligible(eligible, date)
       next if working.empty?
 
-      assignee = working.min_by { |name| counts[name] }
+      assignee = working.shuffle.min_by { |name| counts[name] }
       set_field(assignee, date, :is_post_duty, true)
       counts[assignee] += 1
     end
@@ -51,12 +52,12 @@ class DutyAssigner
     eligible = eligible_names_regular(%w[司書])
     return if eligible.empty?
 
-    counts = historical_counts(eligible, :is_holiday_post_duty)
+    counts = historical_counts(eligible, :is_holiday_post_duty, :holiday_post_duty_count)
     (@dc[:holiday_post_duty_dates] || {}).each_key do |date|
       # 連続勤務違反を引き起こさない人を優先して選ぶ
       safe = eligible.reject { |name| would_cause_consecutive_violation?(name, date) }
       candidates = safe.any? ? safe : eligible
-      assignee = candidates.min_by { |name| counts[name] }
+      assignee = candidates.shuffle.min_by { |name| counts[name] }
       set_field(assignee, date, :is_holiday_post_duty, true)
       set_field(assignee, date, :is_working, true)
       counts[assignee] += 1
@@ -80,16 +81,23 @@ class DutyAssigner
            .map { |s| s[:staff_name] }
   end
 
-  def historical_counts(staff_names, duty_field)
+  # Pitat導入前の実績（WorkdayManualEntry）を含めないと、既に偏った実績のある
+  # 職員を「実績0人」と誤認して割り当ててしまい、偏りを助長するため合算する
+  def historical_counts(staff_names, duty_field, manual_field)
     counts = Hash.new(0)
     staff_names.each do |name|
-      staff = Staff.find_by(name: name)
+      staff = @library.staffs.find_by(name: name)
       next unless staff
 
-      counts[name] = Shift.joins(:shift_group)
-                          .where(staff: staff, duty_field => true)
-                          .where("shift_groups.target_month < ?", @target_month.beginning_of_month)
-                          .count
+      auto_count = Shift.joins(:shift_group)
+                        .where(staff: staff, duty_field => true)
+                        .where("shift_groups.target_month < ?", @target_month.beginning_of_month)
+                        .count
+      manual_count = WorkdayManualEntry
+                        .where(staff: staff)
+                        .where("year_month < ?", @target_month.beginning_of_month)
+                        .sum(manual_field)
+      counts[name] = auto_count + manual_count
     end
     counts
   end
