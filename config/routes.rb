@@ -51,6 +51,11 @@ Rails.application.routes.draw do
   resources :placement_rules
   resources :special_dates
   resources :temporary_closed_dates
+  resources :input_deadlines, only: [:index] do
+    collection do
+      post :save
+    end
+  end
   resources :leave_requests
   resources :assignments
   resources :mobile_libraries do

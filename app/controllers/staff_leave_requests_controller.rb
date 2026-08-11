@@ -13,6 +13,8 @@ class StaffLeaveRequestsController < ApplicationController
     @closed_days = ClosedDayCalculator.new(@target_month, holidays,
                      closed_wdays: library.closed_wdays_array, extra_closed_dates: extra).closed_days_with_labels
 
+    @input_deadline = library.input_deadlines.find_by(target_month: @target_month.beginning_of_month)
+
     @existing_leaves = LeaveRequest
       .where(staff: @current_staff, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .each_with_object({}) { |lr, h| h[lr.date] = lr.reason.presence || "公休" }

@@ -17,6 +17,12 @@
         <i class="bi bi-door-closed me-1"></i>臨時休館日
       <% end %>
 
+      <%# 入力締め切り日設定ボタン %>
+      <%= link_to input_deadlines_path(month: @target_month.strftime("%Y-%m")),
+          class: "btn btn-outline-secondary rounded-pill px-3 fw-semibold" do %>
+        <i class="bi bi-clock-history me-1"></i>入力締め切り日
+      <% end %>
+
       <%# シフト生成ボタン %>
       <%= button_to "AIでシフトを生成する",
           generate_shifts_path(month: @target_month.strftime("%Y-%m")),

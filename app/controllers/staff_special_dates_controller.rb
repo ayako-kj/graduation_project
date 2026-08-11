@@ -10,6 +10,7 @@ class StaffSpecialDatesController < ApplicationController
                        .includes(:created_by_staff, :designated_staffs)
                        .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                        .order(:date)
+    @input_deadline = @current_staff.library.input_deadlines.find_by(target_month: @target_month.beginning_of_month)
     load_form_data
   end
 
@@ -28,6 +29,7 @@ class StaffSpecialDatesController < ApplicationController
                          .includes(:created_by_staff, :designated_staffs)
                          .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                          .order(:date)
+      @input_deadline = @current_staff.library.input_deadlines.find_by(target_month: @target_month.beginning_of_month)
       load_form_data
       render :index, status: :unprocessable_entity
     end
