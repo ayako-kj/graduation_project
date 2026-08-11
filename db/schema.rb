@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_11_042132) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_11_043944) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -108,6 +108,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_11_042132) do
     t.datetime "updated_at", null: false
     t.index ["mobile_library_route_id"], name: "idx_on_mobile_library_route_id_e4b84dc899"
     t.index ["staff_id"], name: "index_mobile_library_staff_assignments_on_staff_id"
+  end
+
+  create_table "monthly_submissions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "leave_submitted_at"
+    t.datetime "schedule_submitted_at"
+    t.bigint "staff_id", null: false
+    t.date "target_month", null: false
+    t.datetime "updated_at", null: false
+    t.index ["staff_id", "target_month"], name: "index_monthly_submissions_on_staff_id_and_target_month", unique: true
+    t.index ["staff_id"], name: "index_monthly_submissions_on_staff_id"
   end
 
   create_table "placement_rules", force: :cascade do |t|
@@ -247,6 +258,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_11_042132) do
   add_foreign_key "mobile_library_routes", "mobile_libraries"
   add_foreign_key "mobile_library_staff_assignments", "mobile_library_routes"
   add_foreign_key "mobile_library_staff_assignments", "staffs"
+  add_foreign_key "monthly_submissions", "staffs"
   add_foreign_key "placement_rules", "employment_types"
   add_foreign_key "placement_rules", "libraries"
   add_foreign_key "placement_rules", "staff_types"
