@@ -32,6 +32,15 @@
     <% end %>
   </div>
 
+  <% if @input_deadline&.deadline_on %>
+    <% overdue = Date.today > @input_deadline.deadline_on %>
+    <div class="pitat-card p-3 mb-3 fs-5 text-center fw-semibold <%= overdue ? 'text-danger' : 'text-dark' %>">
+      <i class="bi bi-alarm me-1"></i>
+      入力締め切り：<%= @input_deadline.deadline_on.strftime("%Y年%-m月%-d日（#{%w[日 月 火 水 木 金 土][@input_deadline.deadline_on.wday]}）") %>
+      <% if overdue %>（締め切りを過ぎています）<% end %>
+    </div>
+  <% end %>
+
   <div class="pitat-card p-3 mb-3 small text-muted">
     <i class="bi bi-info-circle me-1"></i>
     休暇の種別を選んでから日付をタップしてください。もう一度タップすると解除できます。休館日は選択できません。
