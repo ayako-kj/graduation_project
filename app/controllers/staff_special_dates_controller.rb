@@ -11,6 +11,7 @@ class StaffSpecialDatesController < ApplicationController
                        .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                        .order(:date)
     @input_deadline = @current_staff.library.input_deadlines.find_by(target_month: @target_month.beginning_of_month)
+    @submission = MonthlySubmission.find_by(staff: @current_staff, target_month: @target_month.beginning_of_month)
     load_form_data
   end
 
@@ -21,6 +22,7 @@ class StaffSpecialDatesController < ApplicationController
 
     if @special_date.save
       sync_designated_staffs
+      reset_schedule_submission!(@special_date.date)
       redirect_to staff_special_dates_path(token: params[:token], month: params[:month]),
                   notice: "スケジュールを登録しました。"
     else
@@ -30,6 +32,7 @@ class StaffSpecialDatesController < ApplicationController
                          .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                          .order(:date)
       @input_deadline = @current_staff.library.input_deadlines.find_by(target_month: @target_month.beginning_of_month)
+      @submission = MonthlySubmission.find_by(staff: @current_staff, target_month: @target_month.beginning_of_month)
       load_form_data
       render :index, status: :unprocessable_entity
     end
@@ -43,6 +46,7 @@ class StaffSpecialDatesController < ApplicationController
   def update
     if @special_date.update(special_date_params)
       sync_designated_staffs
+      reset_schedule_submission!(@special_date.date)
       redirect_to staff_special_dates_path(token: params[:token], month: params[:month]),
                   notice: "スケジュールを更新しました。"
     else
@@ -53,12 +57,34 @@ class StaffSpecialDatesController < ApplicationController
   end
 
   def destroy
+    date = @special_date.date
     @special_date.destroy
+    reset_schedule_submission!(date)
     redirect_to staff_special_dates_path(token: params[:token], month: params[:month]),
                 notice: "スケジュールを削除しました。"
   end
 
+  def complete
+    @target_month = parse_target_month
+    submission = MonthlySubmission.find_or_initialize_by(staff: @current_staff, target_month: @target_month)
+    submission.schedule_submitted_at = Time.current
+    submission.save!
+
+    has_entries = @current_staff.library.special_dates.where(
+      date: @target_month.beginning_of_month..@target_month.end_of_month,
+      created_by_staff_id: @current_staff.id
+    ).exists?
+
+    redirect_to staff_special_dates_path(token: params[:token], month: @target_month.strftime("%Y-%m")),
+                notice: has_entries ? "スケジュール登録が完了しました。" : "登録するスケジュールがありません。"
+  end
+
   private
+
+  def reset_schedule_submission!(date)
+    MonthlySubmission.find_by(staff: @current_staff, target_month: date.beginning_of_month)
+                      &.update(schedule_submitted_at: nil)
+  end
 
   def authenticate_staff_token!
     @current_staff = Staff.find_by(access_token: params[:token])

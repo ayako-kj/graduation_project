@@ -39,7 +39,7 @@
     </div>
   <% end %>
 
-  <div class="pitat-card p-3">
+  <div class="pitat-card p-3 mb-4">
     <%= form_with url: save_input_deadlines_path(month: @target_month.strftime("%Y-%m")), method: :post do |f| %>
       <div class="mb-4">
         <label class="form-label small fw-semibold mb-1">入力締め切り日</label>
@@ -48,5 +48,43 @@
       </div>
       <%= f.submit "保存する", class: "btn btn-pitat btn-sm rounded-pill px-4 fw-semibold" %>
     <% end %>
+  </div>
+
+  <%# 職員ごとの入力状況 %>
+  <h2 class="fs-6 fw-bold mb-2">職員の入力状況</h2>
+  <div class="pitat-card p-0 overflow-hidden">
+    <table class="table table-hover mb-0 small align-middle">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3 py-2 text-muted fw-semibold">職員</th>
+          <th class="py-2 text-muted fw-semibold">希望休</th>
+          <th class="py-2 pe-3 text-muted fw-semibold">スケジュール</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @staffs.each do |staff| %>
+          <% submission = @submissions[staff.id] %>
+          <tr>
+            <td class="ps-3 py-2 fw-semibold">
+              <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span>
+            </td>
+            <td class="py-2">
+              <% if submission&.leave_submitted_at %>
+                <span class="badge rounded-pill text-bg-success">入力済み</span>
+              <% else %>
+                <span class="badge rounded-pill text-bg-secondary">未入力</span>
+              <% end %>
+            </td>
+            <td class="py-2 pe-3">
+              <% if submission&.schedule_submitted_at %>
+                <span class="badge rounded-pill text-bg-success">入力済み</span>
+              <% else %>
+                <span class="badge rounded-pill text-bg-secondary">未入力</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
   </div>
 </div>

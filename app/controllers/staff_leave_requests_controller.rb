@@ -14,6 +14,7 @@ class StaffLeaveRequestsController < ApplicationController
                      closed_wdays: library.closed_wdays_array, extra_closed_dates: extra).closed_days_with_labels
 
     @input_deadline = library.input_deadlines.find_by(target_month: @target_month.beginning_of_month)
+    @submission = MonthlySubmission.find_by(staff: @current_staff, target_month: @target_month.beginning_of_month)
 
     @existing_leaves = LeaveRequest
       .where(staff: @current_staff, date: @target_month.beginning_of_month..@target_month.end_of_month)
@@ -35,6 +36,10 @@ class StaffLeaveRequestsController < ApplicationController
       leave_type = "公休" unless LEAVE_TYPES.include?(leave_type)
       LeaveRequest.create!(staff: @current_staff, date: date, reason: leave_type)
     end
+
+    submission = MonthlySubmission.find_or_initialize_by(staff: @current_staff, target_month: @target_month.beginning_of_month)
+    submission.leave_submitted_at = Time.current
+    submission.save!
 
     redirect_to staff_leave_input_path(token: params[:token], month: @target_month.strftime("%Y-%m")),
                 notice: "#{@target_month.strftime('%Y年%-m月')}の希望休を保存しました。"

@@ -11,6 +11,7 @@ class Staff < ApplicationRecord
   has_many :staff_assignments, dependent: :destroy
   has_many :assignments, through: :staff_assignments
   has_many :mobile_library_staff_assignments, dependent: :destroy
+  has_many :monthly_submissions, dependent: :destroy
 
   validates :name, presence: true
 

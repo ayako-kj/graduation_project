@@ -23,7 +23,7 @@
 
   <% if @input_deadline&.deadline_on %>
     <% overdue = Date.today > @input_deadline.deadline_on %>
-    <div class="pitat-card p-3 mb-3 fs-5 text-center fw-semibold <%= overdue ? 'text-danger' : 'text-dark' %>">
+    <div class="pitat-card p-3 mb-3 fs-6 text-center fw-semibold <%= overdue ? 'text-danger' : 'text-dark' %>">
       <i class="bi bi-alarm me-1"></i>
       入力締め切り：<%= @input_deadline.deadline_on.strftime("%Y年%-m月%-d日（#{%w[日 月 火 水 木 金 土][@input_deadline.deadline_on.wday]}）") %>
       <% if overdue %>（締め切りを過ぎています）<% end %>
@@ -34,6 +34,22 @@
     <i class="bi bi-info-circle me-1"></i>
     出張・研修・定例会議など、シフトに影響する予定を登録してください。
     一覧には全職員の登録が表示されます。自分が登録したスケジュールのみ編集・削除できます。
+  </div>
+
+  <%# 入力完了ステータス %>
+  <div class="pitat-card p-3 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="small">
+      <% if @submission&.schedule_submitted_at %>
+        <span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>入力完了済み</span>
+        <span class="text-muted ms-1">（<%= @submission.schedule_submitted_at.strftime("%-m/%-d %H:%M") %> 時点）</span>
+      <% else %>
+        <span class="text-muted"><i class="bi bi-exclamation-circle me-1"></i>まだ入力完了の確認をしていません</span>
+      <% end %>
+    </div>
+    <%= button_to "この月の入力を完了にする",
+        complete_staff_special_dates_path(token: params[:token], month: @target_month.strftime("%Y-%m")),
+        method: :post,
+        class: "btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold" %>
   </div>
 
   <%# エラー表示 %>
