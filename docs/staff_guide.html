@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>シフト入力システム 使い方ガイド</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "メイリオ", sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+    }
+
+    /* ===== スライド共通 ===== */
+    .slide {
+      width: 297mm;
+      min-height: 210mm;
+      background: white;
+      margin: 16px auto;
+      padding: 0;
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
+      page-break-after: always;
+      break-after: page;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== ヘッダーバー ===== */
+    .slide-header {
+      background: #2d6a4f;
+      color: white;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .slide-header .icon {
+      font-size: 1.6rem;
+    }
+    .slide-header h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+    }
+    .slide-header .sub {
+      font-size: 0.85rem;
+      opacity: .85;
+      margin-left: auto;
+    }
+
+    /* ===== コンテンツ ===== */
+    .slide-body {
+      padding: 24px 36px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ===== タイトルスライド ===== */
+    .slide-title {
+      background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 60%, #40916c 100%);
+      color: white;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 48px;
+      gap: 20px;
+    }
+    .slide-title .app-name {
+      font-size: 3rem;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .slide-title .title-main {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+    .slide-title .title-sub {
+      font-size: 1rem;
+      opacity: .85;
+      margin-top: 4px;
+    }
+    .slide-title .notice-box {
+      background: rgba(255,255,255,.15);
+      border: 2px solid rgba(255,255,255,.4);
+      border-radius: 12px;
+      padding: 16px 32px;
+      margin-top: 16px;
+      font-size: 1rem;
+      line-height: 1.8;
+    }
+
+    /* ===== セクション区切り ===== */
+    .slide-section {
+      background: linear-gradient(135deg, #1b4332, #40916c);
+      color: white;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 48px;
+    }
+    .slide-section .section-num {
+      font-size: 4rem;
+      font-weight: 900;
+      opacity: .3;
+      line-height: 1;
+    }
+    .slide-section .section-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-top: -8px;
+    }
+    .slide-section .section-desc {
+      font-size: 1.1rem;
+      opacity: .85;
+      margin-top: 12px;
+    }
+
+    /* ===== スクリーンショット枠 ===== */
+    .screenshot-box {
+      border: 2.5px dashed #40916c;
+      border-radius: 10px;
+      background: #f0faf5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #40916c;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 12px;
+      gap: 6px;
+    }
+    .screenshot-box .ss-icon { font-size: 2rem; opacity: .5; }
+    .screenshot-box .ss-label { font-weight: 700; font-size: 0.9rem; }
+    .screenshot-box .ss-desc { font-size: 0.78rem; opacity: .75; }
+
+    /* ===== 2カラムレイアウト ===== */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      flex: 1;
+    }
+    .three-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      flex: 1;
+    }
+
+    /* ===== ステップカード ===== */
+    .step-card {
+      background: #f8fffe;
+      border: 1.5px solid #b7e4c7;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .step-num {
+      background: #2d6a4f;
+      color: white;
+      font-weight: 900;
+      font-size: 1.1rem;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-content h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1b4332;
+      margin-bottom: 4px;
+    }
+    .step-content p {
+      font-size: 0.82rem;
+      color: #444;
+      line-height: 1.6;
+    }
+
+    /* ===== ポイントボックス ===== */
+    .point-box {
+      background: #fff9c4;
+      border-left: 5px solid #f6c90e;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      line-height: 1.7;
+    }
+    .point-box strong { color: #7a5000; }
+
+    .notice-red {
+      background: #fff0f0;
+      border-left: 5px solid #e53e3e;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      color: #742a2a;
+    }
+    .notice-green {
+      background: #f0faf5;
+      border-left: 5px solid #2d6a4f;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      color: #1b4332;
+    }
+
+    /* ===== まとめ比較カード ===== */
+    .compare-card {
+      border: 2px solid #b7e4c7;
+      border-radius: 12px;
+      overflow: hidden;
+      flex: 1;
+    }
+    .compare-card .card-head {
+      background: #2d6a4f;
+      color: white;
+      text-align: center;
+      padding: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .compare-card .card-body {
+      padding: 14px 16px;
+      font-size: 0.83rem;
+      line-height: 1.8;
+      color: #333;
+    }
+    .compare-card .card-body li {
+      margin-left: 16px;
+    }
+
+    /* ===== ページ番号 ===== */
+    .page-num {
+      position: absolute;
+      bottom: 10px;
+      right: 20px;
+      font-size: 0.72rem;
+      color: #aaa;
+    }
+
+    /* ===== 印刷設定 ===== */
+    @media print {
+      body { background: white; }
+      .slide {
+        margin: 0;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+      }
+      .no-print { display: none; }
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 印刷ボタン（印刷時は非表示） -->
+<div class="no-print" style="text-align:center; padding: 16px; background:#2d6a4f;">
+  <button onclick="window.print()" style="background:white; color:#2d6a4f; border:none; padding:10px 28px; border-radius:20px; font-size:1rem; font-weight:700; cursor:pointer;">
+    🖨️ 印刷する（PDF保存）
+  </button>
+  <span style="color:white; margin-left:16px; font-size:0.85rem;">※ 印刷時はA4横向きを推奨します</span>
+</div>
+
+
+<!-- ===================== -->
+<!-- スライド1: タイトル   -->
+<!-- ===================== -->
+<div class="slide slide-title">
+  <div class="app-name">Pitat</div>
+  <div class="title-main">シフト入力システム 使い方ガイド</div>
+  <div class="title-sub">職員向け操作説明資料</div>
+  <div class="notice-box">
+    このシステムでは、スマートフォンから<br>
+    <strong>① スケジュールの入力</strong>　と　<strong>② 希望休の入力</strong><br>
+    の2つをお願いします。ログインは不要です。
+  </div>
+</div>
+
+
+<!-- ===================== -->
+<!-- スライド2: 全体の流れ -->
+<!-- ===================== -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="icon">📋</span>
+    <h2>職員の方にお願いすること</h2>
+  </div>
+  <div class="slide-body">
+    <div class="two-col" style="gap:24px; align-items:stretch;">
+      <div class="compare-card">
+        <div class="card-head">① スケジュールの入力</div>
+        <div class="card-body">
+          <ul>
+            <li>会議・行事などの<strong>スケジュール</strong>について、入力します</li>
+            <li>（例）児童会議、YA会議、あおばな号巡回スケジュールなど</li>
+          </ul>
+          <div style="margin-top:12px;" class="notice-green">
+            📌 わかくさ号の巡回スケージュールの入力は不要です。<br>毎月ご確認をお願いします。
+          </div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="card-head">② 希望休の入力</div>
+        <div class="card-body">
+          <ul>
+            <li>翌月の<strong>休みを希望する日</strong>を入力します</li>
+            <li>休みたい日を選んで送信してください</li>
+          </ul>
+          <div style="margin-top:12px;" class="notice-green">
+            📌 締め切りまでに入力してください。<br>期日は館長よりお知らせします。
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="point-box">
+      <strong>📲 入力方法：</strong>　配布した用紙に印刷された<strong>2次元コード</strong>をスマートフォンで読み取るだけ！<br>
+      ログイン・アカウント登録は一切不要です。
+    </div>
+  </div>
+  <div class="page-num">2</div>
+</div>
+
+
+<!-- ========================== -->
+<!-- スライド3: セクション①    -->
+<!-- ========================== -->
+<div class="slide slide-section">
+  <div class="section-num">①</div>
+  <div class="section-title">スケジュールの入力</div>
+  <div class="section-desc">会議・行事などを登録してください</div>
+</div>
+
+
+<!-- ============================ -->
+<!-- スライド4: 特定日 QRコード   -->
+<!-- ============================ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="icon">📲</span>
+    <h2>① スケジュールの入力　―　STEP 1：2次元コードを読み取る</h2>
+  </div>
+  <div class="slide-body">
+    <div class="two-col" style="align-items:center;">
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>配布された用紙を用意する</h3>
+            <p>配布された用紙に、あなた専用の2次元コードが2つ印刷されています。<br>
+            <strong>左側の「スケジュール入力用」</strong>を使います。</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>スマートフォンのカメラで読み取る</h3>
+            <p>カメラアプリを起動し、2次元コードにかざすとリンクが表示されます。<br>
+            タップして開いてください。</p>
+          </div>
+        </div>
+        <div class="point-box">
+          <strong>💡 ヒント：</strong>iPhoneは標準カメラアプリ、Androidは標準カメラまたはGoogleレンズで読み取れます。
+        </div>
+      </div>
+      <div>
+        <div class="screenshot-box" style="height: 150px;">
+          <div class="ss-icon">/Users/ayako/Desktop/スクリーンショット 2026-07-25 18.54.13.png</div>
+          <div class="ss-label">【スクリーンショット挿入】</div>
+          <div class="ss-desc">配布用紙のイメージ<br>（スケジュール入力用の2次元コードを丸などで強調）</div>
+        </div>
+        <div style="margin-top:12px;" class="screenshot-box" style="height: 100px;">
+          <div class="ss-icon">📱</div>
+          <div class="ss-label">【スクリーンショット挿入】</div>
+          <div class="ss-desc">スマートフォンのカメラで<br>2次元コードを読み取っている画面</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-num">4</div>
+</div>
+
+
+<!-- ================================ -->
+<!-- スライド5: 特定日 入力画面の説明 -->
+<!-- ================================ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="icon">📝</span>
+    <h2>① 特定日の入力　―　STEP 2：画面の見方</h2>
+  </div>
+  <div class="slide-body">
+    <div class="two-col" style="align-items:start;">
+      <div class="screenshot-box" style="min-height: 160px; flex:1;">
+        <div class="ss-icon">🖼️</div>
+        <div class="ss-label">【スクリーンショット挿入】</div>
+        <div class="ss-desc">特定日入力画面の全体スクリーンショット<br>（スマートフォン表示）</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="notice-green">
+          <strong>① あなたの名前</strong><br>
+          画面の上部にあなたの名前が表示されています。他の人のURLを開いていないか確認してください。
+        </div>
+        <div class="notice-green">
+          <strong>② 特定日の一覧</strong><br>
+          あなたが担当している会議・行事の日程が一覧で表示されます。
+        </div>
+        <div class="notice-green">
+          <strong>③ 出勤できる・できない の選択欄</strong><br>
+          各日程に対して「出勤できる」「出勤できない」を選択する欄があります。
+        </div>
+        <div class="point-box">
+          <strong>⚠️ 注意：</strong>何も表示されていない場合、その月はあなたが担当する特定日がありません。入力は不要です。
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-num">5</div>
+</div>
+
+
+<!-- ============================ -->
+<!-- スライド6: 特定日 入力手順   -->
+<!-- ============================ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="icon">✅</span>
+    <h2>① 特定日の入力　―　STEP 3：入力して送信する</h2>
+  </div>
+  <div class="slide-body">
+    <div class="two-col" style="align-items:start;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>各日程を確認する</h3>
+            <p>表示されている会議・行事の日程をひとつずつ確認します。</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>出勤できる・できないを選ぶ</h3>
+            <p>各日程に対して、その日に出勤できるかどうかを選択してください。<br>
+            「出勤できない」を選んだ場合、シフト作成の参考にします。</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>「送信」ボタンを押す</h3>
+            <p>全日程の選択が終わったら、画面下部の「送信」ボタンを押してください。</p>
+          </div>
+        </div>
+        <div class="notice-red">
+          <strong>⚠️ 注意：</strong>入力内容はいつでも変更できます。再度2次元コードを読み取って修正してください。
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px; flex:1;">
+        <div class="screenshot-box" style="min-height:120px;">
+          <div class="ss-icon">🖼️</div>
+          <div class="ss-label">【スクリーンショット挿入】</div>
+          <div class="ss-desc">「出勤できる・できない」を選択している状態<br>の画面（送信ボタンも見えるとよい）</div>
+        </div>
+        <div class="screenshot-box" style="min-height:80px;">
+          <div class="ss-icon">🖼️</div>
+          <div class="ss-label">【スクリーンショット挿入】</div>
+          <div class="ss-desc">送信完了後の画面</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-num">6</div>
+</div>
+
+
+<!-- ========================== -->
+<!-- スライド7: セクション②    -->
+<!-- ========================== -->
+<div class="slide slide-section">
+  <div class="section-num">②</div>
+  <div class="section-title">希望休の入力</div>
+  <div class="section-desc">翌月の休みを希望する日を登録してください</div>
+</div>
+
+
+<!-- ============================ -->
+<!-- スライド8: 希望休 QRコード   -->
+<!-- ============================ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="icon">📲</span>
+    <h2>② 希望休の入力　―　STEP 1：2次元コードを読み取る</h2>
+  </div>
+  <div class="slide-body">
+    <div class="two-col" style="align-items:center;">
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>配布された用紙を用意する</h3>
+            <p>特定日と同じ用紙に、希望休入力用の2次元コードも印刷されています。<br>
+            <strong>右側の「希望休入力用」</strong>を使います。</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>スマートフォンのカメラで読み取る</h3>
+            <p>カメラアプリを起動し、希望休入力用の2次元コードにかざしてリンクを開いてください。</p>
+          </div>
+        </div>
+        <div class="point-box">
+          <strong>📌 毎月の作業：</strong>URLは変わりません。ブックマークに登録しておくと便利です。
+        </div>
+      </div>
+      <div>
+        <div class="screenshot-box" style="height:150px;">
+          <div class="ss-icon">🖼️</div>
+          <div class="ss-label">【スクリーンショット挿入】</div>
+          <div class="ss-desc">配布用紙のイメージ<br>（希望休入力用の2次元コードを強調）</div>
+        </div>
+        <div style="margin-top:12px;" class="screenshot-box" style="height:100px;">
+          <div class="ss-icon">📱</div>
+          <div class="ss-label">【スクリーンショット挿入】</div>
+          <div class="ss-desc">スマートフォンで2次元コードを<br>読み取っている様子</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-num">8</div>
+</div>
+
+
+<!-- ================================ -->
+<!-- スライド9: 希望休 入力画面の説明 -->
+<!-- ================================ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="icon">📝</span>
+    <h2>② 希望休の入力　―　STEP 2：画面の見方</h2>
+  </div>
+  <div class="slide-body">
+    <div class="two-col" style="align-items:start;">
+      <div class="screenshot-box" style="min-height:160px; flex:1;">
+        <div class="ss-icon">🖼️</div>
+        <div class="ss-label">【スクリーンショット挿入】</div>
+        <div class="ss-desc">希望休入力画面の全体スクリーンショット<br>（スマートフォン表示・月カレンダーや日付一覧）</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="notice-green">
+          <strong>① あなたの名前・対象月</strong><br>
+          画面上部に名前と入力対象の月が表示されます。
+        </div>
+        <div class="notice-green">
+          <strong>② 日付の一覧</strong><br>
+          翌月の日付が一覧で表示されます。休みを希望する日にチェックを入れてください。
+        </div>
+        <div class="notice-green">
+          <strong>③ 理由の入力欄（任意）</strong><br>
+          理由がある場合は入力できます。空欄でも構いません。
+        </div>
+        <div class="point-box">
+          <strong>💡 注意：</strong>希望休は必ずしも全て通るわけではありません。シフト作成の参考にします。
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-num">9</div>
+</div>
+
+
+<!-- ============================ -->
+<!-- スライド10: 希望休 入力手順  -->
+<!-- ============================ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="icon">✅</span>
+    <h2>② 希望休の入力　―　STEP 3：入力して送信する</h2>
+  </div>
+  <div class="slide-body">
+    <div class="two-col" style="align-items:start;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>休みを希望する日を選ぶ</h3>
+            <p>翌月の日付から、休みを希望する日にチェックを入れます。<br>
+            複数日選択できます。</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>理由を入力する（任意）</h3>
+            <p>冠婚葬祭など特別な理由がある場合は入力してください。<br>
+            空欄でも送信できます。</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>「送信」ボタンを押す</h3>
+            <p>選択が終わったら「送信」ボタンを押してください。<br>完了画面が表示されれば登録完了です。</p>
+          </div>
+        </div>
+        <div class="notice-red">
+          <strong>⚠️ 締め切りに注意：</strong>館長から案内された期日までに入力してください。期日を過ぎると反映できない場合があります。
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px; flex:1;">
+        <div class="screenshot-box" style="min-height:120px;">
+          <div class="ss-icon">🖼️</div>
+          <div class="ss-label">【スクリーンショット挿入】</div>
+          <div class="ss-desc">休みたい日を複数選択している状態の画面</div>
+        </div>
+        <div class="screenshot-box" style="min-height:80px;">
+          <div class="ss-icon">🖼️</div>
+          <div class="ss-label">【スクリーンショット挿入】</div>
+          <div class="ss-desc">送信完了後の画面</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-num">10</div>
+</div>
+
+
+<!-- ============================ -->
+<!-- スライド11: まとめ           -->
+<!-- ============================ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="icon">📌</span>
+    <h2>まとめ　―　毎月の流れ</h2>
+  </div>
+  <div class="slide-body">
+    <div class="three-col">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="background:#2d6a4f; color:white; text-align:center; padding:10px; border-radius:8px 8px 0 0; font-weight:700;">
+          STEP 1
+        </div>
+        <div style="border:2px solid #b7e4c7; border-radius:0 0 8px 8px; padding:14px; font-size:0.85rem; line-height:1.8; flex:1;">
+          📬 <strong>用紙を受け取る</strong><br>
+          館長から2次元コードが印刷された用紙を受け取ります。
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="background:#2d6a4f; color:white; text-align:center; padding:10px; border-radius:8px 8px 0 0; font-weight:700;">
+          STEP 2
+        </div>
+        <div style="border:2px solid #b7e4c7; border-radius:0 0 8px 8px; padding:14px; font-size:0.85rem; line-height:1.8; flex:1;">
+          📲 <strong>2次元コードを読み取る</strong><br>
+          特定日入力用・希望休入力用、それぞれのコードをスマートフォンで読み取ります。
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="background:#2d6a4f; color:white; text-align:center; padding:10px; border-radius:8px 8px 0 0; font-weight:700;">
+          STEP 3
+        </div>
+        <div style="border:2px solid #b7e4c7; border-radius:0 0 8px 8px; padding:14px; font-size:0.85rem; line-height:1.8; flex:1;">
+          ✅ <strong>入力して送信する</strong><br>
+          各画面で内容を選択・入力し、締め切りまでに送信してください。
+        </div>
+      </div>
+    </div>
+
+    <div class="point-box" style="margin-top:4px;">
+      <strong>❓ 困ったときは：</strong>　画面が開かない・入力方法がわからないときは、お気軽に館長または担当者にお声がけください。
+    </div>
+
+    <div style="text-align:center; margin-top:8px;">
+      <div class="screenshot-box" style="min-height:80px; max-width:500px; margin:0 auto;">
+        <div class="ss-icon">🖼️</div>
+        <div class="ss-label">【スクリーンショット挿入】</div>
+        <div class="ss-desc">実際の配布用紙のイメージ（両コードが並んでいる様子）</div>
+      </div>
+    </div>
+  </div>
+  <div class="page-num">11</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+
+  <!-- 背景 -->
+  <rect width="1200" height="630" fill="#F0F7F4"/>
+
+  <!-- 装飾：背景の丸 -->
+  <circle cx="1100" cy="100" r="220" fill="#C8E6D8" opacity="0.5"/>
+  <circle cx="80"   cy="560" r="160" fill="#B8DFD0" opacity="0.4"/>
+  <circle cx="600"  cy="700" r="200" fill="#D4EDE5" opacity="0.3"/>
+
+  <!-- ====== 左エリア ====== -->
+
+  <!-- アプリ名 -->
+  <text x="100" y="160" font-family="Georgia, 'Times New Roman', serif" font-size="96" font-weight="700" fill="#4A8C72">Pitat</text>
+
+  <!-- ふりがな -->
+  <text x="104" y="195" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="18" fill="#7AB89E" letter-spacing="4">ピ タ ッ ト</text>
+
+  <!-- 区切り -->
+  <rect x="104" y="214" width="80" height="3" rx="2" fill="#A8D5C2"/>
+
+  <!-- キャッチコピー -->
+  <text x="104" y="265" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="28" font-weight="700" fill="#3A6B55">公立図書館向け</text>
+  <text x="104" y="305" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="28" font-weight="700" fill="#3A6B55">AIシフト自動生成アプリ</text>
+
+  <!-- 説明文 -->
+  <text x="104" y="350" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="17" fill="#6A9C85">複雑なシフトルールをAIが考慮して</text>
+  <text x="104" y="378" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="17" fill="#6A9C85">最適なシフトをすばやく自動生成します。</text>
+
+  <!-- 機能タグ -->
+  <rect x="104" y="410" width="108" height="34" rx="17" fill="#A8D5C2"/>
+  <text x="158" y="432" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="14" font-weight="700" fill="#2D5A47" text-anchor="middle">AI生成</text>
+
+  <rect x="222" y="410" width="120" height="34" rx="17" fill="#FADADD"/>
+  <text x="282" y="432" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="14" font-weight="700" fill="#9B4A52" text-anchor="middle">希望休管理</text>
+
+  <rect x="352" y="410" width="120" height="34" rx="17" fill="#FDE68A"/>
+  <text x="412" y="432" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="14" font-weight="700" fill="#92400E" text-anchor="middle">Excel出力</text>
+
+  <rect x="482" y="410" width="136" height="34" rx="17" fill="#BFDBFE"/>
+  <text x="550" y="432" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="14" font-weight="700" fill="#1E40AF" text-anchor="middle">バリデーション</text>
+
+  <!-- 技術スタック -->
+  <text x="104" y="510" font-family="Georgia, 'Times New Roman', serif" font-size="14" fill="#8BBDAA">Ruby on Rails  ×  Google Gemini API</text>
+
+  <!-- 区切り縦線 -->
+  <rect x="685" y="60" width="2" height="510" rx="1" fill="#C8E6D8"/>
+
+  <!-- ====== 右エリア：シフト表 ====== -->
+
+  <!-- カード -->
+  <rect x="720" y="60" width="440" height="510" rx="20" fill="#FFFFFF"/>
+
+  <!-- カードヘッダー -->
+  <rect x="720" y="60" width="440" height="54" rx="20" fill="#A8D5C2"/>
+  <rect x="720" y="84" width="440" height="30" fill="#A8D5C2"/>
+  <text x="940" y="93" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="16" font-weight="700" fill="#2D5A47" text-anchor="middle">8月 シフト表</text>
+
+  <!-- 列ヘッダー行 -->
+  <rect x="720" y="114" width="440" height="30" fill="#E8F5EE"/>
+  <text x="748" y="134" font-family="Arial, sans-serif" font-size="12" fill="#4A8C72" font-weight="700">氏名</text>
+  <text x="820" y="134" font-family="Arial, sans-serif" font-size="12" fill="#555" text-anchor="middle">1</text>
+  <text x="856" y="134" font-family="Arial, sans-serif" font-size="12" fill="#555" text-anchor="middle">2</text>
+  <text x="892" y="134" font-family="Arial, sans-serif" font-size="12" fill="#6B9FD4" font-weight="700" text-anchor="middle">3</text>
+  <text x="928" y="134" font-family="Arial, sans-serif" font-size="12" fill="#D46B6B" font-weight="700" text-anchor="middle">4</text>
+  <text x="964" y="134" font-family="Arial, sans-serif" font-size="12" fill="#555" text-anchor="middle">5</text>
+  <text x="1000" y="134" font-family="Arial, sans-serif" font-size="12" fill="#555" text-anchor="middle">6</text>
+  <text x="1036" y="134" font-family="Arial, sans-serif" font-size="12" fill="#555" text-anchor="middle">7</text>
+  <text x="1072" y="134" font-family="Arial, sans-serif" font-size="12" fill="#6B9FD4" font-weight="700" text-anchor="middle">8</text>
+  <text x="1108" y="134" font-family="Arial, sans-serif" font-size="12" fill="#D46B6B" font-weight="700" text-anchor="middle">9</text>
+
+  <!-- 行1 -->
+  <rect x="720" y="144" width="440" height="36" fill="#FFFFFF"/>
+  <text x="748" y="167" font-family="Arial, sans-serif" font-size="12" fill="#333" font-weight="600">Aさん</text>
+  <text x="820" y="167" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <text x="856" y="167" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <rect x="874" y="147" width="36" height="28" rx="6" fill="#DBEAFE"/>
+  <text x="892" y="167" font-family="Arial, sans-serif" font-size="14" fill="#6B9FD4" font-weight="700" text-anchor="middle">○</text>
+  <rect x="910" y="147" width="36" height="28" rx="6" fill="#FEE2E2"/>
+  <text x="928" y="167" font-family="Arial, sans-serif" font-size="14" fill="#D46B6B" font-weight="700" text-anchor="middle">○</text>
+  <rect x="946" y="147" width="36" height="28" rx="6" fill="#FDE68A"/>
+  <text x="964" y="167" font-family="Arial, sans-serif" font-size="11" fill="#92400E" font-weight="700" text-anchor="middle">年休</text>
+  <text x="1000" y="167" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <text x="1036" y="167" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <rect x="1054" y="147" width="36" height="28" rx="6" fill="#DBEAFE"/>
+  <text x="1072" y="167" font-family="Arial, sans-serif" font-size="14" fill="#6B9FD4" font-weight="700" text-anchor="middle">○</text>
+  <rect x="1090" y="147" width="36" height="28" rx="6" fill="#FEE2E2"/>
+  <text x="1108" y="167" font-family="Arial, sans-serif" font-size="14" fill="#D46B6B" font-weight="700" text-anchor="middle">○</text>
+
+  <!-- 行2 -->
+  <rect x="720" y="180" width="440" height="36" fill="#F7FBFA"/>
+  <text x="748" y="203" font-family="Arial, sans-serif" font-size="12" fill="#333" font-weight="600">Bさん</text>
+  <rect x="802" y="183" width="36" height="28" rx="6" fill="#FDE68A"/>
+  <text x="820" y="203" font-family="Arial, sans-serif" font-size="11" fill="#92400E" font-weight="700" text-anchor="middle">公休</text>
+  <text x="856" y="203" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <rect x="874" y="183" width="36" height="28" rx="6" fill="#DBEAFE"/>
+  <text x="892" y="203" font-family="Arial, sans-serif" font-size="14" fill="#6B9FD4" font-weight="700" text-anchor="middle">○</text>
+  <rect x="910" y="183" width="36" height="28" rx="6" fill="#FEE2E2"/>
+  <text x="928" y="203" font-family="Arial, sans-serif" font-size="14" fill="#D46B6B" font-weight="700" text-anchor="middle">○</text>
+  <text x="964" y="203" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <rect x="982" y="183" width="36" height="28" rx="6" fill="#6EE7B7"/>
+  <text x="1000" y="203" font-family="Arial, sans-serif" font-size="14" fill="#065F46" font-weight="700" text-anchor="middle">○</text>
+  <text x="1036" y="203" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <rect x="1054" y="183" width="36" height="28" rx="6" fill="#DBEAFE"/>
+  <text x="1072" y="203" font-family="Arial, sans-serif" font-size="14" fill="#6B9FD4" font-weight="700" text-anchor="middle">○</text>
+  <text x="1108" y="203" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+
+  <!-- 行3 -->
+  <rect x="720" y="216" width="440" height="36" fill="#FFFFFF"/>
+  <text x="748" y="239" font-family="Arial, sans-serif" font-size="12" fill="#333" font-weight="600">Cさん</text>
+  <text x="820" y="239" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <text x="856" y="239" font-family="Arial, sans-serif" font-size="14" fill="#D97706" font-weight="700" text-anchor="middle">早</text>
+  <rect x="874" y="219" width="36" height="28" rx="6" fill="#DBEAFE"/>
+  <text x="892" y="239" font-family="Arial, sans-serif" font-size="14" fill="#6B9FD4" font-weight="700" text-anchor="middle">○</text>
+  <rect x="910" y="219" width="36" height="28" rx="6" fill="#E5E7EB"/>
+  <text x="928" y="239" font-family="Arial, sans-serif" font-size="11" fill="#9CA3AF" text-anchor="middle">閉</text>
+  <text x="964" y="239" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <text x="1000" y="239" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <rect x="1018" y="219" width="36" height="28" rx="6" fill="#F3F4F6"/>
+  <text x="1036" y="239" font-family="Arial, sans-serif" font-size="14" fill="#9CA3AF" text-anchor="middle">－</text>
+  <rect x="1054" y="219" width="36" height="28" rx="6" fill="#DBEAFE"/>
+  <text x="1072" y="239" font-family="Arial, sans-serif" font-size="14" fill="#6B9FD4" font-weight="700" text-anchor="middle">○</text>
+  <text x="1108" y="239" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+
+  <!-- 行4 -->
+  <rect x="720" y="252" width="440" height="36" fill="#F7FBFA"/>
+  <text x="748" y="275" font-family="Arial, sans-serif" font-size="12" fill="#333" font-weight="600">Dさん</text>
+  <text x="820" y="275" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <text x="856" y="275" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <rect x="874" y="255" width="36" height="28" rx="6" fill="#DBEAFE"/>
+  <text x="892" y="275" font-family="Arial, sans-serif" font-size="14" fill="#6B9FD4" font-weight="700" text-anchor="middle">○</text>
+  <rect x="910" y="255" width="36" height="28" rx="6" fill="#E5E7EB"/>
+  <text x="928" y="275" font-family="Arial, sans-serif" font-size="11" fill="#9CA3AF" text-anchor="middle">閉</text>
+  <rect x="946" y="255" width="36" height="28" rx="6" fill="#FDE68A"/>
+  <text x="964" y="275" font-family="Arial, sans-serif" font-size="11" fill="#92400E" font-weight="700" text-anchor="middle">夏休</text>
+  <rect x="982" y="255" width="36" height="28" rx="6" fill="#6EE7B7"/>
+  <text x="1000" y="275" font-family="Arial, sans-serif" font-size="14" fill="#065F46" font-weight="700" text-anchor="middle">○</text>
+  <text x="1036" y="275" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <rect x="1054" y="255" width="36" height="28" rx="6" fill="#DBEAFE"/>
+  <text x="1072" y="275" font-family="Arial, sans-serif" font-size="14" fill="#6B9FD4" font-weight="700" text-anchor="middle">○</text>
+  <text x="1108" y="275" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+
+  <!-- 行5 -->
+  <rect x="720" y="288" width="440" height="36" fill="#FFFFFF"/>
+  <text x="748" y="311" font-family="Arial, sans-serif" font-size="12" fill="#333" font-weight="600">Eさん</text>
+  <rect x="802" y="291" width="36" height="28" rx="6" fill="#FDE68A"/>
+  <text x="820" y="311" font-family="Arial, sans-serif" font-size="11" fill="#92400E" font-weight="700" text-anchor="middle">公休</text>
+  <text x="856" y="311" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <rect x="874" y="291" width="36" height="28" rx="6" fill="#DBEAFE"/>
+  <text x="892" y="311" font-family="Arial, sans-serif" font-size="14" fill="#6B9FD4" font-weight="700" text-anchor="middle">○</text>
+  <rect x="910" y="291" width="36" height="28" rx="6" fill="#E5E7EB"/>
+  <text x="928" y="311" font-family="Arial, sans-serif" font-size="11" fill="#9CA3AF" text-anchor="middle">閉</text>
+  <text x="964" y="311" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <text x="1000" y="311" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <text x="1036" y="311" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+  <rect x="1054" y="291" width="36" height="28" rx="6" fill="#DBEAFE"/>
+  <text x="1072" y="311" font-family="Arial, sans-serif" font-size="14" fill="#6B9FD4" font-weight="700" text-anchor="middle">○</text>
+  <text x="1108" y="311" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle">○</text>
+
+  <!-- 行6〜フェード -->
+  <rect x="720" y="324" width="440" height="36" fill="#F7FBFA" opacity="0.7"/>
+  <text x="748" y="347" font-family="Arial, sans-serif" font-size="12" fill="#333" font-weight="600" opacity="0.7">Fさん</text>
+  <text x="820" y="347" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle" opacity="0.7">○</text>
+  <text x="856" y="347" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle" opacity="0.7">○</text>
+  <text x="964" y="347" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle" opacity="0.7">○</text>
+  <text x="1000" y="347" font-family="Arial, sans-serif" font-size="14" fill="#D97706" font-weight="700" text-anchor="middle" opacity="0.7">早</text>
+  <text x="1036" y="347" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle" opacity="0.7">○</text>
+
+  <rect x="720" y="360" width="440" height="36" fill="#FFFFFF" opacity="0.4"/>
+  <text x="748" y="383" font-family="Arial, sans-serif" font-size="12" fill="#333" font-weight="600" opacity="0.4">Gさん</text>
+  <text x="820" y="383" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle" opacity="0.4">○</text>
+  <text x="856" y="383" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle" opacity="0.4">○</text>
+  <text x="1000" y="383" font-family="Arial, sans-serif" font-size="14" fill="#4A8C72" font-weight="700" text-anchor="middle" opacity="0.4">○</text>
+
+  <rect x="720" y="396" width="440" height="36" fill="#F7FBFA" opacity="0.15"/>
+  <text x="748" y="419" font-family="Arial, sans-serif" font-size="12" fill="#333" font-weight="600" opacity="0.15">Hさん</text>
+
+  <!-- 出勤人数行 -->
+  <rect x="720" y="480" width="440" height="36" fill="#C8E6D8"/>
+  <rect x="720" y="516" width="440" height="54" rx="0" fill="#C8E6D8"/>
+  <rect x="720" y="536" width="440" height="34" rx="20" fill="#C8E6D8"/>
+  <text x="748" y="503" font-family="'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif" font-size="12" fill="#2D5A47" font-weight="700">出勤人数</text>
+  <text x="820" y="503" font-family="Arial, sans-serif" font-size="13" fill="#2D5A47" font-weight="700" text-anchor="middle">12</text>
+  <text x="856" y="503" font-family="Arial, sans-serif" font-size="13" fill="#2D5A47" font-weight="700" text-anchor="middle">11</text>
+  <text x="892" y="503" font-family="Arial, sans-serif" font-size="13" fill="#2D5A47" font-weight="700" text-anchor="middle">13</text>
+  <text x="928" y="503" font-family="Arial, sans-serif" font-size="13" fill="#9CA3AF" font-weight="700" text-anchor="middle">－</text>
+  <text x="964" y="503" font-family="Arial, sans-serif" font-size="13" fill="#2D5A47" font-weight="700" text-anchor="middle">12</text>
+  <text x="1000" y="503" font-family="Arial, sans-serif" font-size="13" fill="#2D5A47" font-weight="700" text-anchor="middle">13</text>
+  <text x="1036" y="503" font-family="Arial, sans-serif" font-size="13" fill="#2D5A47" font-weight="700" text-anchor="middle">12</text>
+  <text x="1072" y="503" font-family="Arial, sans-serif" font-size="13" fill="#2D5A47" font-weight="700" text-anchor="middle">11</text>
+  <text x="1108" y="503" font-family="Arial, sans-serif" font-size="13" fill="#2D5A47" font-weight="700" text-anchor="middle">12</text>
+
+</svg>
