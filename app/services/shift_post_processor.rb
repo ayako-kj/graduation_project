@@ -34,6 +34,9 @@ class ShiftPostProcessor
       h[date] ||= []
       h[date].concat(ml[:staff_names])
     end
+    # DutyAssigner等、本処理の後段で確定する保護日（祝日ポスト当番など）を
+    # reconcile_weekend_consecutive! 実行前に register_protected_dates で追加する
+    @extra_protected_dates = Set.new
     @staff_info = build_staff_info
     @rules = build_rules
   end
@@ -58,6 +61,23 @@ class ShiftPostProcessor
     fix_target_days
     fix_excess_days
     @shifts
+  end
+
+  # DutyAssigner による祝日ポスト当番などの後段割当は本処理の後に実行されるため、
+  # その割当で新たに生じた土日連続出勤に対応するには process 完了後にこちらを呼ぶ。
+  # duty_protected_pairs: [[staff_name, date], ...]（当該日は保護日として扱う）
+  def reconcile_weekend_consecutive!(duty_protected_pairs = [])
+    register_protected_dates(duty_protected_pairs)
+    fix_weekend_consecutive
+    @shifts.group_by { |s| s[:date] }.each do |date, day_shifts|
+      next if @closed_days.key?(date)
+      fix_day(day_shifts)
+    end
+    @shifts
+  end
+
+  def register_protected_dates(pairs)
+    pairs.each { |staff_name, date| @extra_protected_dates << [staff_name, date] }
   end
 
   private
@@ -193,6 +213,7 @@ class ShiftPostProcessor
 
   def assignment_protected?(staff_name, date)
     return false if @leave_set.include?([staff_name, date])
+    return true if @extra_protected_dates.include?([staff_name, date])
     return true if @assignment_dates[date]&.include?(staff_name)
     return true if @designated_dates[date]&.include?(staff_name)
     return true if @mobile_dates[date]&.include?(staff_name)
