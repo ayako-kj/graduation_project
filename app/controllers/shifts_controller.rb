@@ -64,12 +64,14 @@ class ShiftsController < ApplicationController
 
     # 移動図書館マップ：date => Set of staff_id
     @mobile_library_map = {}
-    MobileLibrary.includes(mobile_library_routes: :staffs).each do |ml|
+    MobileLibrary.includes(mobile_library_routes: :staffs).where(library: current_library).each do |ml|
       ml.mobile_library_routes.each do |route|
+        next if route.staffs.empty?
         date = @dates.select { |d| d.wday == route.wday }[route.week_number - 1]
         next if date.nil? || @closed_days.key?(date)
         @mobile_library_map[date] ||= Set.new
         @mobile_library_map[date].merge(route.staffs.map(&:id))
+        (@special_date_labels[date] ||= []) << "#{ml.name}#{route.name}"
       end
     end
 
@@ -253,11 +255,16 @@ class ShiftsController < ApplicationController
         sd.designated_staffs.each { |s| @schedule_map[[s.id, sd.date]] = true } if sd.designated_staffs.any?
       end
     end
+    @mobile_library_items_for_export = []
     MobileLibrary.includes(mobile_library_routes: :staffs).where(library: current_library).each do |ml|
       ml.mobile_library_routes.each do |route|
+        next if route.staffs.empty?
         date = @dates.select { |d| d.wday == route.wday }[route.week_number - 1]
         next if date.nil? || @closed_days.key?(date)
         route.staffs.each { |s| @schedule_map[[s.id, date]] = true }
+        label = "#{ml.name}#{route.name}"
+        (@special_date_labels[date] ||= []) << label
+        @mobile_library_items_for_export << { date: date, name: label, staff_names: route.staffs.map(&:name) }
       end
     end
     current_library.assignments.includes(:staffs).where.not(meeting_wday: nil).each do |assignment|
