@@ -353,13 +353,20 @@ class ShiftsController < ApplicationController
     staff_target_days = constraints[:staffs].each_with_object({}) do |s, h|
       h[s[:name]] = s[:monthly_target_days] || constraints[:working_days][:regular]
     end
-    fixed_shifts = ShiftPostProcessor.new(
+    post_processor = ShiftPostProcessor.new(
       parsed[:shifts], constraints[:closed_days],
       constraints[:leave_requests], constraints[:special_dates],
       staff_target_days, constraints[:assignment_constraints],
       constraints[:mobile_library_constraints]
-    ).process
+    )
+    fixed_shifts = post_processor.process
     assigned_shifts = DutyAssigner.new(fixed_shifts, constraints, target_month, current_library).assign
+
+    # 祝日ポスト当番の割当（DutyAssigner）は土日連続チェックの後段で is_working を
+    # 強制するため、それにより新たに生じた土日連続出勤をここで最終調整する
+    holiday_duty_pairs = assigned_shifts.select { |s| s[:is_holiday_post_duty] }.map { |s| [s[:staff_name], s[:date]] }
+    assigned_shifts = post_processor.reconcile_weekend_consecutive!(holiday_duty_pairs)
+
     saver = ShiftSaver.new(target_month, assigned_shifts, current_library)
     saved = saver.save
 
