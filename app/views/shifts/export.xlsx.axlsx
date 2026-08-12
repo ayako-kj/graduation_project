@@ -34,6 +34,7 @@ event_blank_s = s.add_style base
 sd_sep_s   = s.add_style base
 sd_head_s  = s.add_style center.merge(bg_color: "C5D3F0", b: true, sz: 9)
 sd_date_s  = s.add_style left.merge(bg_color: "EFF6FF", b: true, sz: 9)
+sd_time_s  = s.add_style left.merge(sz: 9)
 sd_name_s  = s.add_style left.merge(sz: 9)
 sd_staff_s = s.add_style left.merge(sz: 9)
 
@@ -110,9 +111,10 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   right_sds   = date_groups[half_groups..].flatten
 
   sd_info = lambda do |sd|
-    return ["", "", ""] if sd.nil?
+    return ["", "", "", ""] if sd.nil?
     date_str  = "#{sd.date.strftime('%-m月%-d日')}（#{day_names[sd.date.wday]}）"
-    name_str  = [sd.time_range_label, sd.label.presence].compact_blank.join(" ")
+    time_str  = sd.time_range_label || ""
+    name_str  = sd.label.presence || ""
     staff_str = if sd.designated_staffs.any?
       sd.designated_staffs.map(&:name).join("・")
     elsif sd.target_group.present?
@@ -120,23 +122,23 @@ wb.add_worksheet(name: sheet_name) do |sheet|
     else
       ""
     end
-    [date_str, name_str, staff_str]
+    [date_str, time_str, name_str, staff_str]
   end
 
   # 右側セル＋スタイルを返す（type: :blank | :header | :data）
   sd_extra = lambda do |type, idx = nil|
     case type
     when :blank
-      [Array.new(7, ""), Array.new(7, sd_sep_s)]
+      [Array.new(9, ""), Array.new(9, sd_sep_s)]
     when :header
-      cells  = ["", "日付", "名称", "担当者", "日付", "名称", "担当者"]
-      styles = [sd_sep_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s]
+      cells  = ["", "日付", "時間", "名称", "担当者", "日付", "時間", "名称", "担当者"]
+      styles = [sd_sep_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s]
       [cells, styles]
     when :data
       l = left_sds[idx]
       r = right_sds[idx]
-      l_stls = l ? [sd_date_s, sd_name_s, sd_staff_s] : Array.new(3, sd_sep_s)
-      r_stls = r ? [sd_date_s, sd_name_s, sd_staff_s] : Array.new(3, sd_sep_s)
+      l_stls = l ? [sd_date_s, sd_time_s, sd_name_s, sd_staff_s] : Array.new(4, sd_sep_s)
+      r_stls = r ? [sd_date_s, sd_time_s, sd_name_s, sd_staff_s] : Array.new(4, sd_sep_s)
       cells  = [""] + sd_info.call(l) + sd_info.call(r)
       styles = [sd_sep_s] + l_stls + r_stls
       [cells, styles]
@@ -258,6 +260,6 @@ wb.add_worksheet(name: sheet_name) do |sheet|
 
   # --- 列幅 ---
   # A(区分)=5, B(職種)=10, C(氏名)=12, 日付列×n=3.8, 勤務日数=8
-  # 右側: 区切り=1, 前半日付=10, 名称=10, 担当者=11, 後半日付=10, 名称=10, 担当者=11
-  sheet.column_widths 5, 10, 12, *Array.new(@dates.size, 3.8), 8, 1, 10, 10, 11, 10, 10, 11
+  # 右側: 区切り=1, 前半(日付=10, 時間=11, 名称=10, 担当者=11), 後半(日付=10, 時間=11, 名称=10, 担当者=11)
+  sheet.column_widths 5, 10, 12, *Array.new(@dates.size, 3.8), 8, 1, 10, 11, 10, 11, 10, 11, 10, 11
 end
