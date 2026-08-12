@@ -45,7 +45,7 @@ class ShiftsController < ApplicationController
                .each do |sd|
       if sd.label.present?
         @special_date_labels[sd.date] ||= []
-        @special_date_labels[sd.date] << sd.label
+        @special_date_labels[sd.date] << [sd.time_range_label, sd.label].compact_blank.join(" ")
       end
       if sd.target_group == "全職員"
         @special_dates_map[sd.date] = :all
@@ -238,7 +238,7 @@ class ShiftsController < ApplicationController
       .order(:date)
     @special_dates_for_export.each do |sd|
       next if sd.label.blank?
-      (@special_date_labels[sd.date] ||= []) << sd.label
+      (@special_date_labels[sd.date] ||= []) << [sd.time_range_label, sd.label].compact_blank.join(" ")
     end
 
     # スケジュール・移動図書館・担当会議マップ: [staff_id, date] => true

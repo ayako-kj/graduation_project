@@ -120,7 +120,7 @@ class StaffSpecialDatesController < ApplicationController
   end
 
   def special_date_params
-    params.require(:special_date).permit(:date, :label, :target_group)
+    params.require(:special_date).permit(:date, :label, :target_group, :start_time, :end_time)
   end
 
   def parse_target_month

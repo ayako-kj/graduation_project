@@ -25,6 +25,17 @@
     <%= f.text_field :label, class: "form-control", placeholder: "例：全員会議日" %>
   </div>
 
+  <div class="mb-3">
+    <label class="form-label fw-semibold small d-block mb-1">
+      時間<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+    </label>
+    <div class="d-flex align-items-center gap-2">
+      <%= f.time_field :start_time, class: "form-control" %>
+      <span class="text-muted">〜</span>
+      <%= f.time_field :end_time, class: "form-control" %>
+    </div>
+  </div>
+
   <div class="mb-4">
     <label class="form-label fw-semibold small d-block mb-2">
       対象<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
@@ -59,6 +70,7 @@
         </div>
       <% end %>
 
+      <% checked_staff_ids = special_date.designated_staff_ids_input.presence&.map(&:to_i) || special_date.designated_staffs.map(&:id) %>
       <div class="border rounded-3 p-3" style="max-height: 200px; overflow-y: auto;">
         <% if @staffs.empty? %>
           <p class="text-muted small mb-0">職員が登録されていません</p>
@@ -66,7 +78,7 @@
           <% @staffs.each do |staff| %>
             <div class="form-check">
               <%= check_box_tag "special_date[designated_staff_ids][]", staff.id,
-                  special_date.designated_staffs.include?(staff),
+                  checked_staff_ids.include?(staff.id),
                   id: "staff_#{staff.id}", class: "form-check-input" %>
               <label class="form-check-label small" for="staff_<%= staff.id %>">
                 <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span>

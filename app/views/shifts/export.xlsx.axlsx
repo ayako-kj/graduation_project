@@ -112,7 +112,7 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   sd_info = lambda do |sd|
     return ["", "", ""] if sd.nil?
     date_str  = "#{sd.date.strftime('%-m月%-d日')}（#{day_names[sd.date.wday]}）"
-    name_str  = sd.label.presence || ""
+    name_str  = [sd.time_range_label, sd.label.presence].compact_blank.join(" ")
     staff_str = if sd.designated_staffs.any?
       sd.designated_staffs.map(&:name).join("・")
     elsif sd.target_group.present?
