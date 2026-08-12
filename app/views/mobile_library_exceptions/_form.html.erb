@@ -1,0 +1,64 @@
+<% if exception.errors.any? %>
+  <div class="alert alert-danger rounded-3 mb-4">
+    <p class="fw-semibold mb-2"><i class="bi bi-exclamation-circle me-1"></i>入力内容を確認してください</p>
+    <ul class="mb-0 ps-3">
+      <% exception.errors.full_messages.each do |msg| %>
+        <li class="small"><%= msg %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<p class="small text-muted mb-4">
+  通常の巡回日は「<%= route.schedule_label %>」です。特定の月だけ巡回日や担当者を変更したい場合に登録してください。
+</p>
+
+<%= form_with model: [mobile_library, route, exception] do |f| %>
+  <div class="mb-3">
+    <%= f.label :target_month, "対象月", class: "form-label fw-semibold small" %>
+    <span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    <%
+      month_options = (0..11).map do |i|
+        d = Date.today.beginning_of_month + i.months
+        [d.strftime("%Y年%-m月"), d.strftime("%Y-%m-%d")]
+      end
+      selected_month = exception.target_month&.strftime("%Y-%m-%d")
+    %>
+    <%= f.select :target_month,
+        options_for_select(month_options, selected_month),
+        { prompt: "選択してください" },
+        { class: "form-select" } %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :date, "巡回日を変更する場合", class: "form-label fw-semibold small" %>
+    <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+    <%= f.date_field :date, class: "form-control" %>
+    <div class="form-text text-muted">通常の巡回日（<%= route.schedule_label %>）から変更しない場合は空欄のままにしてください</div>
+  </div>
+
+  <div class="mb-4">
+    <label class="form-label fw-semibold small">担当者を変更する場合<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
+    <div class="border rounded-3 p-3" style="max-height: 200px; overflow-y: auto;">
+      <% if @staffs.empty? %>
+        <p class="text-muted small mb-0">職員が登録されていません</p>
+      <% else %>
+        <% @staffs.each do |staff| %>
+          <div class="form-check">
+            <%= check_box_tag "mobile_library_exception[staff_ids][]", staff.id,
+                exception.staffs.include?(staff),
+                id: "ex_staff_#{staff.id}", class: "form-check-input" %>
+            <label class="form-check-label small" for="ex_staff_<%= staff.id %>">
+              <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span>
+            </label>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+    <div class="form-text text-muted">
+      通常の担当者（<%= route.staffs.map(&:name).join("・").presence || "未設定" %>）を変更しない場合は選択しないでください
+    </div>
+  </div>
+
+  <%= f.submit exception.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>
+<% end %>

@@ -85,16 +85,14 @@ class ConstraintExtractor
   end
 
   def mobile_library_constraints_data
-    MobileLibrary.includes(mobile_library_routes: :staffs).where(library: @library).flat_map do |ml|
+    MobileLibrary.includes(mobile_library_routes: [:staffs, :mobile_library_exceptions]).where(library: @library).flat_map do |ml|
       ml.mobile_library_routes.filter_map do |route|
-        next if route.staffs.empty?
-        dates_of_wday = (@start_date..@end_date).select { |d| d.wday == route.wday }
-        date = dates_of_wday[route.week_number - 1]
-        next if date.nil? || @closed_days_with_labels.key?(date)
+        occurrence = route.occurrence_for(@target_month, closed_days: @closed_days_with_labels)
+        next if occurrence.nil?
         {
           route_name: "#{ml.name}#{route.name}",
-          staff_names: route.staffs.map(&:name),
-          date: date.strftime("%Y-%m-%d")
+          staff_names: occurrence.staffs.map(&:name),
+          date: occurrence.date.strftime("%Y-%m-%d")
         }
       end
     end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_12_060000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_13_020000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -89,6 +89,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_060000) do
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.index ["library_id"], name: "index_mobile_libraries_on_library_id"
+  end
+
+  create_table "mobile_library_exception_staffs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "mobile_library_exception_id", null: false
+    t.bigint "staff_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mobile_library_exception_id"], name: "idx_on_mobile_library_exception_id_ad08dacba4"
+    t.index ["staff_id"], name: "index_mobile_library_exception_staffs_on_staff_id"
+  end
+
+  create_table "mobile_library_exceptions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "date"
+    t.bigint "mobile_library_route_id", null: false
+    t.date "target_month", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mobile_library_route_id", "target_month"], name: "index_ml_exceptions_on_route_and_month", unique: true
+    t.index ["mobile_library_route_id"], name: "index_mobile_library_exceptions_on_mobile_library_route_id"
   end
 
   create_table "mobile_library_routes", force: :cascade do |t|
@@ -257,6 +276,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_060000) do
   add_foreign_key "input_deadlines", "libraries"
   add_foreign_key "leave_requests", "staffs"
   add_foreign_key "mobile_libraries", "libraries"
+  add_foreign_key "mobile_library_exception_staffs", "mobile_library_exceptions"
+  add_foreign_key "mobile_library_exception_staffs", "staffs"
+  add_foreign_key "mobile_library_exceptions", "mobile_library_routes"
   add_foreign_key "mobile_library_routes", "mobile_libraries"
   add_foreign_key "mobile_library_staff_assignments", "mobile_library_routes"
   add_foreign_key "mobile_library_staff_assignments", "staffs"

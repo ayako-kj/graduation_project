@@ -60,7 +60,9 @@ Rails.application.routes.draw do
   resources :leave_requests
   resources :assignments
   resources :mobile_libraries do
-    resources :mobile_library_routes, path: :routes
+    resources :mobile_library_routes, path: :routes do
+      resources :mobile_library_exceptions, path: :exceptions, except: %i[index show]
+    end
   end
 
   resources :shifts, only: [:index, :update] do
