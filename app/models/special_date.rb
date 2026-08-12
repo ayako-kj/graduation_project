@@ -15,6 +15,15 @@ class SpecialDate < ApplicationRecord
   validates :label, presence: true
   validates :date, uniqueness: { scope: [:library_id, :label], message: "と名称の組み合わせはすでに登録されています" }
   validate :target_presence
+  validate :end_time_after_start_time
+
+  def time_range_label
+    return nil if start_time.blank? && end_time.blank?
+    return "#{start_time.strftime('%H:%M')}〜#{end_time.strftime('%H:%M')}" if start_time.present? && end_time.present?
+    return "#{start_time.strftime('%H:%M')}〜" if start_time.present?
+
+    "〜#{end_time.strftime('%H:%M')}"
+  end
 
   private
 
@@ -23,5 +32,11 @@ class SpecialDate < ApplicationRecord
     return if designated_staff_ids_input.present?
 
     errors.add(:base, "対象（対象グループまたは個別指定）を1つ以上選択してください")
+  end
+
+  def end_time_after_start_time
+    return if start_time.blank? || end_time.blank?
+
+    errors.add(:end_time, "は開始時刻より後に設定してください") if end_time <= start_time
   end
 end

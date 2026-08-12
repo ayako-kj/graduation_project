@@ -52,6 +52,8 @@ ja:
         date: "日付"
         label: "名称"
         target_group: "対象グループ"
+        start_time: "開始時刻"
+        end_time: "終了時刻"
       leave_request:
         staff: "職員"
         staff_id: "職員"
