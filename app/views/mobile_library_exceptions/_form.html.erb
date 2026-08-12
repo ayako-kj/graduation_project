@@ -27,15 +27,41 @@
     <%= f.select :target_month,
         options_for_select(month_options, selected_month),
         { prompt: "選択してください" },
-        { class: "form-select" } %>
+        { class: "form-select", onchange: "updateExceptionDateRange(this.value)" } %>
   </div>
 
   <div class="mb-3">
     <%= f.label :date, "巡回日を変更する場合", class: "form-label fw-semibold small" %>
     <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
-    <%= f.date_field :date, class: "form-control" %>
+    <%
+      min_date = exception.target_month&.beginning_of_month
+      max_date = exception.target_month&.end_of_month
+    %>
+    <%= f.date_field :date, class: "form-control", min: min_date, max: max_date %>
     <div class="form-text text-muted">通常の巡回日（<%= route.schedule_label %>）から変更しない場合は空欄のままにしてください</div>
   </div>
+
+  <script>
+    function updateExceptionDateRange(monthValue) {
+      const dateInput = document.getElementById('mobile_library_exception_date');
+      if (!monthValue) {
+        dateInput.removeAttribute('min');
+        dateInput.removeAttribute('max');
+        return;
+      }
+
+      const [year, month] = monthValue.split('-').map(Number);
+      const pad = (n) => String(n).padStart(2, '0');
+      const lastDay = new Date(year, month, 0).getDate();
+
+      dateInput.min = `${year}-${pad(month)}-01`;
+      dateInput.max = `${year}-${pad(month)}-${pad(lastDay)}`;
+
+      if (dateInput.value && (dateInput.value < dateInput.min || dateInput.value > dateInput.max)) {
+        dateInput.value = '';
+      }
+    }
+  </script>
 
   <div class="mb-4">
     <label class="form-label fw-semibold small">担当者を変更する場合<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
