@@ -13,7 +13,7 @@ class LeaveRequestsController < ApplicationController
   end
 
   def new
-    @leave_request = LeaveRequest.new
+    @leave_request = LeaveRequest.new(date: Date.today.beginning_of_month.next_month)
     set_form_options
   end
 
