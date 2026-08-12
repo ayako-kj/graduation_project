@@ -19,6 +19,7 @@ class StaffSpecialDatesController < ApplicationController
     @special_date = SpecialDate.new(special_date_params)
     @special_date.library              = @current_staff.library
     @special_date.created_by_staff_id = @current_staff.id
+    @special_date.designated_staff_ids_input = designated_staff_ids_param
 
     if @special_date.save
       sync_designated_staffs
@@ -44,6 +45,7 @@ class StaffSpecialDatesController < ApplicationController
   end
 
   def update
+    @special_date.designated_staff_ids_input = designated_staff_ids_param
     if @special_date.update(special_date_params)
       sync_designated_staffs
       reset_schedule_submission!(@special_date.date)
@@ -110,8 +112,11 @@ class StaffSpecialDatesController < ApplicationController
   end
 
   def sync_designated_staffs
-    staff_ids = params.dig(:special_date, :designated_staff_ids)&.map(&:to_i) || []
-    @special_date.designated_staffs = Staff.where(id: staff_ids)
+    @special_date.designated_staffs = Staff.where(id: designated_staff_ids_param.map(&:to_i))
+  end
+
+  def designated_staff_ids_param
+    Array(params.dig(:special_date, :designated_staff_ids)).reject(&:blank?)
   end
 
   def special_date_params
