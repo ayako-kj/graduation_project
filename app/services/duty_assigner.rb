@@ -7,6 +7,10 @@ class DutyAssigner
     @target_month = target_month
     @library = library
     @dc = constraints[:duty_constraints] || {}
+    # 移動図書館巡回日: {date => [staff_name, ...]}
+    @mobile_library_staff_by_date = (constraints[:mobile_library_constraints] || []).each_with_object(Hash.new { |h, k| h[k] = [] }) do |mc, h|
+      h[Date.parse(mc[:date])].concat(mc[:staff_names])
+    end
   end
 
   def assign
@@ -24,7 +28,8 @@ class DutyAssigner
 
     counts = historical_counts(eligible, :is_early, :early_count)
     (@dc[:early_shift_dates] || []).each do |date|
-      working = working_eligible(eligible, date)
+      # 移動図書館の巡回担当は、巡回後の作業ができなくなるため早番にしない
+      working = working_eligible(eligible, date) - @mobile_library_staff_by_date[date]
       next if working.empty?
 
       assignee = working.shuffle.min_by { |name| counts[name] }
