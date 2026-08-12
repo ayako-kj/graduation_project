@@ -27,7 +27,11 @@ class InputDeadlinesController < ApplicationController
   private
 
   def parse_target_month
-    Date.parse("#{params[:month]}-01")
+    if params[:month].present?
+      Date.parse("#{params[:month]}-01")
+    else
+      Date.today.beginning_of_month.next_month
+    end
   rescue ArgumentError, TypeError
     Date.today.beginning_of_month.next_month
   end

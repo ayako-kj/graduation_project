@@ -13,7 +13,7 @@ class SpecialDatesController < ApplicationController
   end
 
   def new
-    @special_date = current_library.special_dates.build
+    @special_date = current_library.special_dates.build(date: Date.today.beginning_of_month.next_month)
     set_form_options
   end
 
