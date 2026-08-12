@@ -103,18 +103,8 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   col_count = @dates.size + 4  # A(区分) B(職種) C(氏名) + 日付列 + 勤務日数列
 
   # ---- スケジュール一覧（右側）の準備 ----
-  sd_list = @special_dates_for_export.to_a
-  # 同じ日付が左右に分かれないよう、日付単位でグループ化してから半分に分割
-  date_groups = sd_list.group_by(&:date).sort_by { |date, _| date }.map { |_, sds| sds }
-  half_groups = (date_groups.size / 2.0).ceil
-  left_sds    = date_groups[0...half_groups].flatten
-  right_sds   = date_groups[half_groups..].flatten
-
-  sd_info = lambda do |sd|
-    return ["", "", "", ""] if sd.nil?
-    date_str  = "#{sd.date.strftime('%-m月%-d日')}（#{day_names[sd.date.wday]}）"
-    time_str  = sd.time_range_label || ""
-    name_str  = sd.label.presence || ""
+  # スケジュール(SpecialDate)と移動図書館の巡回予定を、共通の形（Hash）にそろえて1つのリストにする
+  special_date_items = @special_dates_for_export.map do |sd|
     staff_str = if sd.designated_staffs.any?
       sd.designated_staffs.map(&:name).join("・")
     elsif sd.target_group.present?
@@ -122,7 +112,22 @@ wb.add_worksheet(name: sheet_name) do |sheet|
     else
       ""
     end
-    [date_str, time_str, name_str, staff_str]
+    { date: sd.date, time_str: sd.time_range_label || "", name_str: sd.label.presence || "", staff_str: staff_str }
+  end
+  mobile_library_items = (@mobile_library_items_for_export || []).map do |item|
+    { date: item[:date], time_str: "", name_str: item[:name], staff_str: item[:staff_names].join("・") }
+  end
+  sd_list = special_date_items + mobile_library_items
+  # 同じ日付が左右に分かれないよう、日付単位でグループ化してから半分に分割
+  date_groups = sd_list.group_by { |item| item[:date] }.sort_by { |date, _| date }.map { |_, items| items }
+  half_groups = (date_groups.size / 2.0).ceil
+  left_sds    = date_groups[0...half_groups].flatten
+  right_sds   = date_groups[half_groups..].flatten
+
+  sd_info = lambda do |item|
+    return ["", "", "", ""] if item.nil?
+    date_str = "#{item[:date].strftime('%-m月%-d日')}（#{day_names[item[:date].wday]}）"
+    [date_str, item[:time_str], item[:name_str], item[:staff_str]]
   end
 
   # 右側セル＋スタイルを返す（type: :blank | :header | :data）
