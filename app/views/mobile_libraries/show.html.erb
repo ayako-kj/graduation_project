@@ -41,6 +41,7 @@
               </td>
               <td class="align-middle text-end pe-3">
                 <div class="d-flex gap-2 justify-content-end">
+                  <%= link_to "例外を追加", new_mobile_library_mobile_library_route_mobile_library_exception_path(@mobile_library, route), class: "btn btn-outline-secondary btn-sm rounded-pill px-3" %>
                   <%= link_to "編集", edit_mobile_library_mobile_library_route_path(@mobile_library, route), class: "btn btn-outline-secondary btn-sm rounded-pill px-3" %>
                   <%= button_to "削除", mobile_library_mobile_library_route_path(@mobile_library, route),
                       method: :delete,
@@ -50,6 +51,28 @@
                 </div>
               </td>
             </tr>
+            <% route.mobile_library_exceptions.sort_by(&:target_month).each do |exception| %>
+              <tr class="small">
+                <td class="ps-4 align-middle text-muted" colspan="2">
+                  <i class="bi bi-arrow-return-right me-1"></i>例外（<%= exception.target_month.strftime("%Y年%-m月") %>）：
+                  <% parts = [] %>
+                  <% parts << "#{exception.date.strftime('%-m/%-d')}に変更" if exception.date.present? %>
+                  <% parts << "担当者を#{exception.staffs.map(&:name).join('・')}に変更" if exception.staffs.any? %>
+                  <%= parts.join("、") %>
+                </td>
+                <td class="align-middle"></td>
+                <td class="align-middle text-end pe-3">
+                  <div class="d-flex gap-2 justify-content-end">
+                    <%= link_to "編集", edit_mobile_library_mobile_library_route_mobile_library_exception_path(@mobile_library, route, exception), class: "btn btn-outline-secondary btn-sm rounded-pill px-3" %>
+                    <%= button_to "削除", mobile_library_mobile_library_route_mobile_library_exception_path(@mobile_library, route, exception),
+                        method: :delete,
+                        data: { turbo_confirm: "この例外を削除しますか？" },
+                        class: "btn btn-outline-danger btn-sm rounded-pill px-3",
+                        form: { style: "display:inline" } %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
           <% end %>
         </tbody>
       </table>

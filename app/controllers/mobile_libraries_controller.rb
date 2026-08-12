@@ -10,7 +10,7 @@ class MobileLibrariesController < ApplicationController
 
   def show
     @routes = @mobile_library.mobile_library_routes
-                             .includes(:staffs)
+                             .includes(:staffs, mobile_library_exceptions: :staffs)
                              .order(:wday, :week_number)
   end
 
