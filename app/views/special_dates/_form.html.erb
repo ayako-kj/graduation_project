@@ -25,55 +25,59 @@
     <%= f.text_field :label, class: "form-control", placeholder: "例：全員会議日" %>
   </div>
 
-  <div class="mb-3">
-    <%= f.label :target_group, class: "form-label fw-semibold small" do %>
-      対象グループ<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
-    <% end %>
-    <%= f.select :target_group,
-        options_for_select(SpecialDatesController::TARGET_GROUPS, special_date.target_group),
-        { prompt: "選択してください（任意）", include_blank: true },
-        { class: "form-select" } %>
-    <div class="form-text text-muted">職種グループ単位で指定する場合に使用します</div>
-  </div>
-
   <div class="mb-4">
-    <label class="form-label fw-semibold small">個別指定（特定の職員を出勤させる場合）<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
+    <label class="form-label fw-semibold small d-block mb-2">
+      対象<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+    </label>
 
-    <% assignments_with_staffs = @assignments.select { |a| a.staffs.any? } %>
-    <% if assignments_with_staffs.any? %>
-      <div class="mb-2">
-        <p class="small text-muted mb-1">担当から一括選択：</p>
-        <div class="d-flex flex-wrap gap-2">
-          <% assignments_with_staffs.each do |assignment| %>
-            <button type="button"
-                    class="btn btn-outline-secondary btn-sm rounded-pill"
-                    data-staff-ids="<%= assignment.staff_ids.to_json %>"
-                    onclick="selectAssignmentStaff(this)">
-              <%= assignment.name %>
-            </button>
-          <% end %>
-        </div>
-        <div class="form-text text-muted">クリックで選択、もう一度クリックで解除できます</div>
+    <div class="border rounded-3 p-3">
+      <div class="mb-3">
+        <label class="form-label small text-muted mb-1">対象グループ</label>
+        <%= f.select :target_group,
+            options_for_select(SpecialDate::TARGET_GROUP_OPTIONS, special_date.target_group),
+            {},
+            { class: "form-select" } %>
       </div>
-    <% end %>
 
-    <div class="border rounded-3 p-3" style="max-height: 200px; overflow-y: auto;">
-      <% if @staffs.empty? %>
-        <p class="text-muted small mb-0">職員が登録されていません</p>
-      <% else %>
-        <% @staffs.each do |staff| %>
-          <div class="form-check">
-            <%= check_box_tag "special_date[designated_staff_ids][]", staff.id,
-                special_date.designated_staffs.include?(staff),
-                id: "staff_#{staff.id}", class: "form-check-input" %>
-            <label class="form-check-label small" for="staff_<%= staff.id %>">
-              <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span>
-            </label>
+      <label class="form-label small text-muted mb-1">個別指定（特定の職員を出勤させる場合）</label>
+
+      <% assignments_with_staffs = @assignments.select { |a| a.staffs.any? } %>
+      <% if assignments_with_staffs.any? %>
+        <div class="mb-2">
+          <p class="small text-muted mb-1">担当から一括選択：</p>
+          <div class="d-flex flex-wrap gap-2">
+            <% assignments_with_staffs.each do |assignment| %>
+              <button type="button"
+                      class="btn btn-outline-secondary btn-sm rounded-pill"
+                      data-staff-ids="<%= assignment.staff_ids.to_json %>"
+                      onclick="selectAssignmentStaff(this)">
+                <%= assignment.name %>
+              </button>
+            <% end %>
           </div>
-        <% end %>
+          <div class="form-text text-muted">クリックで選択、もう一度クリックで解除できます</div>
+        </div>
       <% end %>
+
+      <div class="border rounded-3 p-3" style="max-height: 200px; overflow-y: auto;">
+        <% if @staffs.empty? %>
+          <p class="text-muted small mb-0">職員が登録されていません</p>
+        <% else %>
+          <% @staffs.each do |staff| %>
+            <div class="form-check">
+              <%= check_box_tag "special_date[designated_staff_ids][]", staff.id,
+                  special_date.designated_staffs.include?(staff),
+                  id: "staff_#{staff.id}", class: "form-check-input" %>
+              <label class="form-check-label small" for="staff_<%= staff.id %>">
+                <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span>
+              </label>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+
+      <div class="form-text text-muted mt-2">対象グループまたは個別指定のいずれか（両方でも可）を選択してください</div>
     </div>
-    <div class="form-text text-muted">対象グループと個別指定は併用できます</div>
   </div>
 
   <script>

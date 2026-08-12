@@ -32,43 +32,61 @@
         <%= f.text_field :label, class: "form-control", placeholder: "例：定例会議" %>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label fw-semibold small">対象グループ<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
-        <%= f.select :target_group,
-            options_for_select(SpecialDate::TARGET_GROUPS, @special_date.target_group),
-            { prompt: "選択してください（任意）", include_blank: true },
-            { class: "form-select" } %>
-      </div>
-
       <div class="mb-4">
-        <label class="form-label fw-semibold small mb-1">個別指定<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
-        <% assignments_with_staffs = @assignments.select { |a| a.staffs.any? } %>
-        <% if assignments_with_staffs.any? %>
-          <div class="mb-2">
-            <p class="small text-muted mb-1">担当から一括選択：</p>
-            <div class="d-flex flex-wrap gap-2">
-              <% assignments_with_staffs.each do |assignment| %>
-                <button type="button"
-                        class="btn btn-outline-secondary btn-sm rounded-pill"
-                        data-staff-ids="<%= assignment.staff_ids.to_json %>"
-                        onclick="selectAssignmentStaff(this)">
-                  <%= assignment.name %>
-                </button>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-        <div class="border rounded-3 p-2" style="max-height: 180px; overflow-y: auto;">
-          <% @staffs.each do |staff| %>
-            <div class="form-check">
-              <%= check_box_tag "special_date[designated_staff_ids][]", staff.id,
-                  @special_date.designated_staffs.include?(staff),
-                  id: "staff_#{staff.id}", class: "form-check-input" %>
-              <label class="form-check-label small" for="staff_<%= staff.id %>">
-                <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span>
-              </label>
+        <label class="form-label fw-semibold small d-block mb-2">
+          対象<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+        </label>
+
+        <div class="border rounded-3 p-3">
+          <% if @staffs.include?(@current_staff) %>
+            <div class="mb-2">
+              <button type="button"
+                      class="btn btn-outline-secondary btn-sm rounded-pill w-100 fw-semibold"
+                      data-staff-ids="<%= [@current_staff.id].to_json %>"
+                      onclick="selectAssignmentStaff(this)">
+                <i class="bi bi-person-check me-1"></i>自分（<%= @current_staff.name %>）を対象にする
+              </button>
             </div>
           <% end %>
+
+          <div class="mb-3">
+            <label class="form-label small text-muted mb-1">対象グループ</label>
+            <%= f.select :target_group,
+                options_for_select(SpecialDate::TARGET_GROUP_OPTIONS, @special_date.target_group),
+                {},
+                { class: "form-select" } %>
+          </div>
+
+          <label class="form-label small text-muted mb-1">個別指定</label>
+          <% assignments_with_staffs = @assignments.select { |a| a.staffs.any? } %>
+          <% if assignments_with_staffs.any? %>
+            <div class="mb-2">
+              <p class="small text-muted mb-1">担当から一括選択：</p>
+              <div class="d-flex flex-wrap gap-2">
+                <% assignments_with_staffs.each do |assignment| %>
+                  <button type="button"
+                          class="btn btn-outline-secondary btn-sm rounded-pill"
+                          data-staff-ids="<%= assignment.staff_ids.to_json %>"
+                          onclick="selectAssignmentStaff(this)">
+                    <%= assignment.name %>
+                  </button>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+          <div class="border rounded-3 p-2" style="max-height: 180px; overflow-y: auto;">
+            <% @staffs.each do |staff| %>
+              <div class="form-check">
+                <%= check_box_tag "special_date[designated_staff_ids][]", staff.id,
+                    @special_date.designated_staffs.include?(staff),
+                    id: "staff_#{staff.id}", class: "form-check-input" %>
+                <label class="form-check-label small" for="staff_<%= staff.id %>">
+                  <%= staff.name %><span class="text-muted ms-1">（<%= staff.staff_type.name %>）</span><% if staff == @current_staff %><span class="text-muted">※自分</span><% end %>
+                </label>
+              </div>
+            <% end %>
+          </div>
+          <div class="form-text text-muted mt-1">対象グループまたは個別指定のいずれか（両方でも可）を選択してください</div>
         </div>
       </div>
 

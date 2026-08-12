@@ -19,6 +19,7 @@ class SpecialDatesController < ApplicationController
 
   def create
     @special_date = current_library.special_dates.build(special_date_params)
+    @special_date.designated_staff_ids_input = designated_staff_ids_param
     if @special_date.save
       sync_designated_staffs
       redirect_to special_dates_path(month: @special_date.date.strftime("%Y-%m")), notice: "スケジュールを登録しました。"
@@ -33,6 +34,7 @@ class SpecialDatesController < ApplicationController
   end
 
   def update
+    @special_date.designated_staff_ids_input = designated_staff_ids_param
     if @special_date.update(special_date_params)
       sync_designated_staffs
       redirect_to special_dates_path(month: @special_date.date.strftime("%Y-%m")), notice: "スケジュールを更新しました。"
@@ -59,8 +61,11 @@ class SpecialDatesController < ApplicationController
   end
 
   def sync_designated_staffs
-    staff_ids = params.dig(:special_date, :designated_staff_ids)&.map(&:to_i) || []
-    @special_date.designated_staffs = Staff.where(id: staff_ids)
+    @special_date.designated_staffs = Staff.where(id: designated_staff_ids_param.map(&:to_i))
+  end
+
+  def designated_staff_ids_param
+    Array(params.dig(:special_date, :designated_staff_ids)).reject(&:blank?)
   end
 
   def special_date_params
