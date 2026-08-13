@@ -54,8 +54,10 @@ class ShiftPostProcessor
     fix_excess_staff
     5.times do
       snapshot = @shifts.map { |s| s[:is_working] }
-      # fix_day（最低出勤人数・配置ルールの補充）が土日連続を新たに作ることがあるため、
-      # 毎回ループの先頭でチェックし直す
+      # fix_day（最低出勤人数・配置ルールの補充）が週の上限超過・土日連続を
+      # 新たに作ることがあるため、毎回ループの先頭でチェックし直す
+      fix_regular_weekly_pattern
+      fix_weekly_overwork
       fix_weekend_consecutive
       fix_consecutive_work
       @shifts.group_by { |s| s[:date] }.each do |date, day_shifts|
@@ -74,12 +76,19 @@ class ShiftPostProcessor
   # duty_protected_pairs: [[staff_name, date], ...]（当該日は保護日として扱う）
   def reconcile_weekend_consecutive!(duty_protected_pairs = [])
     register_protected_dates(duty_protected_pairs)
-    # ここが最終チェックのため、回避を試みても後続のfix_dayで打ち消されると
-    # 手が無くなる。素直に月曜代休で決着させる
-    fix_weekend_consecutive(prefer_cancel: false)
-    @shifts.group_by { |s| s[:date] }.each do |date, day_shifts|
-      next if @closed_days.key?(date)
-      fix_day(day_shifts)
+    # fix_dayの補充が週上限超過・土日連続を新たに作ることがあるため、
+    # process()と同様に複数回チェックし直す
+    3.times do
+      snapshot = @shifts.map { |s| s[:is_working] }
+      fix_weekly_overwork
+      # ここが最終チェックのため、回避を試みても後続のfix_dayで打ち消されると
+      # 手が無くなる。素直に月曜代休で決着させる
+      fix_weekend_consecutive(prefer_cancel: false)
+      @shifts.group_by { |s| s[:date] }.each do |date, day_shifts|
+        next if @closed_days.key?(date)
+        fix_day(day_shifts)
+      end
+      break if @shifts.map { |s| s[:is_working] } == snapshot
     end
     @shifts
   end
@@ -95,7 +104,9 @@ class ShiftPostProcessor
       h[s.name] = {
         staff_type: s.staff_type.name,
         employment_type: s.employment_type.name,
-        unavailable_wdays: s.unavailable_wdays_array
+        unavailable_wdays: s.unavailable_wdays_array,
+        weekly_work_days: s.weekly_work_days,
+        is_regular: s.employment_type.is_regular
       }
     end
   end
@@ -249,6 +260,127 @@ class ShiftPostProcessor
     end
   end
 
+  REGULAR_FIXED_WDAYS = [1, 3, 4, 5].freeze # 月・水・木・金
+  # 配置ルール上「どちらかがいればいい」関係にある職種は、土日の均等配分でも
+  # 同じグループとして扱う（副館長・行政職・一般事務はteam_minルールで
+  # 合計1名以上いればよく、同じ枠を共有するため。館長はこのルールに含まれない）
+  WEEKEND_GROUP_OVERRIDES = { "副館長" => "配置ルール共有枠", "行政職" => "配置ルール共有枠", "一般事務" => "配置ルール共有枠" }.freeze
+
+  def weekend_group_key(staff_name)
+    staff_type = @staff_info.dig(staff_name, :staff_type)
+    WEEKEND_GROUP_OVERRIDES[staff_type] || staff_type
+  end
+
+  # 正規職員は月・水・木・金を基本的に出勤とし、土日はどちらか1日だけ出勤する
+  # （火曜定休日＋土日どちらか1日の週2日休み）。この形が崩れている場合に補正する
+  def fix_regular_weekly_pattern
+    regular_names = @staff_info.select { |_, info| info[:is_regular] }.keys
+    by_staff = @shifts.group_by { |s| s[:staff_name] }
+
+    # 月・水・木・金は基本的に出勤させる
+    regular_names.shuffle.each do |staff_name|
+      staff_shifts = by_staff[staff_name] || []
+      unavailable_wdays = @staff_info.dig(staff_name, :unavailable_wdays) || []
+      staff_shifts.each do |shift|
+        next unless REGULAR_FIXED_WDAYS.include?(shift[:date].wday)
+        next if shift[:is_working]
+        next if unavailable_wdays.include?(shift[:date].wday)
+        next if fixed_and_unmovable?(staff_name, shift[:date])
+        next if would_cause_consecutive_violation?(staff_name, shift[:date])
+        shift[:is_working] = true
+      end
+    end
+
+    # 土日は「どちらかがいればいい」職種グループ単位で、できるだけ半数ずつ
+    # 土曜・日曜に振り分ける（例：正規司書4人なら2人ずつ）。これにより
+    # 配置ルールの必要人数をグループ内で自然に満たし、後段の補充が
+    # 特定の職員に土日連続出勤を強いることを防ぐ
+    by_group = regular_names.group_by { |name| weekend_group_key(name) }
+    @shifts.select { |s| s[:date].saturday? }.map { |s| s[:date] }.uniq.sort.each do |sat|
+      sun = sat + 1
+      next unless @shifts.any? { |s| s[:date] == sun }
+
+      by_group.each_value { |names| assign_weekend_group(names, sat, sun) }
+    end
+  end
+
+  def assign_weekend_group(names, sat, sun)
+    by_staff = @shifts.group_by { |s| s[:staff_name] }
+    pairs = names.filter_map do |name|
+      sat_shift = by_staff[name]&.find { |s| s[:date] == sat }
+      sun_shift = by_staff[name]&.find { |s| s[:date] == sun }
+      [name, sat_shift, sun_shift] if sat_shift && sun_shift
+    end
+
+    # 1. 土日とも出勤になっている人がいれば、動かせる方を休みにする
+    #    （グループ内の均等配分をこの後の手順で成立させるための下準備）
+    pairs.shuffle.each do |name, sat_shift, sun_shift|
+      next unless sat_shift[:is_working] && sun_shift[:is_working]
+
+      cancel_candidates = [sat_shift, sun_shift].reject do |s|
+        fixed_and_unmovable?(name, s[:date]) || would_drop_below_minimum?(s[:date])
+      end
+      next if cancel_candidates.empty?
+
+      target = cancel_candidates.max_by { |s| @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] } }
+      lock_rest_day(target, name)
+    end
+
+    # 2. 土日とも休みのままの人を、出勤者が少ない方に順番に割り当てて均等化する
+    sat_count = pairs.count { |_, s, _| s[:is_working] }
+    sun_count = pairs.count { |_, _, s| s[:is_working] }
+
+    undecided = pairs.shuffle.select { |_, s, u| !s[:is_working] && !u[:is_working] }
+    undecided.each do |name, sat_shift, sun_shift|
+      use_sat = sat_count <= sun_count
+      target_shift = use_sat ? sat_shift : sun_shift
+      other_shift = use_sat ? sun_shift : sat_shift
+
+      if !fixed_and_unmovable?(name, target_shift[:date]) &&
+         !would_cause_consecutive_violation?(name, target_shift[:date])
+        target_shift[:is_working] = true
+        use_sat ? sat_count += 1 : sun_count += 1
+      elsif !fixed_and_unmovable?(name, other_shift[:date]) &&
+            !would_cause_consecutive_violation?(name, other_shift[:date])
+        other_shift[:is_working] = true
+        use_sat ? sun_count += 1 : sat_count += 1
+      end
+    end
+  end
+
+  # 希望休・閉館日・ロック済みの休みなど、動かせない日かどうか
+  def fixed_and_unmovable?(staff_name, date)
+    @closed_days.key?(date) ||
+      @leave_set.include?([staff_name, date]) ||
+      @locked_rest_days.include?([staff_name, date])
+  end
+
+  # 職員ごとの週勤務日数（weekly_work_days）の上限を超えている週があれば、
+  # 超過分を休みにする。土日を優先して休みにすることで、
+  # 「ある週は土日とも出勤、別の週は少なめ」という偏りと土日連続出勤の
+  # 両方を根本から抑える
+  def fix_weekly_overwork
+    by_staff = @shifts.group_by { |s| s[:staff_name] }
+    by_staff.to_a.shuffle.each do |staff_name, staff_shifts|
+      cap = @staff_info.dig(staff_name, :weekly_work_days)
+      next unless cap
+
+      staff_shifts.group_by { |s| s[:date].beginning_of_week }.each_value do |week_shifts|
+        working = week_shifts.select { |s| s[:is_working] }
+        excess = working.size - cap
+        next if excess <= 0
+
+        candidates = working
+          .reject { |s| @leave_set.include?([staff_name, s[:date]]) }
+          .reject { |s| assignment_protected?(staff_name, s[:date]) }
+          .reject { |s| would_drop_below_minimum?(s[:date]) }
+          .sort_by { |s| s[:date].saturday? || s[:date].sunday? ? 0 : 1 }
+
+        candidates.first(excess).each { |s| lock_rest_day(s, staff_name) }
+      end
+    end
+  end
+
   # prefer_cancel: true の場合、保護理由のない土日連続はまず片方をキャンセルして
   # 回避を試みる。false の場合は回避を試みず、常に月曜代休で決着させる
   # （後段のfix_dayが埋め直せなくなった最終チェック用）
@@ -387,17 +519,22 @@ class ShiftPostProcessor
     candidates = resting.select(&block)
       .reject { |s| @leave_set.include?([s[:staff_name], s[:date]]) }
       .reject { |s| @locked_rest_days.include?([s[:staff_name], s[:date]]) }
-    # 優先度: 1.連続違反なし×土日連続なし×不可曜日でない 2.連続違反なし×土日連続なし×不可曜日
-    #        3.連続違反なし×土日連続あり 4.連続違反あり×不可曜日でない 5.連続違反あり×不可曜日
+    # 優先度: 1.連続違反なし×土日連続なし×週上限内×不可曜日でない
+    #        2.連続違反なし×土日連続なし×週上限内×不可曜日
+    #        3.連続違反なし×土日連続なし×週上限超過 4.連続違反なし×土日連続あり
+    #        5.連続違反あり×不可曜日でない 6.連続違反あり×不可曜日
     safe, risky = candidates.partition { |s| !would_cause_consecutive_violation?(s[:staff_name], s[:date]) }
     safe_no_weekend, safe_weekend = safe.partition { |s| !would_cause_weekend_consecutive?(s[:staff_name], s[:date]) }
-    preferred_safe, fallback_safe = safe_no_weekend.partition { |s|
+    safe_no_weekend_no_cap, safe_no_weekend_over_cap = safe_no_weekend.partition { |s|
+      !would_exceed_weekly_cap?(s[:staff_name], s[:date])
+    }
+    preferred_safe, fallback_safe = safe_no_weekend_no_cap.partition { |s|
       !((@staff_info.dig(s[:staff_name], :unavailable_wdays) || []).include?(s[:date].wday))
     }
     preferred_risky, fallback_risky = risky.partition { |s|
       !((@staff_info.dig(s[:staff_name], :unavailable_wdays) || []).include?(s[:date].wday))
     }
-    ordered = preferred_safe + fallback_safe + safe_weekend + preferred_risky + fallback_risky
+    ordered = preferred_safe + fallback_safe + safe_no_weekend_over_cap + safe_weekend + preferred_risky + fallback_risky
     ordered.first([count, ordered.size].min).each do |shift|
       shift[:is_working] = true
       resting.delete(shift)
@@ -432,16 +569,27 @@ class ShiftPostProcessor
                        .sort_by { |s| [daily_counts[s[:date]], s[:date]] }
 
       added = 0
-      # 優先度1: 5日超え連続にも土日連続にもならない日
+      # 優先度1: 5日超え連続にも土日連続にも週上限超過にもならない日
       resting.each do |shift|
         break if added >= shortfall
+        next if would_cause_consecutive_violation?(staff_name, shift[:date])
+        next if would_cause_weekend_consecutive?(staff_name, shift[:date])
+        next if would_exceed_weekly_cap?(staff_name, shift[:date])
+        shift[:is_working] = true
+        daily_counts[shift[:date]] += 1
+        added += 1
+      end
+      # 優先度2: 5日超え連続にはならず土日連続にもならないが、週上限は超える日
+      resting.each do |shift|
+        break if added >= shortfall
+        next if shift[:is_working]
         next if would_cause_consecutive_violation?(staff_name, shift[:date])
         next if would_cause_weekend_consecutive?(staff_name, shift[:date])
         shift[:is_working] = true
         daily_counts[shift[:date]] += 1
         added += 1
       end
-      # 優先度2: 5日超え連続にはならないが、土日連続になる日（目標日数達成を優先）
+      # 優先度3: 5日超え連続にはならないが、土日連続になる日（目標日数達成を優先）
       resting.each do |shift|
         break if added >= shortfall
         next if shift[:is_working]
@@ -450,7 +598,7 @@ class ShiftPostProcessor
         daily_counts[shift[:date]] += 1
         added += 1
       end
-      # 優先度3: それでも不足する場合はやむを得ず残りを埋める
+      # 優先度4: それでも不足する場合はやむを得ず残りを埋める
       resting.each do |shift|
         break if added >= shortfall
         next if shift[:is_working]
@@ -526,5 +674,18 @@ class ShiftPostProcessor
     pair_date = date.saturday? ? date + 1 : date - 1
     pair_shift = @shifts.find { |s| s[:staff_name] == staff_name && s[:date] == pair_date }
     pair_shift&.[](:is_working) == true
+  end
+
+  # 指定日に出勤させると、その職員の週勤務日数（weekly_work_days）の
+  # 上限を超えてしまわないかを判定する
+  def would_exceed_weekly_cap?(staff_name, date)
+    cap = @staff_info.dig(staff_name, :weekly_work_days)
+    return false unless cap
+
+    week_start = date.beginning_of_week
+    current = @shifts.count do |s|
+      s[:staff_name] == staff_name && s[:is_working] && s[:date].beginning_of_week == week_start
+    end
+    current >= cap
   end
 end
