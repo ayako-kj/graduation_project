@@ -37,6 +37,10 @@ class ShiftPostProcessor
     # DutyAssigner等、本処理の後段で確定する保護日（祝日ポスト当番など）を
     # reconcile_weekend_consecutive! 実行前に register_protected_dates で追加する
     @extra_protected_dates = Set.new
+    # 土日連続回避のために「休みにする」と決めた[staff_name, date]。
+    # 希望休と同様に、以降の補充処理（add_staff/fix_target_days）が
+    # 勝手に出勤へ戻せないようロックする
+    @locked_rest_days = Set.new
     @staff_info = build_staff_info
     @rules = build_rules
   end
@@ -68,7 +72,9 @@ class ShiftPostProcessor
   # duty_protected_pairs: [[staff_name, date], ...]（当該日は保護日として扱う）
   def reconcile_weekend_consecutive!(duty_protected_pairs = [])
     register_protected_dates(duty_protected_pairs)
-    fix_weekend_consecutive
+    # ここが最終チェックのため、回避を試みても後続のfix_dayで打ち消されると
+    # 手が無くなる。素直に月曜代休で決着させる
+    fix_weekend_consecutive(prefer_cancel: false)
     @shifts.group_by { |s| s[:date] }.each do |date, day_shifts|
       next if @closed_days.key?(date)
       fix_day(day_shifts)
@@ -257,7 +263,10 @@ class ShiftPostProcessor
     end
   end
 
-  def fix_weekend_consecutive
+  # prefer_cancel: true の場合、保護理由のない土日連続はまず片方をキャンセルして
+  # 回避を試みる。false の場合は回避を試みず、常に月曜代休で決着させる
+  # （後段のfix_dayが埋め直せなくなった最終チェック用）
+  def fix_weekend_consecutive(prefer_cancel: true)
     by_staff = @shifts.group_by { |s| s[:staff_name] }
     by_staff.each do |staff_name, staff_shifts|
       shifts_by_date = staff_shifts.each_with_object({}) { |s, h| h[s[:date]] = s }
@@ -275,25 +284,32 @@ class ShiftPostProcessor
         elsif sat_protected ^ sun_protected
           # 片方だけ保護されている場合 → 保護されていない方を休みにする
           if sun_protected && !@leave_set.include?([staff_name, sat_shift[:date]])
-            sat_shift[:is_working] = false
-          elsif !@leave_set.include?([staff_name, sun_shift[:date]])
-            sun_shift[:is_working] = false
+            lock_rest_day(sat_shift, staff_name)
+          elsif !sun_protected && !@leave_set.include?([staff_name, sun_shift[:date]])
+            lock_rest_day(sun_shift, staff_name)
           end
-        else
+        elsif prefer_cancel
           # 両方とも保護なし（基本ケース）→ 土日のどちらかを休みにして連続出勤自体を回避する。
           # 出勤者が多い方（＝他の職員で埋め合わせしやすい方）を優先して休みにし、
           # 特定の職員に偏らせず全員に同じルールを適用する。
           cancel_candidates = [sat_shift, sun_shift].reject { |s| @leave_set.include?([staff_name, s[:date]]) }
           if cancel_candidates.any?
             target = cancel_candidates.max_by { |s| @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] } }
-            target[:is_working] = false
+            lock_rest_day(target, staff_name)
           else
             # 両日とも希望休登録済みで動かせない場合のみ、月曜を休みにする
             give_weekend_consecutive_makeup(staff_name, sat_shift[:date], shifts_by_date)
           end
+        else
+          give_weekend_consecutive_makeup(staff_name, sat_shift[:date], shifts_by_date)
         end
       end
     end
+  end
+
+  def lock_rest_day(shift, staff_name)
+    shift[:is_working] = false
+    @locked_rest_days << [staff_name, shift[:date]]
   end
 
   def give_weekend_consecutive_makeup(staff_name, sat_date, shifts_by_date)
@@ -303,7 +319,7 @@ class ShiftPostProcessor
        !@leave_set.include?([staff_name, monday]) &&
        !@closed_days.key?(monday) &&
        !assignment_protected?(staff_name, monday)
-      mon_shift[:is_working] = false
+      lock_rest_day(mon_shift, staff_name)
     end
   end
 
@@ -371,7 +387,9 @@ class ShiftPostProcessor
   end
 
   def add_staff(resting, working, count, &block)
-    candidates = resting.select(&block).reject { |s| @leave_set.include?([s[:staff_name], s[:date]]) }
+    candidates = resting.select(&block)
+      .reject { |s| @leave_set.include?([s[:staff_name], s[:date]]) }
+      .reject { |s| @locked_rest_days.include?([s[:staff_name], s[:date]]) }
     # 優先度: 1.連続違反なし×土日連続なし×不可曜日でない 2.連続違反なし×土日連続なし×不可曜日
     #        3.連続違反なし×土日連続あり 4.連続違反あり×不可曜日でない 5.連続違反あり×不可曜日
     safe, risky = candidates.partition { |s| !would_cause_consecutive_violation?(s[:staff_name], s[:date]) }
@@ -407,7 +425,8 @@ class ShiftPostProcessor
       unavailable_wdays = @staff_info.dig(staff_name, :unavailable_wdays) || []
       base_filter = ->(s) {
         s[:staff_name] == staff_name && !s[:is_working] &&
-          !@closed_days.key?(s[:date]) && !@leave_set.include?([staff_name, s[:date]])
+          !@closed_days.key?(s[:date]) && !@leave_set.include?([staff_name, s[:date]]) &&
+          !@locked_rest_days.include?([staff_name, s[:date]])
       }
       # unavailable_wdays の日は後回し（できるだけ出勤しない）
       resting = @shifts.select { |s| base_filter.call(s) && !unavailable_wdays.include?(s[:date].wday) }
