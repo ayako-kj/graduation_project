@@ -52,9 +52,11 @@ class ShiftPostProcessor
     fix_assignment_dates
     fix_mobile_library_dates
     fix_excess_staff
-    fix_weekend_consecutive
     5.times do
       snapshot = @shifts.map { |s| s[:is_working] }
+      # fix_day（最低出勤人数・配置ルールの補充）が土日連続を新たに作ることがあるため、
+      # 毎回ループの先頭でチェックし直す
+      fix_weekend_consecutive
       fix_consecutive_work
       @shifts.group_by { |s| s[:date] }.each do |date, day_shifts|
         next if @closed_days.key?(date)
@@ -268,7 +270,10 @@ class ShiftPostProcessor
   # （後段のfix_dayが埋め直せなくなった最終チェック用）
   def fix_weekend_consecutive(prefer_cancel: true)
     by_staff = @shifts.group_by { |s| s[:staff_name] }
-    by_staff.each do |staff_name, staff_shifts|
+    # 最低出勤人数の制約で「休みにできる枠」が全員分は無い月・週もあるため、
+    # 常に同じ並び順（職員のsort_order）で処理すると枠を使い切れる職員が固定化し、
+    # 特定の職員に土日連続出勤が偏ってしまう。処理順をシャッフルして偏りを避ける
+    by_staff.to_a.shuffle.each do |staff_name, staff_shifts|
       shifts_by_date = staff_shifts.each_with_object({}) { |s, h| h[s[:date]] = s }
 
       staff_shifts.select { |s| s[:is_working] && s[:date].saturday? }.sort_by { |s| s[:date] }.each do |sat_shift|
@@ -282,22 +287,25 @@ class ShiftPostProcessor
           # 両方とも保護されている場合 → 本人の週末は動かせないため月曜を休みにする
           give_weekend_consecutive_makeup(staff_name, sat_shift[:date], shifts_by_date)
         elsif sat_protected ^ sun_protected
-          # 片方だけ保護されている場合 → 保護されていない方を休みにする
-          if sun_protected && !@leave_set.include?([staff_name, sat_shift[:date]])
-            lock_rest_day(sat_shift, staff_name)
-          elsif !sun_protected && !@leave_set.include?([staff_name, sun_shift[:date]])
-            lock_rest_day(sun_shift, staff_name)
+          # 片方だけ保護されている場合 → 保護されていない方を休みにする（最低人数は割らない）
+          unprotected = sun_protected ? sat_shift : sun_shift
+          if !@leave_set.include?([staff_name, unprotected[:date]]) && !would_drop_below_minimum?(unprotected[:date])
+            lock_rest_day(unprotected, staff_name)
+          else
+            give_weekend_consecutive_makeup(staff_name, sat_shift[:date], shifts_by_date)
           end
         elsif prefer_cancel
           # 両方とも保護なし（基本ケース）→ 土日のどちらかを休みにして連続出勤自体を回避する。
-          # 出勤者が多い方（＝他の職員で埋め合わせしやすい方）を優先して休みにし、
-          # 特定の職員に偏らせず全員に同じルールを適用する。
-          cancel_candidates = [sat_shift, sun_shift].reject { |s| @leave_set.include?([staff_name, s[:date]]) }
+          # 出勤者が多い方（＝他の職員で埋め合わせしやすい方）を優先して休みにするが、
+          # 最低出勤人数を割り込む日は候補から外し、特定の日に休みが集中しないようにする。
+          cancel_candidates = [sat_shift, sun_shift]
+            .reject { |s| @leave_set.include?([staff_name, s[:date]]) }
+            .reject { |s| would_drop_below_minimum?(s[:date]) }
           if cancel_candidates.any?
             target = cancel_candidates.max_by { |s| @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] } }
             lock_rest_day(target, staff_name)
           else
-            # 両日とも希望休登録済みで動かせない場合のみ、月曜を休みにする
+            # 両日とも動かせない（希望休 or 最低人数維持のため）場合は月曜を休みにする
             give_weekend_consecutive_makeup(staff_name, sat_shift[:date], shifts_by_date)
           end
         else
@@ -312,13 +320,18 @@ class ShiftPostProcessor
     @locked_rest_days << [staff_name, shift[:date]]
   end
 
+  def would_drop_below_minimum?(date)
+    @shifts.count { |s| s[:date] == date && s[:is_working] } <= TotalCountValidator::MIN_STAFF_COUNT
+  end
+
   def give_weekend_consecutive_makeup(staff_name, sat_date, shifts_by_date)
     monday = sat_date + 2
     mon_shift = shifts_by_date[monday]
     if mon_shift&.[](:is_working) &&
        !@leave_set.include?([staff_name, monday]) &&
        !@closed_days.key?(monday) &&
-       !assignment_protected?(staff_name, monday)
+       !assignment_protected?(staff_name, monday) &&
+       !would_drop_below_minimum?(monday)
       lock_rest_day(mon_shift, staff_name)
     end
   end
