@@ -23,7 +23,12 @@ class ClosedDayCalculator
   private
 
   def closed?(date)
-    @closed_wdays.include?(date.wday) || @holidays.key?(date) || @extra_closed_dates.key?(date)
+    @closed_wdays.include?(date.wday) || regular_holiday?(date) || @extra_closed_dates.key?(date)
+  end
+
+  # 振替休日は開館日として扱う（振替休日以外の祝日のみ休館）
+  def regular_holiday?(date)
+    @holidays.key?(date) && !@holidays[date].include?("振替休日")
   end
 
   def label_for(date)
