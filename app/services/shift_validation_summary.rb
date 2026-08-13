@@ -28,10 +28,6 @@ class ShiftValidationSummary
       end
     end
 
-    ManagerPresenceValidator.new(@shifts, @closed_days).validate.each do |v|
-      errors_by_key[v[:date].to_s] << v[:message]
-    end
-
     if @library
       # 担当者が休みのため is_working=false のシフトにはエラーを保存できない
       # 日付レベルキーでその日の出勤者全員のセルに表示する

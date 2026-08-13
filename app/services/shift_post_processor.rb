@@ -144,22 +144,6 @@ class ShiftPostProcessor
     if working.size < TotalCountValidator::MIN_STAFF_COUNT
       add_staff(resting, working, TotalCountValidator::MIN_STAFF_COUNT - working.size) { true }
     end
-
-    # ManagerPresenceValidator の条件を満たすよう補完
-    manager_present = working.any? do |s|
-      info = @staff_info[s[:staff_name]]
-      info && (info[:staff_type] == "副館長" ||
-               info[:staff_type] == "行政職" ||
-               (info[:staff_type] == "一般事務" && info[:employment_type] == "会計年度任用職員"))
-    end
-    unless manager_present
-      add_staff(resting, working, 1) do |s|
-        info = @staff_info[s[:staff_name]]
-        info && (info[:staff_type] == "副館長" ||
-                 info[:staff_type] == "行政職" ||
-                 (info[:staff_type] == "一般事務" && info[:employment_type] == "会計年度任用職員"))
-      end
-    end
   end
 
   def fix_closed_days
