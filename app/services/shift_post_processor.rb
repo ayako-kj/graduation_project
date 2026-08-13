@@ -269,7 +269,10 @@ class ShiftPostProcessor
         sat_protected = assignment_protected?(staff_name, sat_shift[:date])
         sun_protected = assignment_protected?(staff_name, sun_shift[:date])
 
-        if sat_protected ^ sun_protected
+        if sat_protected && sun_protected
+          # 両方とも保護されている場合 → 本人の週末は動かせないため月曜を休みにする
+          give_weekend_consecutive_makeup(staff_name, sat_shift[:date], shifts_by_date)
+        elsif sat_protected ^ sun_protected
           # 片方だけ保護されている場合 → 保護されていない方を休みにする
           if sun_protected && !@leave_set.include?([staff_name, sat_shift[:date]])
             sat_shift[:is_working] = false
@@ -277,17 +280,30 @@ class ShiftPostProcessor
             sun_shift[:is_working] = false
           end
         else
-          # 両方保護なし（やむを得ない）or 両方保護 → 月曜を休みにする
-          monday = sat_shift[:date] + 2
-          mon_shift = shifts_by_date[monday]
-          if mon_shift&.[](:is_working) &&
-             !@leave_set.include?([staff_name, monday]) &&
-             !@closed_days.key?(monday) &&
-             !assignment_protected?(staff_name, monday)
-            mon_shift[:is_working] = false
+          # 両方とも保護なし（基本ケース）→ 土日のどちらかを休みにして連続出勤自体を回避する。
+          # 出勤者が多い方（＝他の職員で埋め合わせしやすい方）を優先して休みにし、
+          # 特定の職員に偏らせず全員に同じルールを適用する。
+          cancel_candidates = [sat_shift, sun_shift].reject { |s| @leave_set.include?([staff_name, s[:date]]) }
+          if cancel_candidates.any?
+            target = cancel_candidates.max_by { |s| @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] } }
+            target[:is_working] = false
+          else
+            # 両日とも希望休登録済みで動かせない場合のみ、月曜を休みにする
+            give_weekend_consecutive_makeup(staff_name, sat_shift[:date], shifts_by_date)
           end
         end
       end
+    end
+  end
+
+  def give_weekend_consecutive_makeup(staff_name, sat_date, shifts_by_date)
+    monday = sat_date + 2
+    mon_shift = shifts_by_date[monday]
+    if mon_shift&.[](:is_working) &&
+       !@leave_set.include?([staff_name, monday]) &&
+       !@closed_days.key?(monday) &&
+       !assignment_protected?(staff_name, monday)
+      mon_shift[:is_working] = false
     end
   end
 
@@ -356,15 +372,17 @@ class ShiftPostProcessor
 
   def add_staff(resting, working, count, &block)
     candidates = resting.select(&block).reject { |s| @leave_set.include?([s[:staff_name], s[:date]]) }
-    # 優先度: 1.連続勤務違反なし×不可曜日でない 2.連続違反なし×不可曜日 3.連続違反あり×不可曜日でない 4.連続違反あり×不可曜日
+    # 優先度: 1.連続違反なし×土日連続なし×不可曜日でない 2.連続違反なし×土日連続なし×不可曜日
+    #        3.連続違反なし×土日連続あり 4.連続違反あり×不可曜日でない 5.連続違反あり×不可曜日
     safe, risky = candidates.partition { |s| !would_cause_consecutive_violation?(s[:staff_name], s[:date]) }
-    preferred_safe, fallback_safe = safe.partition { |s|
+    safe_no_weekend, safe_weekend = safe.partition { |s| !would_cause_weekend_consecutive?(s[:staff_name], s[:date]) }
+    preferred_safe, fallback_safe = safe_no_weekend.partition { |s|
       !((@staff_info.dig(s[:staff_name], :unavailable_wdays) || []).include?(s[:date].wday))
     }
     preferred_risky, fallback_risky = risky.partition { |s|
       !((@staff_info.dig(s[:staff_name], :unavailable_wdays) || []).include?(s[:date].wday))
     }
-    ordered = preferred_safe + fallback_safe + preferred_risky + fallback_risky
+    ordered = preferred_safe + fallback_safe + safe_weekend + preferred_risky + fallback_risky
     ordered.first([count, ordered.size].min).each do |shift|
       shift[:is_working] = true
       resting.delete(shift)
@@ -398,13 +416,25 @@ class ShiftPostProcessor
                        .sort_by { |s| [daily_counts[s[:date]], s[:date]] }
 
       added = 0
+      # 優先度1: 5日超え連続にも土日連続にもならない日
       resting.each do |shift|
         break if added >= shortfall
+        next if would_cause_consecutive_violation?(staff_name, shift[:date])
+        next if would_cause_weekend_consecutive?(staff_name, shift[:date])
+        shift[:is_working] = true
+        daily_counts[shift[:date]] += 1
+        added += 1
+      end
+      # 優先度2: 5日超え連続にはならないが、土日連続になる日（目標日数達成を優先）
+      resting.each do |shift|
+        break if added >= shortfall
+        next if shift[:is_working]
         next if would_cause_consecutive_violation?(staff_name, shift[:date])
         shift[:is_working] = true
         daily_counts[shift[:date]] += 1
         added += 1
       end
+      # 優先度3: それでも不足する場合はやむを得ず残りを埋める
       resting.each do |shift|
         break if added >= shortfall
         next if shift[:is_working]
@@ -471,5 +501,14 @@ class ShiftPostProcessor
     test_dates = (working_dates + [date]).uniq.sort
     groups = find_consecutive_date_groups(test_dates)
     groups.any? { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
+  end
+
+  # 指定日に出勤させると、その職員の土日連続出勤（fix_weekend_consecutiveが
+  # 回避しようとしているもの）を新たに作ってしまわないかを判定する
+  def would_cause_weekend_consecutive?(staff_name, date)
+    return false unless date.saturday? || date.sunday?
+    pair_date = date.saturday? ? date + 1 : date - 1
+    pair_shift = @shifts.find { |s| s[:staff_name] == staff_name && s[:date] == pair_date }
+    pair_shift&.[](:is_working) == true
   end
 end
