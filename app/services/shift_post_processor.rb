@@ -43,6 +43,9 @@ class ShiftPostProcessor
     @locked_rest_days = Set.new
     @staff_info = build_staff_info
     @rules = build_rules
+    # 1日の最低出勤人数は「複数職種の合計最低出勤人数」（team_min）の配置ルールで
+    # 管理者が設定する値のみを根拠とする（固定値は持たない）
+    @min_staff_count = @rules.select { |r| r[:type] == "team_min" }.filter_map { |r| r[:min] }.max || 0
   end
 
   def process
@@ -119,10 +122,10 @@ class ShiftPostProcessor
         { type: "min_count", staff_type: rule.staff_type.name,
           employment_type: rule.employment_type&.name, min: rule.min_count }
       when "at_least_one_of"
-        names = rule.staff_type_ids_array.filter_map { |id| staff_type_names[id] }
+        names = rule.staff_type_ids_array.filter_map { |id| staff_type_names[id.to_i] }
         { type: "at_least_one_of", staff_types: names }
       when "team_min"
-        names = rule.staff_type_ids_array.filter_map { |id| staff_type_names[id] }
+        names = rule.staff_type_ids_array.filter_map { |id| staff_type_names[id.to_i] }
         { type: "team_min", staff_types: names, min: rule.min_count }
       end
     end
@@ -151,11 +154,6 @@ class ShiftPostProcessor
           add_staff(resting, working, rule[:min] - count) { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) }
         end
       end
-    end
-
-    # 最低出勤人数（12人）を満たすよう補完
-    if working.size < TotalCountValidator::MIN_STAFF_COUNT
-      add_staff(resting, working, TotalCountValidator::MIN_STAFF_COUNT - working.size) { true }
     end
   end
 
@@ -440,7 +438,7 @@ class ShiftPostProcessor
   end
 
   def would_drop_below_minimum?(date)
-    @shifts.count { |s| s[:date] == date && s[:is_working] } <= TotalCountValidator::MIN_STAFF_COUNT
+    @shifts.count { |s| s[:date] == date && s[:is_working] } <= @min_staff_count
   end
 
   def give_weekend_consecutive_makeup(staff_name, sat_date, shifts_by_date)
@@ -653,7 +651,7 @@ class ShiftPostProcessor
         break if removed >= excess
         day_shifts = @shifts.select { |s| s[:date] == shift[:date] }
         working = day_shifts.select { |s| s[:is_working] }
-        next if working.size <= TotalCountValidator::MIN_STAFF_COUNT
+        next if working.size <= @min_staff_count
         next if essential_for_rules?(shift, working)
         shift[:is_working] = false
         monthly_work_days[staff_name] -= 1

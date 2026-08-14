@@ -9,10 +9,6 @@ class ShiftValidationSummary
   def run
     errors_by_key = Hash.new { |h, k| h[k] = [] }
 
-    TotalCountValidator.new(@shifts, @closed_days).validate.each do |v|
-      errors_by_key[v[:date].to_s] << v[:message]
-    end
-
     PlacementRuleValidator.new(@shifts, @closed_days).validate.each do |v|
       errors_by_key[v[:date].to_s] << v[:message]
     end
