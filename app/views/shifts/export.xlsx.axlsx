@@ -1,42 +1,36 @@
 wb = xlsx_package.workbook
 s  = wb.styles
 
-# ---- スタイル定義 ----
+# ---- スタイル定義（WEB画面の配色に合わせる） ----
 base     = { font_name: "游ゴシック", sz: 9, border: { style: :thin, color: "CCCCCC" } }
 center   = base.merge(alignment: { horizontal: :center, vertical: :center })
 left     = base.merge(alignment: { horizontal: :left,   vertical: :center })
+wrap     = base.merge(alignment: { horizontal: :left,   vertical: :center, wrap_text: true })
 
 title_main_s  = s.add_style left.merge(b: true, sz: 14)
 title_month_s = s.add_style left.merge(b: true, sz: 11)
 title_blank_s = s.add_style base
-head_s        = s.add_style center.merge(bg_color: "C5D3F0", b: true)
-wday_s        = s.add_style center.merge(bg_color: "E8EDF9")
+info_label_s  = s.add_style left.merge(b: true, sz: 9, fg_color: "6C757D")
+info_value_s  = s.add_style wrap.merge(sz: 9)
+head_s        = s.add_style center.merge(bg_color: "F8F9FA", b: true)
+wday_s        = s.add_style center.merge(bg_color: "F8F9FA")
 sat_s         = s.add_style center.merge(bg_color: "DBEAFE", fg_color: "1D4ED8", b: true)
 sun_s         = s.add_style center.merge(bg_color: "FEE2E2", fg_color: "DC2626", b: true)
 hol_s         = s.add_style center.merge(bg_color: "FEE2E2", fg_color: "DC2626", b: true)
-closed_s      = s.add_style center.merge(bg_color: "E5E7EB", fg_color: "9CA3AF")
+closed_s      = s.add_style center.merge(bg_color: "DEE2E6", fg_color: "6C757D")
 name_s        = s.add_style left.merge(b: true, sz: 9)
-type_s        = s.add_style left.merge(sz: 8)
-off_s         = s.add_style center.merge(bg_color: "F3F4F6", fg_color: "9CA3AF")
-leave_s       = s.add_style center.merge(bg_color: "FDE68A", fg_color: "92400E", b: true)
-work_s        = s.add_style center.merge(fg_color: "16A34A", b: true)
-schedule_s    = s.add_style center.merge(bg_color: "6EE7B7", fg_color: "065F46", b: true)
+type_s        = s.add_style left.merge(sz: 8, fg_color: "6C757D")
+off_s         = s.add_style center.merge(fg_color: "6C757D")
+leave_s       = s.add_style center.merge(bg_color: "FEF3C7", fg_color: "92400E", b: true)
+work_s        = s.add_style center.merge(fg_color: "198754", b: true)
+schedule_s    = s.add_style center.merge(bg_color: "D1FAE5", fg_color: "065F46", b: true)
 early_s       = s.add_style center.merge(fg_color: "D97706", b: true)
 post_s        = s.add_style center.merge(fg_color: "2563EB", b: true)
 hol_post_s    = s.add_style center.merge(bg_color: "FEE2E2", fg_color: "DC2626", b: true)
+error_s       = s.add_style center.merge(bg_color: "F8D7DA", fg_color: "842029", b: true)
 count_s       = s.add_style center.merge(bg_color: "DCFCE7", b: true, fg_color: "166534")
 total_s       = s.add_style center.merge(bg_color: "EFF6FF", b: true, fg_color: "1E40AF")
-label_s       = s.add_style left.merge(bg_color: "F3F4F6", b: true, sz: 9)
-event_s       = s.add_style center.merge(bg_color: "ECFDF5", fg_color: "065F46", sz: 8, b: true)
-event_blank_s = s.add_style base
-
-# スケジュール一覧（右側）用スタイル
-sd_sep_s   = s.add_style base
-sd_head_s  = s.add_style center.merge(bg_color: "C5D3F0", b: true, sz: 9)
-sd_date_s  = s.add_style left.merge(bg_color: "EFF6FF", b: true, sz: 9)
-sd_time_s  = s.add_style left.merge(sz: 9)
-sd_name_s  = s.add_style left.merge(sz: 9)
-sd_staff_s = s.add_style left.merge(sz: 9)
+label_s       = s.add_style left.merge(bg_color: "F8F9FA", b: true, sz: 9)
 
 day_names = %w[日 月 火 水 木 金 土]
 
@@ -45,9 +39,16 @@ leave_reason_labels = { "公休" => "休", "年休" => "年", "夏期休暇" => 
 
 cell_val = lambda do |staff, date|
   shift = @shifts_map.dig(staff.id, date)
+  errors = shift && shift.validation_errors.present? ? (JSON.parse(shift.validation_errors) rescue []) : []
+
   if @closed_days.key?(date) && !shift&.is_working && !shift&.is_holiday_post_duty
-    return ["休", closed_s]
+    return ["－", closed_s]
   end
+  if errors.any?
+    mark = shift&.is_working ? "○" : "!"
+    return [mark, error_s]
+  end
+
   leave     = @leave_map[[staff.id, date]]
   lr_reason = @leave_requests_map[[staff.id, date]]
   if leave
@@ -69,7 +70,7 @@ cell_val = lambda do |staff, date|
   elsif shift&.is_holiday_post_duty
     ["Ｐ", hol_post_s]
   else
-    ["休", off_s]
+    ["－", off_s]
   end
 end
 
@@ -102,53 +103,11 @@ sheet_name  = "R#{reiwa_year}.#{@target_month.month}月"
 wb.add_worksheet(name: sheet_name) do |sheet|
   col_count = @dates.size + 4  # A(区分) B(職種) C(氏名) + 日付列 + 勤務日数列
 
-  # ---- スケジュール一覧（右側）の準備 ----
-  # スケジュール(SpecialDate)と移動図書館の巡回予定を、共通の形（Hash）にそろえて1つのリストにする
-  special_date_items = @special_dates_for_export.map do |sd|
-    staff_str = if sd.designated_staffs.any?
-      sd.designated_staffs.map(&:name).join("・")
-    elsif sd.target_group.present?
-      sd.target_group
-    else
-      ""
-    end
-    { date: sd.date, time_str: sd.time_range_label || "", name_str: sd.label.presence || "", staff_str: staff_str }
-  end
-  mobile_library_items = (@mobile_library_items_for_export || []).map do |item|
-    { date: item[:date], time_str: "", name_str: item[:name], staff_str: item[:staff_names].join("・") }
-  end
-  sd_list = special_date_items + mobile_library_items
-  # 同じ日付が左右に分かれないよう、日付単位でグループ化してから半分に分割
-  date_groups = sd_list.group_by { |item| item[:date] }.sort_by { |date, _| date }.map { |_, items| items }
-  half_groups = (date_groups.size / 2.0).ceil
-  left_sds    = date_groups[0...half_groups].flatten
-  right_sds   = date_groups[half_groups..].flatten
-
-  sd_info = lambda do |item|
-    return ["", "", "", ""] if item.nil?
-    date_str = "#{item[:date].strftime('%-m月%-d日')}（#{day_names[item[:date].wday]}）"
-    [date_str, item[:time_str], item[:name_str], item[:staff_str]]
-  end
-
-  # 右側セル＋スタイルを返す（type: :blank | :header | :data）
-  sd_extra = lambda do |type, idx = nil|
-    case type
-    when :blank
-      [Array.new(9, ""), Array.new(9, sd_sep_s)]
-    when :header
-      cells  = ["", "日付", "時間", "名称", "担当者", "日付", "時間", "名称", "担当者"]
-      styles = [sd_sep_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s, sd_head_s]
-      [cells, styles]
-    when :data
-      l = left_sds[idx]
-      r = right_sds[idx]
-      l_stls = l ? [sd_date_s, sd_time_s, sd_name_s, sd_staff_s] : Array.new(4, sd_sep_s)
-      r_stls = r ? [sd_date_s, sd_time_s, sd_name_s, sd_staff_s] : Array.new(4, sd_sep_s)
-      cells  = [""] + sd_info.call(l) + sd_info.call(r)
-      styles = [sd_sep_s] + l_stls + r_stls
-      [cells, styles]
-    end
-  end
+  # ---- 印刷設定：A4横 1ページに収める ----
+  sheet.page_setup.paper_size = 9 # A4
+  sheet.page_setup.orientation = :landscape
+  sheet.page_setup.fit_to(width: 1, height: 1)
+  sheet.page_margins.set(left: 0.25, right: 0.25, top: 0.3, bottom: 0.3, header: 0.1, footer: 0.1)
 
   # --- 行1: タイトル ---
   row1_data  = Array.new(col_count, "")
@@ -157,16 +116,51 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   row1_style[0] = title_main_s
   row1_data[2]  = month_label
   row1_style[2] = title_month_s
-  ec, es = sd_extra.call(:blank)
-  sheet.add_row row1_data + ec, style: row1_style + es, height: 26
+  sheet.add_row row1_data, style: row1_style, height: 22
   sheet.merge_cells "A1:B1"
   sheet.merge_cells "C1:H1"
 
-  # --- 行2: 空白行（A2〜AH2の値は削除） ---
-  ec, es = sd_extra.call(:blank)
-  sheet.add_row Array.new(col_count, "") + ec, style: Array.new(col_count, event_blank_s) + es, height: 14
+  # 件数がどれだけ増えても取りこぼさないよう、labelは初回行だけに付け、
+  # itemsをper_line件ずつ複数行に分けて出力する（1行の固定高さに収めようと
+  # せず行数側を増やすことで、はみ出て読めなくなることを防ぐ）
+  add_info_rows = lambda do |label, items, per_line|
+    slices = items.each_slice(per_line).to_a
+    slices = [[]] if slices.empty?
+    slices.each_with_index do |slice, i|
+      row_data  = Array.new(col_count, "")
+      row_style = Array.new(col_count, title_blank_s)
+      row_data[0]  = i.zero? ? label : ""
+      row_style[0] = info_label_s
+      row_data[2]  = slice.join("　")
+      row_style[2] = info_value_s
+      sheet.add_row row_data, style: row_style, height: 14
+      r = sheet.rows.size
+      sheet.merge_cells "A#{r}:B#{r}"
+      sheet.merge_cells "C#{r}:#{Axlsx.col_ref(col_count - 1)}#{r}"
+    end
+  end
 
-  # --- 行3: 日付 ---
+  # --- 月の勤務日数目標 ---
+  add_info_rows.call(
+    "月の勤務日数目標",
+    ["正規職員：#{@working_days[:regular]}日　会計年度任用職員：#{@working_days[:hourly]}日"],
+    1
+  )
+
+  # --- 休館日 ---
+  closed_items = @closed_days.map { |date, label| "#{date.strftime('%-m/%-d')}(#{label})" }
+  add_info_rows.call("休館日（#{@closed_days.size}日）", closed_items, 7)
+
+  # --- スケジュール（登録がある場合のみ） ---
+  if @special_date_labels.any?
+    sched_items = @special_date_labels.sort.map { |date, labels| "#{date.strftime('%-m/%-d')}（#{labels.join('・')}）" }
+    add_info_rows.call("スケジュール", sched_items, 4)
+  end
+
+  # --- 空白行 ---
+  sheet.add_row Array.new(col_count, ""), style: Array.new(col_count, title_blank_s), height: 4
+
+  # --- 日付 ---
   date_row  = ["", "", ""]
   date_styl = [head_s, head_s, head_s]
   @dates.each do |d|
@@ -183,10 +177,9 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   end
   date_row  << "勤務日数"
   date_styl << head_s
-  ec, es = sd_extra.call(:header)
-  sheet.add_row date_row + ec, style: date_styl + es, height: 16
+  sheet.add_row date_row, style: date_styl, height: 14
 
-  # --- 行4: 曜日 ---
+  # --- 曜日 ---
   wday_row  = ["", "職種", "氏名"]
   wday_styl = [head_s, head_s, head_s]
   @dates.each do |d|
@@ -203,11 +196,9 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   end
   wday_row  << ""
   wday_styl << head_s
-  sd_idx = 0
-  ec, es = sd_extra.call(:data, sd_idx); sd_idx += 1
-  sheet.add_row wday_row + ec, style: wday_styl + es, height: 16
+  sheet.add_row wday_row, style: wday_styl, height: 14
 
-  # --- 行5: 定休・祝日マーク ---
+  # --- 定休・祝日マーク ---
   mark_row  = ["", "", ""]
   mark_styl = [label_s, label_s, label_s]
   @dates.each do |d|
@@ -225,8 +216,7 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   end
   mark_row  << ""
   mark_styl << label_s
-  ec, es = sd_extra.call(:data, sd_idx); sd_idx += 1
-  sheet.add_row mark_row + ec, style: mark_styl + es, height: 14
+  sheet.add_row mark_row, style: mark_styl, height: 12
 
   # --- 職員行 ---
   regular_staffs = @staffs.select { |s| s.employment_type.name == "正規職員" }
@@ -246,8 +236,7 @@ wb.add_worksheet(name: sheet_name) do |sheet|
       row_data << working_days_count.call(staff)
       row_styl << total_s
 
-      ec, es = sd_extra.call(:data, sd_idx); sd_idx += 1
-      sheet.add_row row_data + ec, style: row_styl + es, height: 16
+      sheet.add_row row_data, style: row_styl, height: 14
     end
   end
 
@@ -260,11 +249,9 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   end
   cnt_row  << ""
   cnt_styl << label_s
-  ec, es = sd_extra.call(:blank)
-  sheet.add_row cnt_row + ec, style: cnt_styl + es, height: 16
+  sheet.add_row cnt_row, style: cnt_styl, height: 14
 
   # --- 列幅 ---
-  # A(区分)=5, B(職種)=10, C(氏名)=12, 日付列×n=3.8, 勤務日数=8
-  # 右側: 区切り=1, 前半(日付=10, 時間=11, 名称=10, 担当者=11), 後半(日付=10, 時間=11, 名称=10, 担当者=11)
-  sheet.column_widths 5, 10, 12, *Array.new(@dates.size, 3.8), 8, 1, 10, 11, 10, 11, 10, 11, 10, 11
+  # A(区分)=5, B(職種)=10, C(氏名)=10, 日付列×n=3.2, 勤務日数=8
+  sheet.column_widths 5, 10, 10, *Array.new(@dates.size, 3.2), 8
 end

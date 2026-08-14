@@ -210,10 +210,14 @@ class ShiftsController < ApplicationController
 
     holidays = HolidayFetcher.fetch(@target_month.year)
     extra = temporary_closed_dates_map(current_library, @target_month)
+    wdays = current_library.closed_wdays_array
     @closed_days = ClosedDayCalculator.new(@target_month, holidays,
-                     closed_wdays: current_library.closed_wdays_array, extra_closed_dates: extra).closed_days_with_labels
+                     closed_wdays: wdays, extra_closed_dates: extra).closed_days_with_labels
     @holidays_in_month = holidays.select { |d, _| d >= @target_month.beginning_of_month && d <= @target_month.end_of_month }
     @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
+
+    working_calc = WorkingDayCalculator.new(@target_month, holidays, closed_wdays: wdays)
+    @working_days = { regular: working_calc.city_hall_days, hourly: working_calc.hourly_staff_days }
 
     if @shift_group
       @shifts_map = @shift_group.shifts.includes(:staff).each_with_object({}) do |s, h|
