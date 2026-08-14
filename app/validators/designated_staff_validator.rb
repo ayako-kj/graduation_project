@@ -43,20 +43,20 @@ class DesignatedStaffValidator
 
   def check_mobile_libraries
     violations = []
-    MobileLibrary.includes(mobile_library_routes: :staffs)
+    MobileLibrary.includes(mobile_library_routes: [:staffs, :mobile_library_exceptions])
                  .where(library: @library)
                  .each do |ml|
       ml.mobile_library_routes.each do |route|
-        next if route.staffs.empty?
-        dates_of_wday = (@start_date..@end_date).select { |d| d.wday == route.wday }
-        date = dates_of_wday[route.week_number - 1]
-        next if date.nil? || @closed_days.key?(date)
-        route.staffs.each do |staff|
-          next if working?(staff.name, date)
+        # 巡回日・担当者の例外（MobileLibraryException）による上書きを
+        # 反映するため、曜日から独自に日付を再計算せず occurrence_for を使う
+        occurrence = route.occurrence_for(@start_date, closed_days: @closed_days)
+        next if occurrence.nil?
+        occurrence.staffs.each do |staff|
+          next if working?(staff.name, occurrence.date)
           violations << {
             staff_name: staff.name,
-            date: date,
-            message: "#{staff.name}の#{date.strftime('%-m月%-d日')}は#{ml.name}#{route.name}の巡回日ですが休みになっています"
+            date: occurrence.date,
+            message: "#{staff.name}の#{occurrence.date.strftime('%-m月%-d日')}は#{ml.name}#{route.name}の巡回日ですが休みになっています"
           }
         end
       end
