@@ -151,10 +151,9 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   closed_items = @closed_days.map { |date, label| "#{date.strftime('%-m/%-d')}(#{label})" }
   add_info_rows.call("休館日（#{@closed_days.size}日）", closed_items, 7)
 
-  # --- スケジュール（登録がある場合のみ） ---
+  # --- スケジュール（登録がある場合のみ／詳細は別シート「スケジュール」を参照） ---
   if @special_date_labels.any?
-    sched_items = @special_date_labels.sort.map { |date, labels| "#{date.strftime('%-m/%-d')}（#{labels.join('・')}）" }
-    add_info_rows.call("スケジュール", sched_items, 4)
+    add_info_rows.call("スケジュール", ["詳細は「スケジュール」シートを参照してください"], 1)
   end
 
   # --- 空白行 ---
@@ -254,4 +253,55 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   # --- 列幅 ---
   # A(区分)=5, B(職種)=10, C(氏名)=10, 日付列×n=3.2, 勤務日数=8
   sheet.column_widths 5, 10, 10, *Array.new(@dates.size, 3.2), 8
+end
+
+# ---- 2枚目シート：スケジュール一覧 ----
+# メイン表に収めると件数が増えたときに表示しきれなくなるため、
+# 件数によらず全件を確実に表示できるよう独立した表として出力する
+if @special_date_labels.any?
+  special_date_items = @special_dates_for_export.map do |sd|
+    staff_str = if sd.designated_staffs.any?
+      sd.designated_staffs.map(&:name).join("・")
+    elsif sd.target_group.present?
+      sd.target_group
+    else
+      ""
+    end
+    { date: sd.date, time_str: sd.time_range_label || "", name_str: sd.label.presence || "", staff_str: staff_str }
+  end
+  mobile_library_items = (@mobile_library_items_for_export || []).map do |item|
+    { date: item[:date], time_str: "", name_str: item[:name], staff_str: item[:staff_names].join("・") }
+  end
+  sd_list = (special_date_items + mobile_library_items).sort_by { |item| [item[:date], item[:name_str]] }
+
+  wb.add_worksheet(name: "スケジュール") do |sheet|
+    sheet.page_setup.paper_size = 9 # A4
+    sheet.page_setup.orientation = :landscape
+    sheet.page_setup.fit_to(width: 1, height: 1)
+    sheet.page_margins.set(left: 0.4, right: 0.4, top: 0.4, bottom: 0.4, header: 0.1, footer: 0.1)
+
+    title_row  = ["スケジュール", "", "", "", ""]
+    title_styl = [title_main_s, title_blank_s, title_blank_s, title_blank_s, title_blank_s]
+    sheet.add_row title_row, style: title_styl, height: 22
+    sheet.merge_cells "A1:E1"
+
+    sheet.add_row Array.new(5, ""), style: Array.new(5, title_blank_s), height: 6
+
+    sheet.add_row ["日付", "曜日", "時間", "名称", "担当者"], style: Array.new(5, head_s), height: 18
+
+    sd_list.each do |item|
+      row = [
+        item[:date].strftime("%-m月%-d日"),
+        day_names[item[:date].wday],
+        item[:time_str],
+        item[:name_str],
+        item[:staff_str]
+      ]
+      styl = [name_s, type_s, type_s, name_s, type_s]
+      styl[1] = item[:date].saturday? ? sat_s : (item[:date].sunday? ? sun_s : type_s)
+      sheet.add_row row, style: styl, height: 16
+    end
+
+    sheet.column_widths 12, 6, 14, 26, 26
+  end
 end
