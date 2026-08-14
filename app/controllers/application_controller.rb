@@ -31,4 +31,10 @@ class ApplicationController < ActionController::Base
       .where(library: library, date: target_month.beginning_of_month..target_month.end_of_month)
       .each_with_object({}) { |tcd, h| h[tcd.date] = tcd.label.presence || "臨時休館日" }
   end
+
+  def temporary_open_dates_map(library, target_month)
+    TemporaryOpenDate
+      .where(library: library, date: target_month.beginning_of_month..target_month.end_of_month)
+      .each_with_object({}) { |tod, h| h[tod.date] = tod.label.presence || "臨時開館日" }
+  end
 end

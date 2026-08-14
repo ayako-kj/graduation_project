@@ -7,8 +7,9 @@ class ActualLeavesController < ApplicationController
 
     holidays = HolidayFetcher.fetch(@target_month.year)
     extra = temporary_closed_dates_map(current_library, @target_month)
+    forced_open = temporary_open_dates_map(current_library, @target_month)
     @closed_days = ClosedDayCalculator.new(@target_month, holidays,
-                     closed_wdays: current_library.closed_wdays_array, extra_closed_dates: extra).closed_days_with_labels
+                     closed_wdays: current_library.closed_wdays_array, extra_closed_dates: extra, forced_open_dates: forced_open).closed_days_with_labels
     @all_dates  = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
     @open_dates = @all_dates.reject { |d| @closed_days.key?(d) }
 
