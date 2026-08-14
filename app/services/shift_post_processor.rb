@@ -216,6 +216,7 @@ class ShiftPostProcessor
 
   def assignment_protected?(staff_name, date)
     return false if @leave_set.include?([staff_name, date])
+    return true if @all_staff_dates.include?(date)
     return true if @extra_protected_dates.include?([staff_name, date])
     return true if @assignment_dates[date]&.include?(staff_name)
     return true if @designated_dates[date]&.include?(staff_name)
@@ -348,11 +349,13 @@ class ShiftPostProcessor
     end
   end
 
-  # 希望休・閉館日・ロック済みの休みなど、動かせない日かどうか
+  # 希望休・閉館日・ロック済みの休み・全員出勤日やスケジュール等の
+  # 保護指定など、動かせない日かどうか
   def fixed_and_unmovable?(staff_name, date)
     @closed_days.key?(date) ||
       @leave_set.include?([staff_name, date]) ||
-      @locked_rest_days.include?([staff_name, date])
+      @locked_rest_days.include?([staff_name, date]) ||
+      assignment_protected?(staff_name, date)
   end
 
   # 職員ごとの週勤務日数（weekly_work_days）の上限を超えている週があれば、
