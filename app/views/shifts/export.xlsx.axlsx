@@ -20,6 +20,9 @@ hol_s         = s.add_style center.merge(bg_color: "FEE2E2", fg_color: "DC2626",
 closed_s      = s.add_style center.merge(bg_color: "DEE2E6", fg_color: "6C757D")
 name_s        = s.add_style left.merge(b: true, sz: 9)
 type_s        = s.add_style left.merge(sz: 8, fg_color: "6C757D")
+wday_col_s     = s.add_style center.merge(sz: 8, fg_color: "6C757D")
+wday_col_sat_s = s.add_style center.merge(sz: 8, fg_color: "1D4ED8")
+wday_col_sun_s = s.add_style center.merge(sz: 8, fg_color: "DC2626")
 off_s         = s.add_style center.merge(fg_color: "6C757D")
 leave_s       = s.add_style center.merge(bg_color: "FEF3C7", fg_color: "92400E", b: true)
 work_s        = s.add_style center.merge(fg_color: "198754", b: true)
@@ -274,34 +277,52 @@ if @special_date_labels.any?
   end
   sd_list = (special_date_items + mobile_library_items).sort_by { |item| [item[:date], item[:name_str]] }
 
+  # 横幅を有効に使い、件数が多いときの縦方向の伸びを抑えるため2段組にする。
+  # 同じ日付は左右に分割せず、全体件数の半分（切り上げ）に達するまで
+  # 日付グループ単位で左側に詰めてから残りを右側にすることで、
+  # 右側の行数が左側を超えないようにする
+  date_groups = sd_list.group_by { |item| item[:date] }.sort_by { |date, _| date }.map { |_, items| items }
+  half = (sd_list.size / 2.0).ceil
+  left_items  = []
+  right_items = []
+  date_groups.each do |items|
+    if left_items.size < half
+      left_items.concat(items)
+    else
+      right_items.concat(items)
+    end
+  end
+
+  item_cells = lambda do |item|
+    next Array.new(5, "") if item.nil?
+    [item[:date].strftime("%-m月%-d日"), day_names[item[:date].wday], item[:time_str], item[:name_str], item[:staff_str]]
+  end
+  item_styles = lambda do |item|
+    next Array.new(5, title_blank_s) if item.nil?
+    wday_style = item[:date].saturday? ? wday_col_sat_s : (item[:date].sunday? ? wday_col_sun_s : wday_col_s)
+    [name_s, wday_style, type_s, name_s, type_s]
+  end
+
   wb.add_worksheet(name: "スケジュール") do |sheet|
     sheet.page_setup.paper_size = 9 # A4
     sheet.page_setup.orientation = :landscape
     sheet.page_setup.fit_to(width: 1, height: 1)
-    sheet.page_margins.set(left: 0.4, right: 0.4, top: 0.4, bottom: 0.4, header: 0.1, footer: 0.1)
+    sheet.page_margins.set(left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.1, footer: 0.1)
 
-    title_row  = ["スケジュール", "", "", "", ""]
-    title_styl = [title_main_s, title_blank_s, title_blank_s, title_blank_s, title_blank_s]
-    sheet.add_row title_row, style: title_styl, height: 22
-    sheet.merge_cells "A1:E1"
+    sheet.add_row ["スケジュール"] + Array.new(10, ""), style: [title_main_s] + Array.new(10, title_blank_s), height: 22
+    sheet.merge_cells "A1:K1"
 
-    sheet.add_row Array.new(5, ""), style: Array.new(5, title_blank_s), height: 6
+    sheet.add_row Array.new(11, ""), style: Array.new(11, title_blank_s), height: 6
 
-    sheet.add_row ["日付", "曜日", "時間", "名称", "担当者"], style: Array.new(5, head_s), height: 18
+    header = ["日付", "曜日", "時間", "名称", "担当者"]
+    sheet.add_row header + [""] + header, style: Array.new(5, head_s) + [title_blank_s] + Array.new(5, head_s), height: 18
 
-    sd_list.each do |item|
-      row = [
-        item[:date].strftime("%-m月%-d日"),
-        day_names[item[:date].wday],
-        item[:time_str],
-        item[:name_str],
-        item[:staff_str]
-      ]
-      styl = [name_s, type_s, type_s, name_s, type_s]
-      styl[1] = item[:date].saturday? ? sat_s : (item[:date].sunday? ? sun_s : type_s)
+    left_items.size.times do |i|
+      row  = item_cells.call(left_items[i])  + [""] + item_cells.call(right_items[i])
+      styl = item_styles.call(left_items[i]) + [title_blank_s] + item_styles.call(right_items[i])
       sheet.add_row row, style: styl, height: 16
     end
 
-    sheet.column_widths 12, 6, 14, 26, 26
+    sheet.column_widths 10, 5, 11, 20, 20, 1, 10, 5, 11, 20, 20
   end
 end
