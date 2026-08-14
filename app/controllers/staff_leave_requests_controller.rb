@@ -10,8 +10,9 @@ class StaffLeaveRequestsController < ApplicationController
     library = @current_staff.library
     holidays = HolidayFetcher.fetch(@target_month.year)
     extra = temporary_closed_dates_map(library, @target_month)
+    forced_open = temporary_open_dates_map(library, @target_month)
     @closed_days = ClosedDayCalculator.new(@target_month, holidays,
-                     closed_wdays: library.closed_wdays_array, extra_closed_dates: extra).closed_days_with_labels
+                     closed_wdays: library.closed_wdays_array, extra_closed_dates: extra, forced_open_dates: forced_open).closed_days_with_labels
 
     @input_deadline = library.input_deadlines.find_by(target_month: @target_month.beginning_of_month)
     @submission = MonthlySubmission.find_by(staff: @current_staff, target_month: @target_month.beginning_of_month)

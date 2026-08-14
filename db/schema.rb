@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_13_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_14_141819) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -256,6 +256,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_13_020000) do
     t.index ["library_id"], name: "index_temporary_closed_dates_on_library_id"
   end
 
+  create_table "temporary_open_dates", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "date", null: false
+    t.string "label"
+    t.bigint "library_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["library_id", "date"], name: "index_temporary_open_dates_on_library_id_and_date", unique: true
+    t.index ["library_id"], name: "index_temporary_open_dates_on_library_id"
+  end
+
   create_table "workday_manual_entries", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "early_count"
@@ -299,5 +309,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_13_020000) do
   add_foreign_key "staffs", "libraries"
   add_foreign_key "staffs", "staff_types"
   add_foreign_key "temporary_closed_dates", "libraries"
+  add_foreign_key "temporary_open_dates", "libraries"
   add_foreign_key "workday_manual_entries", "staffs"
 end
