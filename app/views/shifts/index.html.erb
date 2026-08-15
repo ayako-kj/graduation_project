@@ -146,6 +146,8 @@
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">休</span>公休</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">年</span>年休</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">夏</span>夏期休暇</span>
+      <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">病</span>病気休暇</span>
+      <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">特</span>特別休暇</span>
       <span><span class="badge me-1" style="background-color:#D1FAE5; color:#065F46; border:1px solid #6ee7b7;">○</span>スケジュール・移動図書館・定例会議</span>
       <% if @shift_group&.suppress_all_errors? %>
         <%= button_to restore_errors_shifts_path(month: @target_month.strftime("%Y-%m")),

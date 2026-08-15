@@ -1,7 +1,7 @@
 class StaffLeaveRequestsController < ApplicationController
   before_action :authenticate_staff_token!
 
-  LEAVE_TYPES = %w[公休 年休 夏期休暇].freeze
+  LEAVE_TYPES = %w[公休 年休 夏期休暇 病気休暇 特別休暇].freeze
 
   def index
     @target_month = parse_target_month
