@@ -30,6 +30,9 @@ schedule_s    = s.add_style center.merge(bg_color: "D1FAE5", fg_color: "065F46",
 early_s       = s.add_style center.merge(fg_color: "D97706", b: true)
 post_s        = s.add_style center.merge(fg_color: "2563EB", b: true)
 hol_post_s    = s.add_style center.merge(bg_color: "FEE2E2", fg_color: "DC2626", b: true)
+early_schedule_s    = s.add_style center.merge(bg_color: "D1FAE5", fg_color: "D97706", b: true)
+post_schedule_s     = s.add_style center.merge(bg_color: "D1FAE5", fg_color: "2563EB", b: true)
+hol_post_schedule_s = s.add_style center.merge(bg_color: "D1FAE5", fg_color: "DC2626", b: true)
 error_s       = s.add_style center.merge(bg_color: "F8D7DA", fg_color: "842029", b: true)
 count_s       = s.add_style center.merge(bg_color: "DCFCE7", b: true, fg_color: "166534")
 total_s       = s.add_style center.merge(bg_color: "EFF6FF", b: true, fg_color: "1E40AF")
@@ -59,13 +62,14 @@ cell_val = lambda do |staff, date|
   elsif lr_reason && !shift&.is_working
     [leave_reason_labels[lr_reason] || "休", leave_s]
   elsif shift&.is_working
+    scheduled = @schedule_map[[staff.id, date]]
     if shift.is_early
-      ["早", early_s]
+      scheduled ? ["早", early_schedule_s] : ["早", early_s]
     elsif shift.is_holiday_post_duty
-      ["Ｐ", hol_post_s]
+      scheduled ? ["Ｐ", hol_post_schedule_s] : ["Ｐ", hol_post_s]
     elsif shift.is_post_duty
-      ["ｐ", post_s]
-    elsif @schedule_map[[staff.id, date]]
+      scheduled ? ["ｐ", post_schedule_s] : ["ｐ", post_s]
+    elsif scheduled
       ["○", schedule_s]
     else
       ["○", work_s]
