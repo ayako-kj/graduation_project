@@ -41,7 +41,7 @@ label_s       = s.add_style left.merge(bg_color: "F8F9FA", b: true, sz: 9)
 day_names = %w[日 月 火 水 木 金 土]
 
 # セルの値とスタイルを決定するヘルパー
-leave_reason_labels = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏" }
+leave_reason_labels = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏", "病気休暇" => "病", "特別休暇" => "特" }
 
 cell_val = lambda do |staff, date|
   shift = @shifts_map.dig(staff.id, date)
