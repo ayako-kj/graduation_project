@@ -115,6 +115,7 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   sheet.page_setup.orientation = :landscape
   sheet.page_setup.fit_to(width: 1, height: 1)
   sheet.page_margins.set(left: 0.25, right: 0.25, top: 0.3, bottom: 0.3, header: 0.1, footer: 0.1)
+  sheet.print_options.set(horizontal_centered: true, vertical_centered: true)
 
   # --- 行1: タイトル ---
   row1_data  = Array.new(col_count, "")
@@ -312,6 +313,7 @@ if @special_date_labels.any?
     sheet.page_setup.orientation = :landscape
     sheet.page_setup.fit_to(width: 1, height: 1)
     sheet.page_margins.set(left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.1, footer: 0.1)
+    sheet.print_options.set(horizontal_centered: true, vertical_centered: true)
 
     sheet.add_row ["スケジュール"] + Array.new(10, ""), style: [title_main_s] + Array.new(10, title_blank_s), height: 22
     sheet.merge_cells "A1:K1"
