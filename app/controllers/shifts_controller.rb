@@ -342,29 +342,41 @@ class ShiftsController < ApplicationController
     target_month = parse_target_month
 
     staffs = current_library.staffs
-    masker = StaffMasker.new(staffs)
     extractor = ConstraintExtractor.new(target_month, current_library)
     constraints = extractor.extract
-    builder = PromptBuilder.new(constraints, masker, target_month)
-    generator = ShiftGenerator.new(builder)
-    result = generator.generate
 
-    unless result[:success]
-      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: result[:error] and return
-    end
+    if params[:skip_ai] == "1"
+      # AIを使わず、白紙の下書き（全員全日休み）からShiftPostProcessorだけで
+      # 組み立てる。API利用上限に達した場合などの代替手段
+      dates = (target_month.beginning_of_month..target_month.end_of_month).to_a
+      parsed_shifts = staffs.flat_map do |staff|
+        dates.map { |date| { staff_name: staff.name, date: date, is_working: false } }
+      end
+    else
+      masker = StaffMasker.new(staffs)
+      builder = PromptBuilder.new(constraints, masker, target_month)
+      generator = ShiftGenerator.new(builder)
+      result = generator.generate
 
-    parser = ShiftResponseParser.new(masker, staffs, target_month)
-    parsed = parser.parse(result[:content])
+      unless result[:success]
+        redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: result[:error] and return
+      end
 
-    unless parsed[:success]
-      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: parsed[:error] and return
+      parser = ShiftResponseParser.new(masker, staffs, target_month)
+      parsed = parser.parse(result[:content])
+
+      unless parsed[:success]
+        redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: parsed[:error] and return
+      end
+
+      parsed_shifts = parsed[:shifts]
     end
 
     staff_target_days = constraints[:staffs].each_with_object({}) do |s, h|
       h[s[:name]] = s[:monthly_target_days] || constraints[:working_days][:regular]
     end
     post_processor = ShiftPostProcessor.new(
-      parsed[:shifts], constraints[:closed_days],
+      parsed_shifts, constraints[:closed_days],
       constraints[:leave_requests], constraints[:special_dates],
       staff_target_days, constraints[:assignment_constraints],
       constraints[:mobile_library_constraints]
