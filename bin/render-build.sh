@@ -7,3 +7,4 @@ bundle exec rails assets:clean
 bundle exec rails db:migrate
 bundle exec rails db:seed
 bundle exec rails admin:reset_password
+bundle exec rails actual_leaves:sync_from_requests

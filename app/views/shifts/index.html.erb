@@ -29,19 +29,12 @@
         <i class="bi bi-clock-history me-1"></i>入力締め切り日
       <% end %>
 
-      <%# シフト生成ボタン %>
-      <%= button_to "AIでシフトを生成する",
-          generate_shifts_path(month: @target_month.strftime("%Y-%m")),
-          method: :post,
-          data: { turbo_confirm: "#{@target_month.strftime('%Y年%m月')}のシフトをAIで生成しますか？既存のシフトは上書きされます。" },
-          class: "btn btn-pitat rounded-pill px-4 fw-semibold" %>
-
-      <%# AIを使わずにシフト生成（API利用上限時の代替手段） %>
-      <%= button_to "AIを使わずに生成する",
+      <%# シフト生成ボタン（AIを使わない生成） %>
+      <%= button_to "シフトを生成する",
           generate_shifts_path(month: @target_month.strftime("%Y-%m"), skip_ai: 1),
           method: :post,
-          data: { turbo_confirm: "#{@target_month.strftime('%Y年%m月')}のシフトをAIを使わずに生成しますか？既存のシフトは上書きされます。" },
-          class: "btn btn-pitat-outline rounded-pill px-4 fw-semibold" %>
+          data: { turbo_confirm: "#{@target_month.strftime('%Y年%m月')}のシフトを生成しますか？既存のシフトは上書きされます。" },
+          class: "btn btn-pitat rounded-pill px-4 fw-semibold" %>
 
       <%# 確定・ダウンロード・印刷ボタン %>
       <% if @shift_group %>
