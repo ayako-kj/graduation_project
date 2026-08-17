@@ -641,10 +641,23 @@ class ShiftPostProcessor
     rule[:employment_type].nil? || info[:employment_type] == rule[:employment_type]
   end
 
+  # 職員の当月の目標出勤日数に対して、まだどれだけ余裕があるか（残り日数）。
+  # 目標を大きく超えている職員ほど小さい（マイナスにもなる）値になる
+  def remaining_target_room(staff_name)
+    target = @staff_target_days[staff_name]
+    return 0 unless target
+    current = @shifts.count { |s| s[:staff_name] == staff_name && s[:is_working] }
+    target - current
+  end
+
   def add_staff(resting, working, count, &block)
     candidates = resting.select(&block)
       .reject { |s| @leave_set.include?([s[:staff_name], s[:date]]) }
       .reject { |s| @locked_rest_days.include?([s[:staff_name], s[:date]]) }
+      # 希望休が少ない等の理由で「いつでも入れる」職員ばかりが配置ルール
+      # 補充のたびに選ばれ、目標出勤日数を大きく超過してしまうのを防ぐため、
+      # 目標にまだ余裕がある職員を優先する
+      .sort_by { |s| -remaining_target_room(s[:staff_name]) }
     # 優先度: 1.連続違反なし×土日連続なし×週上限内×不可曜日でない
     #        2.連続違反なし×土日連続なし×週上限内×不可曜日
     #        3.連続違反なし×土日連続なし×週上限超過 4.連続違反なし×土日連続あり
