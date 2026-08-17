@@ -60,6 +60,7 @@ class ShiftPostProcessor
       # fix_day（最低出勤人数・配置ルールの補充）が週の上限超過・土日連続を
       # 新たに作ることがあるため、毎回ループの先頭でチェックし直す
       fix_regular_weekly_pattern
+      fix_hourly_weekend_balance
       fix_weekly_overwork
       fix_weekend_consecutive
       fix_consecutive_work
@@ -294,13 +295,97 @@ class ShiftPostProcessor
     # 土曜・日曜に振り分ける（例：正規司書4人なら2人ずつ）。これにより
     # 配置ルールの必要人数をグループ内で自然に満たし、後段の補充が
     # 特定の職員に土日連続出勤を強いることを防ぐ
+    #
+    # ただし土日のどちらかが全員出勤日の場合は「必ずどちらか片方だけ」という
+    # 前提が崩れる（全員出勤日は動かせないため）。この場合、何もしないと
+    # もう一方の日は正規職員全員が休みになり、その穴を会計年度任用職員だけで
+    # 埋めることになって偏りが生じる。そのため正規職員全体で、もう一方の日に
+    # おおよそ半数が出勤する形に均す（配置ルールに必要な人は対象から除外する
+    # ため、配置ルールを満たさなくなることはない。不足分は後段のfix_dayが補充する）
     by_group = regular_names.group_by { |name| weekend_group_key(name) }
     @shifts.select { |s| s[:date].saturday? }.map { |s| s[:date] }.uniq.sort.each do |sat|
       sun = sat + 1
       next unless @shifts.any? { |s| s[:date] == sun }
 
-      by_group.each_value { |names| assign_weekend_group(names, sat, sun) }
+      if @all_staff_dates.include?(sat) ^ @all_staff_dates.include?(sun)
+        movable = @all_staff_dates.include?(sat) ? sun : sat
+        balance_weekend_half(regular_names, movable)
+      else
+        by_group.each_value { |names| assign_weekend_group(names, sat, sun) }
+      end
     end
+  end
+
+  # 土日のどちらかが全員出勤日になっている週について、会計年度任用職員側も
+  # もう一方の日におおよそ半数が出勤する形に均す（正規職員側は
+  # fix_regular_weekly_pattern 内で balance_weekend_half により対応済み）
+  def fix_hourly_weekend_balance
+    hourly_names = @staff_info.reject { |_, info| info[:is_regular] }.keys
+    @shifts.select { |s| s[:date].saturday? }.map { |s| s[:date] }.uniq.sort.each do |sat|
+      sun = sat + 1
+      next unless @shifts.any? { |s| s[:date] == sun }
+      next unless @all_staff_dates.include?(sat) ^ @all_staff_dates.include?(sun)
+
+      movable = @all_staff_dates.include?(sat) ? sun : sat
+      balance_weekend_half(hourly_names, movable)
+    end
+  end
+
+  # 指定した職員グループについて、movable_date（全員出勤日の対になる方の
+  # 土日）の出勤者数をグループの半数程度に近づける。配置ルール上どうしても
+  # 必要な人（essential_for_rules?）は休み候補から除外するため、この調整で
+  # 配置ルールが満たせなくなることはない。全員出勤日は動かせないため、
+  # 選ばれた半数は結果的に土日連続出勤になるが、これはユーザーの要望どおり
+  # 許容する（その分、週の上限を超えないよう平日側で調整する）
+  def balance_weekend_half(names, movable_date)
+    pairs = names.filter_map do |name|
+      shift = @shifts.find { |s| s[:staff_name] == name && s[:date] == movable_date }
+      [name, shift] if shift
+    end
+    return if pairs.empty?
+
+    target = (pairs.size / 2.0).round
+    working, resting = pairs.partition { |_, s| s[:is_working] }
+    day_working = @shifts.select { |s| s[:date] == movable_date && s[:is_working] }
+
+    if working.size > target
+      excess = working.size - target
+      candidates = working.shuffle.reject { |name, s|
+        fixed_and_unmovable?(name, s[:date]) || would_drop_below_minimum?(s[:date]) || essential_for_rules?(s, day_working)
+      }
+      candidates.first(excess).each { |name, s| lock_rest_day(s, name) }
+    elsif working.size < target
+      shortfall = target - working.size
+      candidates = resting.shuffle.reject { |name, s| fixed_and_unmovable?(name, s[:date]) || would_cause_consecutive_violation?(name, s[:date]) }
+      candidates.first(shortfall).each do |name, s|
+        s[:is_working] = true
+        make_room_for_weekly_cap(name, s[:date])
+        # fix_weekly_overwork等の後続処理（reconcile_weekend_consecutive!内も
+        # 含む）がこの意図的な出勤を「超過」とみなして打ち消してしまわない
+        # よう、保護日として確定させる
+        @extra_protected_dates << [name, s[:date]]
+      end
+    end
+  end
+
+  # 週の上限を超えないよう、必要なら同じ週の平日出勤を1日分キャンセルする。
+  # 何もしないと後段の fix_weekly_overwork が土日を優先してキャンセルして
+  # しまい、balance_weekend_half でせっかく割り当てた出勤が打ち消される
+  def make_room_for_weekly_cap(staff_name, date)
+    cap = @staff_info.dig(staff_name, :weekly_work_days)
+    return unless cap
+
+    week_shifts = @shifts.select { |s| s[:staff_name] == staff_name && s[:date].beginning_of_week == date.beginning_of_week }
+    working = week_shifts.select { |s| s[:is_working] }
+    excess = working.size - cap
+    return if excess <= 0
+
+    candidates = working
+      .reject { |s| s[:date].saturday? || s[:date].sunday? }
+      .reject { |s| @leave_set.include?([staff_name, s[:date]]) }
+      .reject { |s| assignment_protected?(staff_name, s[:date]) }
+
+    candidates.first(excess).each { |s| cancel_and_backfill(s, staff_name) }
   end
 
   def assign_weekend_group(names, sat, sun)
@@ -396,6 +481,11 @@ class ShiftPostProcessor
       staff_shifts.select { |s| s[:is_working] && s[:date].saturday? }.sort_by { |s| s[:date] }.each do |sat_shift|
         sun_shift = shifts_by_date[sat_shift[:date] + 1]
         next unless sun_shift&.[](:is_working)
+        # 土日のどちらかが全員出勤日の場合は、balance_weekend_half /
+        # fix_hourly_weekend_balance が「意図的におおよそ半数を土日連続にする」
+        # 調整を担当するため、ここで保護なし扱いにして打ち消してしまわないよう
+        # 何もしない（両方とも全員出勤の場合は従来どおり月曜代休で対応する）
+        next if @all_staff_dates.include?(sat_shift[:date]) ^ @all_staff_dates.include?(sun_shift[:date])
 
         sat_protected = assignment_protected?(staff_name, sat_shift[:date])
         sun_protected = assignment_protected?(staff_name, sun_shift[:date])
@@ -437,20 +527,55 @@ class ShiftPostProcessor
     @locked_rest_days << [staff_name, shift[:date]]
   end
 
+  # 指定シフトを休みにし、その日を即座に別の職員で補完する（本人は補完対象から除く）。
+  # 最低出勤人数ちょうどの日でも、キャンセルと補完をセットで行うことで
+  # 「最低人数を割るから動かせない」まま身動きが取れなくなるのを防ぐ
+  # （fix_consecutive_workの補完処理と同じパターン）。
+  # ただし代わりの人が見つからず出勤人数が元より減ってしまう場合は、
+  # その日を悪化させないよう元に戻す（配置ルール違反という目に見える形の
+  # 悪化を新たに生まないことを優先する）
+  def cancel_and_backfill(shift, staff_name)
+    date = shift[:date]
+    before_count = @shifts.count { |s| s[:date] == date && s[:is_working] }
+    lock_rest_day(shift, staff_name)
+    unless @closed_days.key?(date)
+      day_shifts = @shifts.select { |s| s[:date] == date }
+      fix_day(day_shifts, exclude_name: staff_name)
+    end
+
+    after_count = @shifts.count { |s| s[:date] == date && s[:is_working] }
+    return if after_count >= before_count
+
+    shift[:is_working] = true
+    @locked_rest_days.delete([staff_name, date])
+  end
+
   def would_drop_below_minimum?(date)
     @shifts.count { |s| s[:date] == date && s[:is_working] } <= @min_staff_count
   end
 
+  # 土日連続出勤の代休はまず翌月曜を休みにする。月曜が動かせない、または
+  # 代わりが見つからず解消できない場合は、前の金曜を休みにする
   def give_weekend_consecutive_makeup(staff_name, sat_date, shifts_by_date)
     monday = sat_date + 2
-    mon_shift = shifts_by_date[monday]
-    if mon_shift&.[](:is_working) &&
-       !@leave_set.include?([staff_name, monday]) &&
-       !@closed_days.key?(monday) &&
-       !assignment_protected?(staff_name, monday) &&
-       !would_drop_below_minimum?(monday)
-      lock_rest_day(mon_shift, staff_name)
-    end
+    return if try_weekend_makeup_day(staff_name, monday, shifts_by_date)
+
+    friday = sat_date - 1
+    try_weekend_makeup_day(staff_name, friday, shifts_by_date)
+  end
+
+  # 指定日を休みにできれば休みにして true を返す。希望休・休館日・保護日は
+  # 対象外。代わりが見つからず最低人数を割ってしまう場合はキャンセルしない
+  # （cancel_and_backfillが自動的に元に戻す）ため、その場合は false を返す
+  def try_weekend_makeup_day(staff_name, date, shifts_by_date)
+    shift = shifts_by_date[date]
+    return false unless shift&.[](:is_working) &&
+                         !@leave_set.include?([staff_name, date]) &&
+                         !@closed_days.key?(date) &&
+                         !assignment_protected?(staff_name, date)
+
+    cancel_and_backfill(shift, staff_name)
+    !shift[:is_working]
   end
 
   def fix_consecutive_work
