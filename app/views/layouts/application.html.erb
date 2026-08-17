@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "LibShiftAI_Pitat" %></title>
+    <title><%= content_for(:title) || "LibShift_Pitat" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
@@ -20,7 +20,7 @@
   <body class="pitat-bg">
     <nav class="navbar navbar-expand-lg pitat-bg border-bottom border-light">
       <div class="container">
-        <a class="navbar-brand pitat-brand fw-bold fs-5" href="<%= root_path %>">LibShiftAI_Pitat</a>
+        <a class="navbar-brand pitat-brand fw-bold fs-5" href="<%= root_path %>">LibShift_Pitat</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
           <span class="navbar-toggler-icon"></span>
         </button>
@@ -91,13 +91,13 @@
 
     <footer class="pitat-footer py-4 mt-5 border-top border-light">
       <div class="container text-center">
-        <p class="fw-semibold mb-2">LibShiftAI_Pitat</p>
+        <p class="fw-semibold mb-2">LibShift_Pitat</p>
         <div class="d-flex justify-content-center gap-4 mb-3">
           <%= link_to "プライバシーポリシー", privacy_policy_path, class: "text-muted small text-decoration-none" %>
           <%= link_to "ヘルプセンター", help_path, class: "text-muted small text-decoration-none" %>
           <%= link_to "利用規約", terms_path, class: "text-muted small text-decoration-none" %>
         </div>
-        <p class="text-muted small mb-0">&copy;<%= Date.today.year %> LibShiftAI Pitat. Public Library Systems.</p>
+        <p class="text-muted small mb-0">&copy;<%= Date.today.year %> LibShift Pitat. Public Library Systems.</p>
       </div>
     </footer>
   </body>
