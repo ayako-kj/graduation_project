@@ -158,6 +158,15 @@ class ConstraintExtractor
       Shift.where(shift_group: sg, is_working: true).group(:staff_id).count.each do |staff_id, count|
         pitat_map[[staff_id, sg.target_month]] = count
       end
+      # 年休・夏期休暇・病気休暇・特別休暇（ActualLeave）も勤務日数実績に含める。
+      # これを含めないと、有給休暇を取った月の目標日数の繰越調整が働かず、
+      # 累計差が正しく解消されない
+      month_start = sg.target_month.beginning_of_month
+      month_end   = sg.target_month.end_of_month
+      ActualLeave.where(staff_id: staff_ids, date: month_start..month_end)
+                 .group(:staff_id).count.each do |staff_id, count|
+        pitat_map[[staff_id, sg.target_month]] = (pitat_map[[staff_id, sg.target_month]] || 0) + count
+      end
     end
     sg_months = Set.new(shift_groups.map(&:target_month))
 
