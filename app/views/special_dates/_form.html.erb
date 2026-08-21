@@ -30,9 +30,11 @@
       時間<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
     </label>
     <div class="d-flex align-items-center gap-2">
-      <%= f.time_field :start_time, class: "form-control" %>
+      <%= f.time_select :start_time, { minute_step: 5, start_hour: 8, end_hour: 20, include_blank: true, ignore_date: true },
+          class: "form-select w-auto" %>
       <span class="text-muted">〜</span>
-      <%= f.time_field :end_time, class: "form-control" %>
+      <%= f.time_select :end_time, { minute_step: 5, start_hour: 8, end_hour: 20, include_blank: true, ignore_date: true },
+          class: "form-select w-auto" %>
     </div>
   </div>
 
