@@ -23,44 +23,121 @@
       <%= link_to "スケジュールを登録する", new_special_date_path, class: "btn btn-pitat rounded-pill px-4" %>
     </div>
   <% else %>
-    <div class="pitat-card p-0 overflow-hidden">
-      <table class="table table-hover mb-0">
-        <thead class="table-light">
-          <tr>
-            <th class="ps-4 py-3 text-muted small fw-semibold">日付</th>
-            <th class="py-3 text-muted small fw-semibold">名称</th>
-            <th class="py-3 text-muted small fw-semibold">対象グループ</th>
-            <th class="py-3 text-muted small fw-semibold">個別指定職員</th>
-            <th class="py-3 text-muted small fw-semibold">登録者</th>
-            <th class="py-3"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @special_dates.each do |special_date| %>
-            <tr>
-              <td class="ps-4 py-3 fw-semibold"><%= special_date.date.strftime("%Y年%m月%d日") %></td>
-              <td class="py-3"><%= special_date.label %></td>
-              <td class="py-3"><%= special_date.target_group.presence || "－" %></td>
-              <td class="py-3">
-                <% if special_date.designated_staffs.any? %>
-                  <%= special_date.designated_staffs.map(&:name).join("・") %>
-                <% else %>
-                  <span class="text-muted">－</span>
+    <% active_tab = params[:tab] == "by-staff" ? "by-staff" : "by-date" %>
+    <ul class="nav nav-tabs mb-3" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link <%= active_tab == 'by-date' ? 'active' : '' %>" id="by-date-tab" data-bs-toggle="tab" data-bs-target="#by-date" type="button" role="tab">
+          <i class="bi bi-calendar3 me-1"></i>日付順
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link <%= active_tab == 'by-staff' ? 'active' : '' %>" id="by-staff-tab" data-bs-toggle="tab" data-bs-target="#by-staff" type="button" role="tab">
+          <i class="bi bi-person-lines-fill me-1"></i>職員別
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <%# 日付順タブ %>
+      <div class="tab-pane fade <%= active_tab == 'by-date' ? 'show active' : '' %>" id="by-date" role="tabpanel">
+        <div class="pitat-card p-0 overflow-hidden">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4 py-3 text-muted small fw-semibold">日付</th>
+                <th class="py-3 text-muted small fw-semibold">名称</th>
+                <th class="py-3 text-muted small fw-semibold">対象グループ</th>
+                <th class="py-3 text-muted small fw-semibold">個別指定職員</th>
+                <th class="py-3 text-muted small fw-semibold">登録者</th>
+                <th class="py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @special_dates.each do |special_date| %>
+                <tr>
+                  <td class="ps-4 py-3 fw-semibold"><%= special_date.date.strftime("%Y年%m月%d日") %></td>
+                  <td class="py-3"><%= special_date.label %></td>
+                  <td class="py-3"><%= special_date.target_group.presence || "－" %></td>
+                  <td class="py-3">
+                    <% if special_date.designated_staffs.any? %>
+                      <%= special_date.designated_staffs.map(&:name).join("・") %>
+                    <% else %>
+                      <span class="text-muted">－</span>
+                    <% end %>
+                  </td>
+                  <td class="py-3 text-muted small">
+                    <%= special_date.created_by_staff&.name || "管理者" %>
+                  </td>
+                  <td class="py-3 pe-4 text-end">
+                    <%= link_to "編集", edit_special_date_path(special_date), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
+                    <%= link_to "削除", special_date_path(special_date),
+                        data: { turbo_method: :delete, turbo_confirm: "#{special_date.label}を削除しますか？" },
+                        class: "btn btn-sm btn-outline-danger rounded-pill px-3" %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <%# 職員別タブ %>
+      <div class="tab-pane fade <%= active_tab == 'by-staff' ? 'show active' : '' %>" id="by-staff" role="tabpanel">
+        <% if @special_dates_by_staff.empty? %>
+          <div class="pitat-card p-5 text-center text-muted">
+            対象となる職員がいません。
+          </div>
+        <% end %>
+        <% @special_dates_by_staff.each do |staff, special_dates| %>
+          <div class="pitat-card p-0 overflow-hidden mb-3">
+            <div class="px-4 py-2 fw-semibold" style="background-color: #F0F4FF; border-bottom: 1px solid #dee2e6;">
+              <i class="bi bi-person me-1"></i><%= staff.name %>
+              <span class="text-muted fw-normal small ms-2"><%= staff.staff_type.name %></span>
+              <span class="badge bg-secondary ms-2"><%= special_dates.size %>件</span>
+            </div>
+            <table class="table table-hover mb-0" style="table-layout: fixed;">
+              <colgroup>
+                <col style="width: 18%;">
+                <col style="width: 26%;">
+                <col style="width: 16%;">
+                <col style="width: 16%;">
+                <col style="width: 24%;">
+              </colgroup>
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4 py-2 text-muted small fw-semibold">日付</th>
+                  <th class="py-2 text-muted small fw-semibold">名称</th>
+                  <th class="py-2 text-muted small fw-semibold">時間</th>
+                  <th class="py-2 text-muted small fw-semibold">対象</th>
+                  <th class="py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% special_dates.sort_by(&:date).each do |special_date| %>
+                  <tr>
+                    <td class="ps-4 py-2 fw-semibold"><%= special_date.date.strftime("%m月%d日（#{%w[日 月 火 水 木 金 土][special_date.date.wday]}）") %></td>
+                    <td class="py-2"><%= special_date.label %></td>
+                    <td class="py-2 text-muted small"><%= special_date.time_range_label || "－" %></td>
+                    <td class="py-2 text-muted small">
+                      <% if special_date.target_group.present? %>
+                        <%= special_date.target_group %>
+                      <% elsif special_date.designated_staffs.any? %>
+                        個別指定
+                      <% end %>
+                    </td>
+                    <td class="py-2 pe-4 text-end">
+                      <%= link_to "編集", edit_special_date_path(special_date), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
+                      <%= link_to "削除", special_date_path(special_date),
+                          data: { turbo_method: :delete, turbo_confirm: "#{special_date.label}を削除しますか？" },
+                          class: "btn btn-sm btn-outline-danger rounded-pill px-3" %>
+                    </td>
+                  </tr>
                 <% end %>
-              </td>
-              <td class="py-3 text-muted small">
-                <%= special_date.created_by_staff&.name || "管理者" %>
-              </td>
-              <td class="py-3 pe-4 text-end">
-                <%= link_to "編集", edit_special_date_path(special_date), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
-                <%= link_to "削除", special_date_path(special_date),
-                    data: { turbo_method: :delete, turbo_confirm: "#{special_date.label}を削除しますか？" },
-                    class: "btn btn-sm btn-outline-danger rounded-pill px-3" %>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
     </div>
   <% end %>
 </div>

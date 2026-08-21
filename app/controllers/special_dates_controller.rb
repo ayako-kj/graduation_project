@@ -10,6 +10,12 @@ class SpecialDatesController < ApplicationController
                        .includes(:designated_staffs, :created_by_staff)
                        .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                        .order(:date)
+
+    staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
+    @special_dates_by_staff = staffs.filter_map do |staff|
+      matched = @special_dates.select { |sd| special_date_applies_to?(sd, staff) }
+      [staff, matched] if matched.any?
+    end
   end
 
   def new
@@ -70,5 +76,21 @@ class SpecialDatesController < ApplicationController
 
   def special_date_params
     params.require(:special_date).permit(:date, :label, :target_group, :start_time, :end_time)
+  end
+
+  # 指定した職員が、そのスケジュールの対象かどうか
+  # （対象グループ一致、または個別指定職員に含まれる）
+  def special_date_applies_to?(special_date, staff)
+    case special_date.target_group
+    when "全職員"
+      return true
+    when "正規職員"
+      return true if staff.employment_type.is_regular
+    when nil, ""
+      # 対象グループの指定なし（個別指定のみ）
+    else
+      return true if special_date.target_group == staff.staff_type.name
+    end
+    special_date.designated_staffs.include?(staff)
   end
 end
