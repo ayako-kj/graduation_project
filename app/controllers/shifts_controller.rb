@@ -377,11 +377,14 @@ class ShiftsController < ApplicationController
     staff_target_days = constraints[:staffs].each_with_object({}) do |s, h|
       h[s[:name]] = s[:monthly_target_days] || constraints[:working_days][:regular]
     end
+    weekend_consecutive_debt = constraints[:staffs].each_with_object({}) do |s, h|
+      h[s[:name]] = s[:weekend_consecutive_debt] || 0
+    end
     post_processor = ShiftPostProcessor.new(
       parsed_shifts, constraints[:closed_days],
       constraints[:leave_requests], constraints[:special_dates],
       staff_target_days, constraints[:assignment_constraints],
-      constraints[:mobile_library_constraints]
+      constraints[:mobile_library_constraints], weekend_consecutive_debt
     )
     fixed_shifts = post_processor.process
     assigned_shifts = DutyAssigner.new(fixed_shifts, constraints, target_month, current_library).assign

@@ -121,6 +121,7 @@ class ConstraintExtractor
 
     staffs = @library.staffs.includes(:staff_type, :employment_type)
     actual_data = past_months.any? ? preload_past_actual_data(staffs, past_months) : {}
+    wc_debt = past_months.any? ? weekend_consecutive_debt_data(staffs, past_months) : {}
 
     staffs.map do |staff|
       is_regular = staff.employment_type.is_regular
@@ -138,9 +139,56 @@ class ConstraintExtractor
         is_regular: staff.employment_type.is_regular,
         weekly_work_days: staff.weekly_work_days,
         unavailable_wdays: staff.unavailable_wdays_array,
-        monthly_target_days: monthly_target
+        monthly_target_days: monthly_target,
+        weekend_consecutive_debt: wc_debt[staff.id] || 0
       }
     end
+  end
+
+  # 今年度これまでに、土日連続勤務を何回したか（work_count）と、
+  # 土日連続休み（家庭の事情等での希望休）を何回取ったか（off_count）を
+  # 集計し、「off_count - work_count」を返す。値が大きい職員ほど、
+  # 土日連続休みを取った分に見合うだけの土日連続勤務をまだしていない
+  # （＝次に土日連続勤務が避けられない場面では、この職員に割り当てる
+  # のが公平）とみなす。逆に値が小さい（マイナスの）職員ほど、既に
+  # 土日連続勤務を多くこなしているため、優先して救済（片方をキャンセル）
+  # する対象になる
+  def weekend_consecutive_debt_data(staffs, past_months)
+    start_date = past_months.first.beginning_of_month
+    end_date = past_months.last.end_of_month
+    staff_ids = staffs.map(&:id)
+
+    work_count = Hash.new(0)
+    @library.shift_groups.where(target_month: past_months.first..past_months.last).each do |sg|
+      dates_by_staff = Shift.where(shift_group: sg, is_working: true)
+        .group_by(&:staff_id)
+        .transform_values { |list| list.map(&:date).to_set }
+      dates_by_staff.each do |staff_id, dates|
+        dates.each do |d|
+          next unless d.saturday? && dates.include?(d + 1)
+          work_count[staff_id] += 1
+        end
+      end
+    end
+
+    off_count = Hash.new(0)
+    LeaveRequest.where(staff_id: staff_ids, date: start_date..end_date)
+      .group_by(&:staff_id)
+      .each do |staff_id, list|
+        dates = list.map(&:date).to_set
+        dates.each do |d|
+          next unless d.saturday? && dates.include?(d + 1)
+          off_count[staff_id] += 1
+        end
+      end
+
+    # Pitat導入前（手入力）の実績も合算する
+    WorkdayManualEntry.where(staff_id: staff_ids, year_month: past_months.first..past_months.last).each do |e|
+      work_count[e.staff_id] += e.weekend_consecutive_work_count || 0
+      off_count[e.staff_id]  += e.weekend_consecutive_off_count || 0
+    end
+
+    staff_ids.each_with_object({}) { |id, h| h[id] = off_count[id] - work_count[id] }
   end
 
   def preload_past_actual_data(staffs, past_months)
