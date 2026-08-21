@@ -79,7 +79,10 @@ class WorkingDaySummariesController < ApplicationController
   def actual_data_for(staff_id, month)
     key = [staff_id, month.beginning_of_month]
     manual = @manual_entries_map[key]
-    return { days: manual.working_days, source: "手入力" } if manual
+    # 手入力の実績勤務日数（working_days）自体は未入力で、当番回数等のみ
+    # 入力されている場合もあるため、working_days が nil の場合は
+    # 「未入力」（実績日数としては未確定）として扱う
+    return { days: manual.working_days, source: "手入力" } if manual&.working_days.present?
 
     if @shift_group_months.include?(month.beginning_of_month)
       days = @pitat_days_map[key] || 0
