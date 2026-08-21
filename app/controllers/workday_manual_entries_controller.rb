@@ -18,20 +18,24 @@ class WorkdayManualEntriesController < ApplicationController
       early       = data[:early_count].presence&.to_i
       post        = data[:post_duty_count].presence&.to_i
       holiday_post = data[:holiday_post_duty_count].presence&.to_i
+      wc_work     = data[:weekend_consecutive_work_count].presence&.to_i
+      wc_off      = data[:weekend_consecutive_off_count].presence&.to_i
       note        = data[:note].presence
       entry = WorkdayManualEntry.find_by(staff_id: staff_id.to_i, year_month: @target_month)
 
-      if days.nil? && early.nil? && post.nil? && holiday_post.nil? && note.nil?
+      if days.nil? && early.nil? && post.nil? && holiday_post.nil? && wc_work.nil? && wc_off.nil? && note.nil?
         entry&.destroy
         next
       end
 
       entry ||= WorkdayManualEntry.new(staff_id: staff_id.to_i, year_month: @target_month)
-      entry.working_days             = days
-      entry.early_count              = early
-      entry.post_duty_count          = post
-      entry.holiday_post_duty_count  = holiday_post
-      entry.note                     = note
+      entry.working_days                     = days
+      entry.early_count                      = early
+      entry.post_duty_count                  = post
+      entry.holiday_post_duty_count          = holiday_post
+      entry.weekend_consecutive_work_count   = wc_work
+      entry.weekend_consecutive_off_count    = wc_off
+      entry.note                             = note
       entry.save!
     end
 

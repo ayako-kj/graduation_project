@@ -1,8 +1,12 @@
 class ShiftPostProcessor
-  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [], staff_target_days = {}, assignment_constraints = [], mobile_library_constraints = [])
+  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [], staff_target_days = {}, assignment_constraints = [], mobile_library_constraints = [], weekend_consecutive_debt = {})
     @shifts = parsed_shifts
     @closed_days = closed_days
     @staff_target_days = staff_target_days
+    # 今年度これまでの「土日連続休み回数 − 土日連続勤務回数」。値が大きい
+    # 職員ほど、次に土日連続勤務が避けられない場面で割り当てるのが公平。
+    # 値が小さい（既に多く土日連続勤務をこなした）職員ほど優先して救済する
+    @weekend_consecutive_debt = weekend_consecutive_debt
     @leave_set = leave_requests.each_with_object(Set.new) do |lr, set|
       set << [lr[:staff_name], Date.parse(lr[:date])]
     end
@@ -350,13 +354,17 @@ class ShiftPostProcessor
 
     if working.size > target
       excess = working.size - target
-      candidates = working.shuffle.reject { |name, s|
+      # weekend_consecutive_debt が小さい（＝既に土日連続勤務を多くこなして
+      # いる）職員から優先して救済（休みに）する
+      candidates = working.sort_by { |name, _| @weekend_consecutive_debt[name] || 0 }.reject { |name, s|
         fixed_and_unmovable?(name, s[:date]) || would_drop_below_minimum?(s[:date]) || essential_for_rules?(s, day_working)
       }
       candidates.first(excess).each { |name, s| lock_rest_day(s, name) }
     elsif working.size < target
       shortfall = target - working.size
-      candidates = resting.shuffle.reject { |name, s| fixed_and_unmovable?(name, s[:date]) || would_cause_consecutive_violation?(name, s[:date]) }
+      # weekend_consecutive_debt が大きい（＝土日連続休みを多く取っている割に
+      # 土日連続勤務が少ない）職員から優先して今回の土日連続勤務に割り当てる
+      candidates = resting.sort_by { |name, _| -(@weekend_consecutive_debt[name] || 0) }.reject { |name, s| fixed_and_unmovable?(name, s[:date]) || would_cause_consecutive_violation?(name, s[:date]) }
       candidates.first(shortfall).each do |name, s|
         s[:is_working] = true
         make_room_for_weekly_cap(name, s[:date])
@@ -397,8 +405,12 @@ class ShiftPostProcessor
     end
 
     # 1. 土日とも出勤になっている人がいれば、動かせる方を休みにする
-    #    （グループ内の均等配分をこの後の手順で成立させるための下準備）
-    pairs.shuffle.each do |name, sat_shift, sun_shift|
+    #    （グループ内の均等配分をこの後の手順で成立させるための下準備）。
+    #    weekend_consecutive_debt が小さい（＝既に土日連続勤務を多くこなして
+    #    いる）職員を優先して処理することで、最低人数等の制約で全員には
+    #    休みを割り当てられない場合でも、土日連続勤務が多い職員から
+    #    優先的に休みを割り当てる
+    pairs.sort_by { |name, *| @weekend_consecutive_debt[name] || 0 }.each do |name, sat_shift, sun_shift|
       next unless sat_shift[:is_working] && sun_shift[:is_working]
 
       cancel_candidates = [sat_shift, sun_shift].reject do |s|
@@ -474,8 +486,11 @@ class ShiftPostProcessor
     by_staff = @shifts.group_by { |s| s[:staff_name] }
     # 最低出勤人数の制約で「休みにできる枠」が全員分は無い月・週もあるため、
     # 常に同じ並び順（職員のsort_order）で処理すると枠を使い切れる職員が固定化し、
-    # 特定の職員に土日連続出勤が偏ってしまう。処理順をシャッフルして偏りを避ける
-    by_staff.to_a.shuffle.each do |staff_name, staff_shifts|
+    # 特定の職員に土日連続出勤が偏ってしまう。weekend_consecutive_debt が
+    # 小さい（＝既に土日連続勤務を多くこなしている）職員から優先して処理し、
+    # 全員は救済しきれない場合でも土日連続勤務が多い職員から優先的に
+    # 休みを割り当てる
+    by_staff.to_a.sort_by { |staff_name, _| @weekend_consecutive_debt[staff_name] || 0 }.each do |staff_name, staff_shifts|
       shifts_by_date = staff_shifts.each_with_object({}) { |s, h| h[s[:date]] = s }
 
       staff_shifts.select { |s| s[:is_working] && s[:date].saturday? }.sort_by { |s| s[:date] }.each do |sat_shift|

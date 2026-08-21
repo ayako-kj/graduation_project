@@ -31,6 +31,8 @@
             <th class="py-3 text-muted small fw-semibold text-center" style="white-space: nowrap;">早番</th>
             <th class="py-3 text-muted small fw-semibold text-center" style="white-space: nowrap;">ポスト当番</th>
             <th class="py-3 text-muted small fw-semibold text-center" style="white-space: nowrap;">祝日ポスト当番</th>
+            <th class="py-3 text-muted small fw-semibold text-center" style="white-space: nowrap;">土日連続出勤</th>
+            <th class="py-3 text-muted small fw-semibold text-center" style="white-space: nowrap;">土日連続休み</th>
             <th class="py-3 text-muted small fw-semibold">備考</th>
           </tr>
         </thead>
@@ -59,6 +61,16 @@
               <td class="py-2">
                 <input type="number" name="entries[<%= staff.id %>][holiday_post_duty_count]"
                        value="<%= entry&.holiday_post_duty_count %>"
+                       min="0" max="31" placeholder="0" class="form-control form-control-sm" style="text-align: center;">
+              </td>
+              <td class="py-2">
+                <input type="number" name="entries[<%= staff.id %>][weekend_consecutive_work_count]"
+                       value="<%= entry&.weekend_consecutive_work_count %>"
+                       min="0" max="31" placeholder="0" class="form-control form-control-sm" style="text-align: center;">
+              </td>
+              <td class="py-2">
+                <input type="number" name="entries[<%= staff.id %>][weekend_consecutive_off_count]"
+                       value="<%= entry&.weekend_consecutive_off_count %>"
                        min="0" max="31" placeholder="0" class="form-control form-control-sm" style="text-align: center;">
               </td>
               <td class="py-2">

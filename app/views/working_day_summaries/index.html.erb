@@ -44,22 +44,24 @@
         <thead class="table-light">
           <tr>
             <th class="ps-3 py-2 text-start">職員名</th>
-            <th class="py-2">雇用形態</th>
             <th class="py-2">職種</th>
             <th class="py-2">早番</th>
             <th class="py-2">ポスト当番</th>
             <th class="py-2">祝日ポスト当番</th>
+            <th class="py-2">土日連続出勤</th>
+            <th class="py-2">土日連続休み</th>
           </tr>
         </thead>
         <tbody>
           <% @duty_summaries.each do |row| %>
             <tr>
               <td class="ps-3 text-start fw-semibold"><%= row[:staff].name %></td>
-              <td><%= row[:staff].employment_type.name %></td>
               <td><%= row[:staff].staff_type.name %></td>
-              <td><%= row[:early_count] %>回</td>
-              <td><%= row[:post_duty_count] %>回</td>
-              <td><%= row[:holiday_post_duty_count] %>回</td>
+              <td><%= row[:early_count].nil? ? "－" : "#{row[:early_count]}回" %></td>
+              <td><%= row[:post_duty_count].nil? ? "－" : "#{row[:post_duty_count]}回" %></td>
+              <td><%= row[:holiday_post_duty_count].nil? ? "－" : "#{row[:holiday_post_duty_count]}回" %></td>
+              <td><%= row[:weekend_consecutive_work_count].nil? ? "－" : "#{row[:weekend_consecutive_work_count]}回" %></td>
+              <td><%= row[:weekend_consecutive_off_count].nil? ? "－" : "#{row[:weekend_consecutive_off_count]}回" %></td>
             </tr>
           <% end %>
         </tbody>
@@ -195,7 +197,6 @@
           <tr>
             <th class="ps-3 py-2 text-start">職員名</th>
             <th class="py-2">職種</th>
-            <th class="py-2">雇用形態</th>
             <th class="py-2">市役所基準<br>（<%= @view_month.month %>月）</th>
             <th class="py-2">図書館実績<br>（<%= @view_month.month %>月）</th>
             <th class="py-2">市役所基準<br>（累計）</th>
@@ -210,7 +211,6 @@
             <tr class="<%= has_diff ? 'table-warning' : '' %>">
               <td class="ps-3 text-start fw-semibold"><%= row[:staff].name %></td>
               <td><%= row[:staff].staff_type.name %></td>
-              <td><%= row[:staff].employment_type.name %></td>
               <td>
                 <% if row[:regular] %>
                   <%= row[:month_n_days] %>日

@@ -193,19 +193,66 @@ class WorkingDaySummariesController < ApplicationController
     manual_early = Hash.new(0)
     manual_post  = Hash.new(0)
     manual_holiday_post = Hash.new(0)
+    manual_wc_work = Hash.new(0)
+    manual_wc_off  = Hash.new(0)
     manual.each do |e|
       manual_early[e.staff_id]        += e.early_count || 0
       manual_post[e.staff_id]         += e.post_duty_count || 0
       manual_holiday_post[e.staff_id] += e.holiday_post_duty_count || 0
+      manual_wc_work[e.staff_id]      += e.weekend_consecutive_work_count || 0
+      manual_wc_off[e.staff_id]       += e.weekend_consecutive_off_count || 0
     end
 
+    weekend_work_counts = weekend_consecutive_work_counts(shift_groups)
+    weekend_off_counts  = weekend_consecutive_off_counts(months)
+
     @duty_summaries = @staffs.map do |staff|
+      early_eligible = !staff.employment_type.is_regular && DutyAssigner::EARLY_STAFF_TYPES.include?(staff.staff_type.name)
+      post_eligible  = staff.employment_type.is_regular && staff.staff_type.name == "司書"
+      # 土日とも勤務不可（unavailable_wdays）の職員は、そもそも土日連続勤務・
+      # 土日連続休みの対象にならない（館長など）
+      weekend_eligible = !(staff.unavailable_wdays_array.include?(0) && staff.unavailable_wdays_array.include?(6))
+
       {
         staff: staff,
-        early_count: (early_counts[staff.id] || 0) + manual_early[staff.id],
-        post_duty_count: (post_counts[staff.id] || 0) + manual_post[staff.id],
-        holiday_post_duty_count: (holiday_post_counts[staff.id] || 0) + manual_holiday_post[staff.id]
+        early_count: early_eligible ? (early_counts[staff.id] || 0) + manual_early[staff.id] : nil,
+        post_duty_count: post_eligible ? (post_counts[staff.id] || 0) + manual_post[staff.id] : nil,
+        holiday_post_duty_count: post_eligible ? (holiday_post_counts[staff.id] || 0) + manual_holiday_post[staff.id] : nil,
+        weekend_consecutive_work_count: weekend_eligible ? (weekend_work_counts[staff.id] || 0) + manual_wc_work[staff.id] : nil,
+        weekend_consecutive_off_count: weekend_eligible ? (weekend_off_counts[staff.id] || 0) + manual_wc_off[staff.id] : nil
       }
     end
+  end
+
+  # 土日とも出勤（is_working）になっている回数を職員ごとに集計する
+  def weekend_consecutive_work_counts(shift_groups)
+    counts = Hash.new(0)
+    shift_groups.each do |sg|
+      dates_by_staff = Shift.where(shift_group: sg, is_working: true)
+        .group_by(&:staff_id)
+        .transform_values { |list| list.map(&:date).to_set }
+      dates_by_staff.each do |staff_id, dates|
+        dates.each do |d|
+          next unless d.saturday? && dates.include?(d + 1)
+          counts[staff_id] += 1
+        end
+      end
+    end
+    counts
+  end
+
+  # 土日とも希望休（LeaveRequest）になっている回数を職員ごとに集計する
+  def weekend_consecutive_off_counts(months)
+    counts = Hash.new(0)
+    LeaveRequest.where(staff: @staffs, date: months.first.beginning_of_month..months.last.end_of_month)
+      .group_by(&:staff_id)
+      .each do |staff_id, list|
+        dates = list.map(&:date).to_set
+        dates.each do |d|
+          next unless d.saturday? && dates.include?(d + 1)
+          counts[staff_id] += 1
+        end
+      end
+    counts
   end
 end
