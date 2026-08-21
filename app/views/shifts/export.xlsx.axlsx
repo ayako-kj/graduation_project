@@ -96,8 +96,7 @@ daily_count = lambda do |date|
   next nil if @closed_days.key?(date)
   @staffs.count do |staff|
     shift = @shifts_map.dig(staff.id, date)
-    leave = @leave_map[[staff.id, date]]
-    leave.present? || shift&.is_working
+    shift&.is_working
   end
 end
 
