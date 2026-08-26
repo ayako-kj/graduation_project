@@ -38,6 +38,17 @@ count_s       = s.add_style center.merge(bg_color: "DCFCE7", b: true, fg_color: 
 total_s       = s.add_style center.merge(bg_color: "EFF6FF", b: true, fg_color: "1E40AF")
 label_s       = s.add_style left.merge(bg_color: "F8F9FA", b: true, sz: 9)
 
+# 土曜＝青・日曜＝赤の背景（希望休・スケジュールなど、より具体的な状態が
+# 無い場合の土日セルに使う。既存のfg_colorはそのまま活かし背景色だけ足す）
+off_sat_s   = s.add_style center.merge(fg_color: "6C757D", bg_color: "DBEAFE")
+off_sun_s   = s.add_style center.merge(fg_color: "6C757D", bg_color: "FEE2E2")
+work_sat_s  = s.add_style center.merge(fg_color: "198754", b: true, bg_color: "DBEAFE")
+work_sun_s  = s.add_style center.merge(fg_color: "198754", b: true, bg_color: "FEE2E2")
+early_sat_s = s.add_style center.merge(fg_color: "D97706", b: true, bg_color: "DBEAFE")
+early_sun_s = s.add_style center.merge(fg_color: "D97706", b: true, bg_color: "FEE2E2")
+post_sat_s  = s.add_style center.merge(fg_color: "2563EB", b: true, bg_color: "DBEAFE")
+post_sun_s  = s.add_style center.merge(fg_color: "2563EB", b: true, bg_color: "FEE2E2")
+
 day_names = %w[日 月 火 水 木 金 土]
 
 # セルの値とスタイルを決定するヘルパー
@@ -55,6 +66,13 @@ cell_val = lambda do |staff, date|
     return [mark, error_s]
   end
 
+  # 土曜＝青・日曜＝赤の背景。希望休（黄）・スケジュール（緑）・祝日ポスト
+  # 当番（赤）など、より具体的な状態のスタイルが既に決まっている場合は
+  # そちらを優先し、この土日の色は使わない
+  weekend_style = lambda do |sat_style, sun_style, default_style|
+    date.saturday? ? sat_style : (date.sunday? ? sun_style : default_style)
+  end
+
   leave     = @leave_map[[staff.id, date]]
   lr_reason = @leave_requests_map[[staff.id, date]]
   if leave
@@ -64,20 +82,20 @@ cell_val = lambda do |staff, date|
   elsif shift&.is_working
     scheduled = @schedule_map[[staff.id, date]]
     if shift.is_early
-      scheduled ? ["早", early_schedule_s] : ["早", early_s]
+      scheduled ? ["早", early_schedule_s] : ["早", weekend_style.call(early_sat_s, early_sun_s, early_s)]
     elsif shift.is_holiday_post_duty
       scheduled ? ["Ｐ", hol_post_schedule_s] : ["Ｐ", hol_post_s]
     elsif shift.is_post_duty
-      scheduled ? ["ｐ", post_schedule_s] : ["ｐ", post_s]
+      scheduled ? ["ｐ", post_schedule_s] : ["ｐ", weekend_style.call(post_sat_s, post_sun_s, post_s)]
     elsif scheduled
       ["○", schedule_s]
     else
-      ["○", work_s]
+      ["○", weekend_style.call(work_sat_s, work_sun_s, work_s)]
     end
   elsif shift&.is_holiday_post_duty
     ["Ｐ", hol_post_s]
   else
-    ["－", off_s]
+    ["－", weekend_style.call(off_sat_s, off_sun_s, off_s)]
   end
 end
 

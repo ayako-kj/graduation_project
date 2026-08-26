@@ -104,5 +104,17 @@ $pitat-cream: #FAF6F0;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+  // 土曜セル：画面より濃いブルー（希望休・スケジュールが無い場合のみ適用される）
+  .cell-weekend-sat {
+    background-color: #93c5fd !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  // 日曜セル：画面より濃いレッド（希望休・スケジュールが無い場合のみ適用される）
+  .cell-weekend-sun {
+    background-color: #fca5a5 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   @page { size: A4 landscape; margin: 8mm; }
 }
