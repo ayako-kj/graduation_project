@@ -37,9 +37,10 @@ class ActualLeavesController < ApplicationController
 
     entries = params[:leaves] || {}
     ActualLeave.transaction do
-      # 対象月の既存レコードを一括削除して保存し直す
+      # 対象月の既存レコードを一括削除して保存し直す。destroy_allで
+      # コールバック（対応する希望休の削除同期）が発火するようにする
       staff_ids = current_library.staffs.pluck(:id)
-      ActualLeave.where(staff_id: staff_ids, date: start_date..end_date).delete_all
+      ActualLeave.where(staff_id: staff_ids, date: start_date..end_date).destroy_all
 
       entries.each do |staff_id, dates|
         dates.each do |date_str, leave_type|
