@@ -58,7 +58,11 @@ Rails.application.routes.draw do
       post :save
     end
   end
-  resources :leave_requests
+  resources :leave_requests, except: [:create] do
+    collection do
+      post :save
+    end
+  end
   resources :assignments do
     member do
       patch :move_up
