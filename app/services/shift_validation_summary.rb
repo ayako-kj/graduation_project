@@ -18,7 +18,7 @@ class ShiftValidationSummary
       errors_by_key[key] << v[:message]
     end
 
-    ConsecutiveWorkValidator.new(@shifts).validate.each do |v|
+    ConsecutiveWorkValidator.new(@shifts + adjacent_month_shifts).validate.each do |v|
       (v[:start_date]..v[:end_date]).each do |date|
         errors_by_key["#{date}_#{v[:staff_name]}"] << v[:message]
       end
@@ -56,5 +56,24 @@ class ShiftValidationSummary
 
   def any_errors?
     run.any?
+  end
+
+  private
+
+  # 前月・翌月のシフトも合わせてConsecutiveWorkValidatorに渡すことで、
+  # 月をまたいだ連勤（例：9/27〜10/3の7連勤）も検知できるようにする。
+  # 前月・翌月分の日付にキーづけされたエラーはsave_to_shifts側で
+  # 当月のshift_group.shiftsに一致しないため、当月のセルにのみ反映される
+  def adjacent_month_shifts
+    return [] unless @library
+
+    [@target_month.prev_month, @target_month.next_month].flat_map do |month|
+      sg = @library.shift_groups.find_by(target_month: month.beginning_of_month)
+      next [] unless sg
+
+      Shift.where(shift_group: sg).includes(:staff).map do |s|
+        { staff_name: s.staff.name, date: s.date, is_working: s.is_working, is_holiday_post_duty: s.is_holiday_post_duty }
+      end
+    end
   end
 end

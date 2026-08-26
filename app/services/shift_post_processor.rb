@@ -1,8 +1,13 @@
 class ShiftPostProcessor
-  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [], staff_target_days = {}, assignment_constraints = [], mobile_library_constraints = [], weekend_consecutive_debt = {})
+  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [], staff_target_days = {}, assignment_constraints = [], mobile_library_constraints = [], weekend_consecutive_debt = {}, prior_trailing_work_days = {})
     @shifts = parsed_shifts
     @closed_days = closed_days
     @staff_target_days = staff_target_days
+    # シフトは月ごとに独立して生成されるため、前月末時点で何日連続で
+    # 出勤していたか（{staff_name => 日数}）を受け取り、月をまたいだ
+    # 連勤（例：9/27〜10/3の7連勤）も検知・回避できるようにする
+    @prior_trailing_work_days = prior_trailing_work_days
+    @month_start = parsed_shifts.map { |s| s[:date] }.min
     # 今年度これまでの「土日連続休み回数 − 土日連続勤務回数」。値が大きい
     # 職員ほど、次に土日連続勤務が避けられない場面で割り当てるのが公平。
     # 値が小さい（既に多く土日連続勤務をこなした）職員ほど優先して救済する
@@ -538,8 +543,7 @@ class ShiftPostProcessor
         next if targets.empty?
         next if targets.any? { |s| @leave_set.include?([staff_name, s[:date]]) || @closed_days.key?(s[:date]) }
 
-        staff_working_dates = staff_shifts.select { |s| s[:is_working] }.map { |s| s[:date] }
-        test_dates = (staff_working_dates + targets.map { |s| s[:date] }).uniq.sort
+        test_dates = (working_dates_for(staff_name) + targets.map { |s| s[:date] }).uniq.sort
         groups = find_consecutive_date_groups(test_dates)
         next if groups.any? { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
 
@@ -723,13 +727,14 @@ class ShiftPostProcessor
     by_staff = @shifts.group_by { |s| s[:staff_name] }
     by_staff.each do |staff_name, staff_shifts|
       10.times do
-        working_dates = staff_shifts.select { |s| s[:is_working] }.map { |s| s[:date] }.sort
-        groups = find_consecutive_date_groups(working_dates)
+        groups = find_consecutive_date_groups(working_dates_for(staff_name))
         violation = groups.find { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
         break unless violation
 
-        # 6日目以降で、当日の出勤者が最も多い日を選んで休みにする（担当会議日は保護）
+        # 6日目以降で、当日の出勤者が最も多い日を選んで休みにする（担当会議日は保護）。
+        # 前月分の連勤日数（phantom）は当月のシフトデータが無く動かせないため対象外
         excess_dates = violation[ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS..]
+                         .select { |d| d >= @month_start }
                          .reject { |d| assignment_protected?(staff_name, d) }
         break if excess_dates.empty?
         target_date = excess_dates.max_by { |d| @shifts.count { |s| s[:date] == d && s[:is_working] } }
@@ -960,10 +965,19 @@ class ShiftPostProcessor
     end
   end
 
+  # 前月末からの連勤（@prior_trailing_work_days）を含めた、その職員の
+  # 出勤日一覧。前月分は当月のシフトデータには存在しない「仮想的な」日付
+  # として日数分だけ月初直前から遡って加える
+  def working_dates_for(staff_name)
+    own_dates = @shifts.select { |s| s[:staff_name] == staff_name && s[:is_working] }.map { |s| s[:date] }
+    trailing = @prior_trailing_work_days[staff_name].to_i
+    return own_dates if trailing <= 0 || @month_start.nil?
+
+    (own_dates + ((@month_start - trailing)...@month_start).to_a).uniq.sort
+  end
+
   def would_cause_consecutive_violation?(staff_name, date)
-    staff_shifts = @shifts.select { |s| s[:staff_name] == staff_name }
-    working_dates = staff_shifts.select { |s| s[:is_working] }.map { |s| s[:date] }.sort
-    test_dates = (working_dates + [date]).uniq.sort
+    test_dates = (working_dates_for(staff_name) + [date]).uniq.sort
     groups = find_consecutive_date_groups(test_dates)
     groups.any? { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
   end
