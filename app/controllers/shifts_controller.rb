@@ -110,8 +110,6 @@ class ShiftsController < ApplicationController
     snapshot.confirmed_at  = Time.current
     snapshot.save!
 
-    sync_actual_leaves_from_requests(target_month)
-
     redirect_to shifts_path(month: target_month.strftime("%Y-%m")),
                 notice: "#{target_month.strftime('%Y年%-m月')}のシフトを確定しました。"
   end
@@ -159,7 +157,7 @@ class ShiftsController < ApplicationController
 
     leave_type = params[:leave_type]
     if is_working || leave_type.blank? || !ActualLeave::LEAVE_TYPES.key?(leave_type)
-      ActualLeave.where(staff_id: shift.staff_id, date: shift.date).delete_all
+      ActualLeave.where(staff_id: shift.staff_id, date: shift.date).destroy_all
     else
       al = ActualLeave.find_or_initialize_by(staff_id: shift.staff_id, date: shift.date)
       al.update!(leave_type: leave_type)
@@ -413,28 +411,6 @@ class ShiftsController < ApplicationController
   end
 
   private
-
-  LEAVE_REQUEST_REASON_TO_ACTUAL_LEAVE_TYPE = {
-    "年休" => "annual",
-    "夏期休暇" => "summer",
-    "病気休暇" => "sick",
-    "特別休暇" => "special"
-  }.freeze
-
-  # 希望休（年休・夏期休暇・病気休暇・特別休暇）を、確定のタイミングで
-  # 実績（ActualLeave）へ自動反映する。休暇種別入力画面での二重入力・
-  # 入力漏れを防ぎ、年間勤務日数の累計差が正しく計算されるようにするため。
-  # 既に実績が入力されている日は上書きしない（手動での修正を尊重する）
-  def sync_actual_leaves_from_requests(target_month)
-    LeaveRequest
-      .where(staff: current_library.staffs, date: target_month.beginning_of_month..target_month.end_of_month)
-      .where(reason: LEAVE_REQUEST_REASON_TO_ACTUAL_LEAVE_TYPE.keys)
-      .find_each do |lr|
-        next if ActualLeave.exists?(staff_id: lr.staff_id, date: lr.date)
-        ActualLeave.create!(staff_id: lr.staff_id, date: lr.date,
-                             leave_type: LEAVE_REQUEST_REASON_TO_ACTUAL_LEAVE_TYPE[lr.reason])
-      end
-  end
 
   def parse_target_month
     if params[:month].present?
