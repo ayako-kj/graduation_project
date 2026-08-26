@@ -366,8 +366,13 @@ class ShiftPostProcessor
     elsif working.size < target
       shortfall = target - working.size
       # weekend_consecutive_debt が大きい（＝土日連続休みを多く取っている割に
-      # 土日連続勤務が少ない）職員から優先して今回の土日連続勤務に割り当てる
-      candidates = resting.sort_by { |name, _| -(@weekend_consecutive_debt[name] || 0) }.reject { |name, s| fixed_and_unmovable?(name, s[:date]) || would_cause_consecutive_violation?(name, s[:date]) }
+      # 土日連続勤務が少ない）職員から優先して今回の土日連続勤務に割り当てる。
+      # ただし、その曜日がそもそも勤務不可（unavailable_wdays）な職員（館長など）
+      # は、土日連続休みの負債があっても対象外にする
+      candidates = resting.sort_by { |name, _| -(@weekend_consecutive_debt[name] || 0) }.reject { |name, s|
+        fixed_and_unmovable?(name, s[:date]) || would_cause_consecutive_violation?(name, s[:date]) ||
+          (@staff_info.dig(name, :unavailable_wdays) || []).include?(s[:date].wday)
+      }
       candidates.first(shortfall).each do |name, s|
         s[:is_working] = true
         make_room_for_weekly_cap(name, s[:date])
