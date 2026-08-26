@@ -59,7 +59,12 @@ Rails.application.routes.draw do
     end
   end
   resources :leave_requests
-  resources :assignments
+  resources :assignments do
+    member do
+      patch :move_up
+      patch :move_down
+    end
+  end
   resources :mobile_libraries do
     resources :mobile_library_routes, path: :routes do
       resources :mobile_library_exceptions, path: :exceptions, except: %i[index show]

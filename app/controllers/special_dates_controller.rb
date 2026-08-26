@@ -63,7 +63,7 @@ class SpecialDatesController < ApplicationController
 
   def set_form_options
     @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
-    @assignments = current_library.assignments.includes(:staffs).order(:id)
+    @assignments = current_library.assignments.includes(:staffs).order(:sort_order, :id)
   end
 
   def sync_designated_staffs
