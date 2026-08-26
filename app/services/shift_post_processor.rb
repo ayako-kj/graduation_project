@@ -571,7 +571,7 @@ class ShiftPostProcessor
         target = sun_protected ? sat_shift : sun_shift
         next if @leave_set.include?([staff_name, target[:date]])
         day_working = @shifts.select { |s| s[:date] == target[:date] && s[:is_working] }
-        next if essential_for_rules?(target, day_working)
+        next if essential_for_narrow_rules?(target, day_working)
 
         cancel_and_backfill(target, staff_name)
         excess -= 1 unless sat_shift[:is_working] && sun_shift[:is_working]
@@ -635,7 +635,7 @@ class ShiftPostProcessor
                          !assignment_protected?(staff_name, date)
 
     day_working = @shifts.select { |s| s[:date] == date && s[:is_working] }
-    return false if essential_for_rules?(shift, day_working)
+    return false if essential_for_narrow_rules?(shift, day_working)
 
     cancel_and_backfill(shift, staff_name)
     !shift[:is_working]
@@ -680,20 +680,41 @@ class ShiftPostProcessor
   end
 
   def essential_for_rules?(shift, working)
+    @rules.any? { |rule| essential_for_rule?(shift, working, rule) }
+  end
+
+  # essential_for_rules? のうち、全職種を対象とするteam_minルール（＝実質的に
+  # 1日の総出勤人数の下限と同義）を除外した版。cancel_and_backfillは
+  # キャンセル直後に即座に別の職員で埋め直し、埋め直せなければ自動的に
+  # 元に戻す（人数ベースでの安全策）ため、総人数と同義のルールを重ねて
+  # ここでブロックしてしまうと、代わりが実際にはいるのに試す前に諦めて
+  # しまう（例：ちょうど最低人数の日は全員が「必須」扱いになり、
+  # 土日連続勤務の是正が一切できなくなる）。職種を絞った、より狭い
+  # ルール（配置ルール上その職種の人がいないと満たせないもの）だけを
+  # チェックする
+  def essential_for_narrow_rules?(shift, working)
+    all_staff_types = @staff_info.values.map { |info| info[:staff_type] }.uniq
     @rules.any? do |rule|
-      case rule[:type]
-      when "min_count"
-        next false unless matches_min_count?(shift, rule)
-        current = working.count { |s| matches_min_count?(s, rule) }
-        current <= rule[:min]
-      when "at_least_one_of"
-        next false unless rule[:staff_types].include?(@staff_info.dig(shift[:staff_name], :staff_type))
-        working.count { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) } <= 1
-      when "team_min"
-        next false unless rule[:staff_types].include?(@staff_info.dig(shift[:staff_name], :staff_type))
-        current = working.count { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) }
-        current <= rule[:min]
-      end
+      next false if rule[:type] == "team_min" && (all_staff_types - rule[:staff_types]).empty?
+      essential_for_rule?(shift, working, rule)
+    end
+  end
+
+  def essential_for_rule?(shift, working, rule)
+    case rule[:type]
+    when "min_count"
+      return false unless matches_min_count?(shift, rule)
+      current = working.count { |s| matches_min_count?(s, rule) }
+      current <= rule[:min]
+    when "at_least_one_of"
+      return false unless rule[:staff_types].include?(@staff_info.dig(shift[:staff_name], :staff_type))
+      working.count { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) } <= 1
+    when "team_min"
+      return false unless rule[:staff_types].include?(@staff_info.dig(shift[:staff_name], :staff_type))
+      current = working.count { |s| rule[:staff_types].include?(@staff_info.dig(s[:staff_name], :staff_type)) }
+      current <= rule[:min]
+    else
+      false
     end
   end
 
