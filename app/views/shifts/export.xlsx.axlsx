@@ -297,14 +297,20 @@ if @special_date_labels.any?
     end
   end
 
+  # スケジュール一覧シートの「曜日」（平日）「時間」「担当者」は、他シートと
+  # 共有しているtype_s/wday_col_s（グレー文字）だと薄くて読みにくいため、
+  # このシート専用に文字色を指定しない（黒）スタイルを使う
+  sched_wday_s = s.add_style center.merge(sz: 8)
+  sched_text_s = s.add_style left.merge(sz: 8)
+
   item_cells = lambda do |item|
     next Array.new(5, "") if item.nil?
     [item[:date].strftime("%-m月%-d日"), day_names[item[:date].wday], item[:time_str], item[:name_str], item[:staff_str]]
   end
   item_styles = lambda do |item|
     next Array.new(5, title_blank_s) if item.nil?
-    wday_style = item[:date].saturday? ? wday_col_sat_s : (item[:date].sunday? ? wday_col_sun_s : wday_col_s)
-    [name_s, wday_style, type_s, name_s, type_s]
+    wday_style = item[:date].saturday? ? wday_col_sat_s : (item[:date].sunday? ? wday_col_sun_s : sched_wday_s)
+    [name_s, wday_style, sched_text_s, name_s, sched_text_s]
   end
 
   wb.add_worksheet(name: "スケジュール") do |sheet|
