@@ -68,7 +68,7 @@
                   <td class="py-3 text-muted small">
                     <%= special_date.created_by_staff&.name || "管理者" %>
                   </td>
-                  <td class="py-3 pe-4 text-end">
+                  <td class="py-3 pe-4 text-end text-nowrap">
                     <%= link_to "編集", edit_special_date_path(special_date), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
                     <%= link_to "削除", special_date_path(special_date),
                         data: { turbo_method: :delete, turbo_confirm: "#{special_date.label}を削除しますか？" },
@@ -97,11 +97,11 @@
             </div>
             <table class="table table-hover mb-0" style="table-layout: fixed;">
               <colgroup>
-                <col style="width: 18%;">
-                <col style="width: 26%;">
                 <col style="width: 16%;">
+                <col style="width: 22%;">
+                <col style="width: 14%;">
                 <col style="width: 16%;">
-                <col style="width: 24%;">
+                <col style="width: 32%;">
               </colgroup>
               <thead class="table-light">
                 <tr>
@@ -125,7 +125,7 @@
                         個別指定
                       <% end %>
                     </td>
-                    <td class="py-2 pe-4 text-end">
+                    <td class="py-2 pe-4 text-end text-nowrap">
                       <%= link_to "編集", edit_special_date_path(special_date), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
                       <%= link_to "削除", special_date_path(special_date),
                           data: { turbo_method: :delete, turbo_confirm: "#{special_date.label}を削除しますか？" },
