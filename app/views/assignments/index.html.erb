@@ -20,11 +20,12 @@
             <th class="ps-4 py-3 text-muted small fw-semibold">担当名</th>
             <th class="py-3 text-muted small fw-semibold">会議曜日</th>
             <th class="py-3 text-muted small fw-semibold">担当職員</th>
+            <th class="py-3 text-muted small fw-semibold text-center">並び替え</th>
             <th class="py-3"></th>
           </tr>
         </thead>
         <tbody>
-          <% @assignments.each do |assignment| %>
+          <% @assignments.each_with_index do |assignment, i| %>
             <tr>
               <td class="ps-4 py-3 fw-semibold"><%= assignment.name %></td>
               <td class="py-3">
@@ -40,6 +41,12 @@
                 <% else %>
                   <span class="text-muted small">未設定</span>
                 <% end %>
+              </td>
+              <td class="py-3 text-center text-nowrap">
+                <%= i == 0 ? tag.span("↑", class: "btn btn-sm btn-outline-secondary px-2 py-0 me-1 disabled opacity-25") :
+                    button_to("↑", move_up_assignment_path(assignment), method: :patch, class: "btn btn-sm btn-outline-secondary px-2 py-0 me-1", form: { style: "display:inline" }) %>
+                <%= i == @assignments.size - 1 ? tag.span("↓", class: "btn btn-sm btn-outline-secondary px-2 py-0 disabled opacity-25") :
+                    button_to("↓", move_down_assignment_path(assignment), method: :patch, class: "btn btn-sm btn-outline-secondary px-2 py-0", form: { style: "display:inline" }) %>
               </td>
               <td class="py-3 pe-4 text-end">
                 <%= link_to "編集", edit_assignment_path(assignment), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>

@@ -131,7 +131,7 @@ class StaffsController < ApplicationController
   def set_form_options
     @staff_types = StaffType.order(:sort_order, :id)
     @employment_types = EmploymentType.all
-    @assignments = current_library.assignments.order(:id)
+    @assignments = current_library.assignments.order(:sort_order, :id)
   end
 
   def update_assignments(staff)
