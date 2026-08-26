@@ -31,7 +31,7 @@ class SpecialDate < ApplicationRecord
     return if target_group.present?
     return if designated_staff_ids_input.present?
 
-    errors.add(:base, "対象（対象グループまたは個別指定）を1つ以上選択してください")
+    errors.add(:base, "対象者を1人以上選択してください")
   end
 
   def end_time_after_start_time

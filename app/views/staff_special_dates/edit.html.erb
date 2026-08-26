@@ -58,15 +58,6 @@
             </div>
           <% end %>
 
-          <div class="mb-3">
-            <label class="form-label small text-muted mb-1">対象グループ</label>
-            <%= f.select :target_group,
-                options_for_select(SpecialDate::TARGET_GROUP_OPTIONS, @special_date.target_group),
-                {},
-                { class: "form-select" } %>
-          </div>
-
-          <label class="form-label small text-muted mb-1">個別指定</label>
           <% assignments_with_staffs = @assignments.select { |a| a.staffs.any? } %>
           <% if assignments_with_staffs.any? %>
             <div class="mb-2">
@@ -96,7 +87,7 @@
               </div>
             <% end %>
           </div>
-          <div class="form-text text-muted mt-1">対象グループまたは個別指定のいずれか（両方でも可）を選択してください</div>
+          <div class="form-text text-muted mt-1">対象者を1人以上選択してください</div>
         </div>
       </div>
 
