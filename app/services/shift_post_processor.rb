@@ -425,24 +425,37 @@ class ShiftPostProcessor
       lock_rest_day(target, name)
     end
 
-    # 2. 土日とも休みのままの人を、出勤者が少ない方に順番に割り当てて均等化する
-    sat_count = pairs.count { |_, s, _| s[:is_working] }
-    sun_count = pairs.count { |_, _, s| s[:is_working] }
+    # 2. 土日とも休みのままの人を、出勤者が少ない方に順番に割り当てて均等化する。
+    #    まずは「今週この2日」の人数差で判断し、今週の人数差が同数の場合のみ
+    #    このグループの月内これまでの累計（土曜合計・日曜合計）で判断する。
+    #    今週の人数差を優先しないと、例えば日曜が閉館日だった週に全員が
+    #    やむを得ず土曜に偏った場合、その偏りを翌週の累計判断が過剰に
+    #    補正してしまい、今度は全員が翌週の日曜に偏って土曜が手薄になる、
+    #    といった振動が起きる。一方、累計を全く見ないと、ある週に動かせる
+    #    メンバーが1人しかいない場合にその人が常に同じ曜日（例：常に土曜）に
+    #    固定されてしまい、もう一方の曜日を毎週別の職員（会計年度任用職員等）
+    #    が埋め続けることになって、その職員に土日連続勤務が偏ってしまう
+    week_sat_count = pairs.count { |_, s, _| s[:is_working] }
+    week_sun_count = pairs.count { |_, _, s| s[:is_working] }
+    month_sat_total = names.sum { |name| (by_staff[name] || []).count { |s| s[:date].saturday? && s[:date] < sat && s[:is_working] } }
+    month_sun_total = names.sum { |name| (by_staff[name] || []).count { |s| s[:date].sunday? && s[:date] < sat && s[:is_working] } }
 
     undecided = pairs.shuffle.select { |_, s, u| !s[:is_working] && !u[:is_working] }
     undecided.each do |name, sat_shift, sun_shift|
-      use_sat = sat_count <= sun_count
+      use_sat = week_sat_count == week_sun_count ? month_sat_total <= month_sun_total : week_sat_count < week_sun_count
       target_shift = use_sat ? sat_shift : sun_shift
       other_shift = use_sat ? sun_shift : sat_shift
 
       if !fixed_and_unmovable?(name, target_shift[:date]) &&
          !would_cause_consecutive_violation?(name, target_shift[:date])
         target_shift[:is_working] = true
-        use_sat ? sat_count += 1 : sun_count += 1
+        use_sat ? week_sat_count += 1 : week_sun_count += 1
+        use_sat ? month_sat_total += 1 : month_sun_total += 1
       elsif !fixed_and_unmovable?(name, other_shift[:date]) &&
             !would_cause_consecutive_violation?(name, other_shift[:date])
         other_shift[:is_working] = true
-        use_sat ? sun_count += 1 : sat_count += 1
+        use_sat ? week_sun_count += 1 : week_sat_count += 1
+        use_sat ? month_sun_total += 1 : month_sat_total += 1
       end
     end
   end
@@ -620,10 +633,18 @@ class ShiftPostProcessor
         sun_protected = assignment_protected?(staff_name, sun_shift[:date])
         next if sat_protected && sun_protected
 
-        target = sun_protected ? sat_shift : sun_shift
-        next if @leave_set.include?([staff_name, target[:date]])
-        day_working = @shifts.select { |s| s[:date] == target[:date] && s[:is_working] }
-        next if essential_for_narrow_rules?(target, day_working)
+        # 日曜側から先に試すが、狭いルール上どうしても日曜側が動かせない
+        # （例：同じ配置ルール共有枠の他の職員がその週は土曜しか出勤しておらず、
+        # 日曜はこの職員しかいない）場合は土曜側も試す。日曜側だけしか
+        # 見ないと、土曜側なら実は他の職員と重複していて動かせるのに
+        # 試す前に諦めてしまうことがある
+        candidates = [sun_protected ? nil : sun_shift, sat_protected ? nil : sat_shift].compact
+          .reject { |s| @leave_set.include?([staff_name, s[:date]]) }
+        target = candidates.find do |s|
+          day_working = @shifts.select { |sh| sh[:date] == s[:date] && sh[:is_working] }
+          !essential_for_narrow_rules?(s, day_working)
+        end
+        next unless target
 
         cancel_and_backfill(target, staff_name)
         excess -= 1 unless sat_shift[:is_working] && sun_shift[:is_working]
