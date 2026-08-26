@@ -66,6 +66,7 @@ class ShiftPostProcessor
       fix_regular_weekly_pattern
       fix_hourly_weekend_balance
       fix_weekly_overwork
+      pay_down_weekend_consecutive_debt
       fix_weekend_consecutive
       fix_weekend_consecutive_monthly_cap
       fix_consecutive_work
@@ -477,6 +478,57 @@ class ShiftPostProcessor
           .sort_by { |s| s[:date].saturday? || s[:date].sunday? ? 0 : 1 }
 
         candidates.first(excess).each { |s| lock_rest_day(s, staff_name) }
+      end
+    end
+  end
+
+  # 土日連続休みの負債（weekend_consecutive_debt > 0）が残っている職員は、
+  # 通常の処理では「たまたま土日連続勤務になった場合に救済されにくい」という
+  # 受動的な優先度しか持たず、その機会自体が発生しなければ負債はいつまでも
+  # 解消されない。そのため、負債がある職員については、
+  # fix_weekend_consecutive_monthly_capと同じ上限（月2回）に達するまで、
+  # 積極的に土日連続勤務を作る。ここで作った分は @extra_protected_dates で
+  # 保護し、fix_weekend_consecutive が「保護なしの土日連続」として
+  # 打ち消してしまわないようにする（保護済みのため、片方をキャンセルする
+  # のではなく月曜代休で決着する通常の扱いになる）
+  PAYOFF_TARGET_OCCURRENCES = 2
+
+  def pay_down_weekend_consecutive_debt
+    by_staff = @shifts.group_by { |s| s[:staff_name] }
+    # 負債が大きい職員から順に機会を与える（枠の奪い合いになった場合の公平性）
+    by_staff.to_a.sort_by { |name, _| -(@weekend_consecutive_debt[name] || 0) }.each do |staff_name, staff_shifts|
+      next unless (@weekend_consecutive_debt[staff_name] || 0) > 0
+
+      shifts_by_date = staff_shifts.each_with_object({}) { |s, h| h[s[:date]] = s }
+      saturdays = staff_shifts.select { |s| s[:date].saturday? }.sort_by { |s| s[:date] }
+      existing = saturdays.count { |sat| sat[:is_working] && shifts_by_date[sat[:date] + 1]&.[](:is_working) }
+      needed = PAYOFF_TARGET_OCCURRENCES - existing
+      next if needed <= 0
+
+      unavailable_wdays = @staff_info.dig(staff_name, :unavailable_wdays) || []
+
+      saturdays.each do |sat_shift|
+        break if needed <= 0
+        sun_shift = shifts_by_date[sat_shift[:date] + 1]
+        next unless sun_shift
+        next if sat_shift[:is_working] && sun_shift[:is_working] # 既に土日連続済みの週末は対象外
+        # 全員出勤日とペアの週末は balance_weekend_half が担当するため対象外
+        next if @all_staff_dates.include?(sat_shift[:date]) ^ @all_staff_dates.include?(sun_shift[:date])
+        next if unavailable_wdays.include?(0) || unavailable_wdays.include?(6)
+
+        targets = [sat_shift, sun_shift].reject { |s| s[:is_working] }
+        next if targets.empty?
+        next if targets.any? { |s| @leave_set.include?([staff_name, s[:date]]) || @closed_days.key?(s[:date]) }
+
+        staff_working_dates = staff_shifts.select { |s| s[:is_working] }.map { |s| s[:date] }
+        test_dates = (staff_working_dates + targets.map { |s| s[:date] }).uniq.sort
+        groups = find_consecutive_date_groups(test_dates)
+        next if groups.any? { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
+
+        targets.each { |s| s[:is_working] = true }
+        targets.each { |s| make_room_for_weekly_cap(staff_name, s[:date]) }
+        targets.each { |s| @extra_protected_dates << [staff_name, s[:date]] }
+        needed -= 1
       end
     end
   end
