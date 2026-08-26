@@ -38,7 +38,8 @@ class ConstraintExtractor
       },
       duty_constraints: duty_constraints_data,
       assignment_constraints: assignment_constraints_data,
-      mobile_library_constraints: mobile_library_constraints_data
+      mobile_library_constraints: mobile_library_constraints_data,
+      prior_trailing_work_days: prior_trailing_work_days_data
     }
   end
 
@@ -277,6 +278,34 @@ class ConstraintExtractor
         target_group: sd.target_group,
         designated_staffs: sd.designated_staffs.map(&:name)
       }
+    end
+  end
+
+  # 前月末時点で、各職員が何日連続で出勤していたか（当月1日の前日から
+  # 遡って数える）。シフトは月ごとに独立して生成されるため、これが無いと
+  # 前月末〜当月頭にまたがる連勤（例：9/27〜10/3の7連勤）を検知・回避
+  # できない。前月のShiftGroupが無ければ空のハッシュを返す
+  def prior_trailing_work_days_data
+    prev_month = @target_month.prev_month.beginning_of_month
+    sg = @library.shift_groups.find_by(target_month: prev_month)
+    return {} unless sg
+
+    dates_by_staff = Shift.where(shift_group: sg, is_working: true)
+      .group_by(&:staff_id)
+      .transform_values { |list| list.map(&:date).to_set }
+    staff_names = @library.staffs.where(id: dates_by_staff.keys).index_by(&:id).transform_values(&:name)
+
+    dates_by_staff.each_with_object({}) do |(staff_id, dates), result|
+      name = staff_names[staff_id]
+      next unless name
+
+      count = 0
+      d = @start_date - 1
+      while dates.include?(d) && count < ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS
+        count += 1
+        d -= 1
+      end
+      result[name] = count if count > 0
     end
   end
 

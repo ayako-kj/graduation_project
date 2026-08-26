@@ -382,7 +382,8 @@ class ShiftsController < ApplicationController
       parsed_shifts, constraints[:closed_days],
       constraints[:leave_requests], constraints[:special_dates],
       staff_target_days, constraints[:assignment_constraints],
-      constraints[:mobile_library_constraints], weekend_consecutive_debt
+      constraints[:mobile_library_constraints], weekend_consecutive_debt,
+      constraints[:prior_trailing_work_days]
     )
     fixed_shifts = post_processor.process
     assigned_shifts = DutyAssigner.new(fixed_shifts, constraints, target_month, current_library).assign
