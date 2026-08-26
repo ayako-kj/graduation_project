@@ -67,6 +67,7 @@ class ShiftPostProcessor
       fix_hourly_weekend_balance
       fix_weekly_overwork
       fix_weekend_consecutive
+      fix_weekend_consecutive_monthly_cap
       fix_consecutive_work
       @shifts.group_by { |s| s[:date] }.each do |date, day_shifts|
         next if @closed_days.key?(date)
@@ -92,6 +93,7 @@ class ShiftPostProcessor
       # ここが最終チェックのため、回避を試みても後続のfix_dayで打ち消されると
       # 手が無くなる。素直に月曜代休で決着させる
       fix_weekend_consecutive(prefer_cancel: false)
+      fix_weekend_consecutive_monthly_cap
       @shifts.group_by { |s| s[:date] }.each do |date, day_shifts|
         next if @closed_days.key?(date)
         fix_day(day_shifts)
@@ -537,6 +539,46 @@ class ShiftPostProcessor
     end
   end
 
+  # 職員ごとに、当月の土日連続勤務の回数が上限を超えないようにする。
+  # 上限は通常1回。ただし土日連続休みの負債（weekend_consecutive_debt）が
+  # 残っている職員は、その分を今月以降の土日連続勤務で引き受けてもらう
+  # ため2回まで許容する（3回以上にはしない：一度に大きく負担を偏らせず、
+  # 負債が多い場合は複数月にわたって少しずつ解消する）。
+  # fix_weekend_consecutive / balance_weekend_half 等で解消しきれず、
+  # 月内に上限を超える回数が残ってしまった場合の最終チェック
+  def fix_weekend_consecutive_monthly_cap
+    @shifts.group_by { |s| s[:staff_name] }.each do |staff_name, staff_shifts|
+      shifts_by_date = staff_shifts.each_with_object({}) { |s, h| h[s[:date]] = s }
+      occurrences = staff_shifts.select { |s| s[:is_working] && s[:date].saturday? }.sort_by { |s| s[:date] }
+        .select { |sat_shift| shifts_by_date[sat_shift[:date] + 1]&.[](:is_working) }
+
+      cap = (@weekend_consecutive_debt[staff_name] || 0) > 0 ? 2 : 1
+      excess = occurrences.size - cap
+      next if excess <= 0
+
+      occurrences.each do |sat_shift|
+        break if excess <= 0
+        sun_shift = shifts_by_date[sat_shift[:date] + 1]
+        next unless sat_shift[:is_working] && sun_shift[:is_working]
+        # 全員出勤日とペアになる週末は balance_weekend_half が管理しているため
+        # 対象外にする
+        next if @all_staff_dates.include?(sat_shift[:date]) ^ @all_staff_dates.include?(sun_shift[:date])
+
+        sat_protected = assignment_protected?(staff_name, sat_shift[:date])
+        sun_protected = assignment_protected?(staff_name, sun_shift[:date])
+        next if sat_protected && sun_protected
+
+        target = sun_protected ? sat_shift : sun_shift
+        next if @leave_set.include?([staff_name, target[:date]])
+        day_working = @shifts.select { |s| s[:date] == target[:date] && s[:is_working] }
+        next if essential_for_rules?(target, day_working)
+
+        cancel_and_backfill(target, staff_name)
+        excess -= 1 unless sat_shift[:is_working] && sun_shift[:is_working]
+      end
+    end
+  end
+
   def lock_rest_day(shift, staff_name)
     shift[:is_working] = false
     @locked_rest_days << [staff_name, shift[:date]]
@@ -580,14 +622,20 @@ class ShiftPostProcessor
   end
 
   # 指定日を休みにできれば休みにして true を返す。希望休・休館日・保護日は
-  # 対象外。代わりが見つからず最低人数を割ってしまう場合はキャンセルしない
-  # （cancel_and_backfillが自動的に元に戻す）ため、その場合は false を返す
+  # 対象外。配置ルール上その人がいないと最低人数を満たせない
+  # （essential_for_rules?）場合も対象外にする。cancel_and_backfillの
+  # 「元より人数が減ったら元に戻す」判定は日全体の人数しか見ておらず、
+  # 他の職種の人数に余裕があると「特定の配置ルール（例：副館長・行政職・
+  # 一般事務の最低1人）だけ満たせなくなる」ケースを検知できないため
   def try_weekend_makeup_day(staff_name, date, shifts_by_date)
     shift = shifts_by_date[date]
     return false unless shift&.[](:is_working) &&
                          !@leave_set.include?([staff_name, date]) &&
                          !@closed_days.key?(date) &&
                          !assignment_protected?(staff_name, date)
+
+    day_working = @shifts.select { |s| s[:date] == date && s[:is_working] }
+    return false if essential_for_rules?(shift, day_working)
 
     cancel_and_backfill(shift, staff_name)
     !shift[:is_working]
