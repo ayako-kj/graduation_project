@@ -895,19 +895,13 @@ class ShiftPostProcessor
         daily_counts[shift[:date]] += 1
         added += 1
       end
-      # 優先度3: 5日超え連続にはならないが、土日連続になる日（目標日数達成を優先）
+      # 優先度3: 5日超え連続にはならないが、土日連続になる日（目標日数達成を優先）。
+      # 5日超え連続（労務上のハードな上限）は、目標出勤日数（あくまで公平性の
+      # ための目安）より優先する。ここで埋めきれない分は目標未達のまま残す
       resting.each do |shift|
         break if added >= shortfall
         next if shift[:is_working]
         next if would_cause_consecutive_violation?(staff_name, shift[:date])
-        shift[:is_working] = true
-        daily_counts[shift[:date]] += 1
-        added += 1
-      end
-      # 優先度4: それでも不足する場合はやむを得ず残りを埋める
-      resting.each do |shift|
-        break if added >= shortfall
-        next if shift[:is_working]
         shift[:is_working] = true
         daily_counts[shift[:date]] += 1
         added += 1
