@@ -19,11 +19,10 @@ class WorkingDaySummariesController < ApplicationController
       @selected_staff = @staffs.find_by(id: params[:staff_id])
       build_staff_summary if @selected_staff
     elsif @active_tab == "duty"
-      build_duty_summary(months)
+      @view_month = parse_view_month(months)
+      build_duty_summary(months.select { |m| m <= @view_month })
     else
-      default_month = default_view_month(months)
-      raw_month = params[:view_month].presence || default_month.strftime("%Y-%m")
-      @view_month = Date.parse("#{raw_month}-01")
+      @view_month = parse_view_month(months)
       build_monthly_all_staff_summary(months)
     end
   end
@@ -43,6 +42,12 @@ class WorkingDaySummariesController < ApplicationController
     return next_month if months.include?(next_month)
 
     months.select { |m| m <= Date.today }.last || months.first
+  end
+
+  def parse_view_month(months)
+    default_month = default_view_month(months)
+    raw_month = params[:view_month].presence || default_month.strftime("%Y-%m")
+    Date.parse("#{raw_month}-01")
   end
 
   def fiscal_year_months(year)
