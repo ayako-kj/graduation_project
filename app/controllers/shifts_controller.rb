@@ -331,7 +331,14 @@ class ShiftsController < ApplicationController
       redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: "削除するシフトデータがありません。" and return
     end
 
-    ShiftSnapshot.where(library: current_library, target_month: target_month.beginning_of_month).destroy_all
+    snapshot = ShiftSnapshot.find_by(library: current_library, target_month: target_month.beginning_of_month)
+    # 一度確定したシフトを誤操作で削除してしまわないよう、確定済みの場合は
+    # パスワードの再入力を必須にする
+    if snapshot && !current_admin.valid_password?(params[:password].to_s)
+      redirect_to shifts_path(month: target_month.strftime("%Y-%m")), alert: "パスワードが正しくないため、削除できませんでした。" and return
+    end
+
+    snapshot&.destroy
     shift_group.destroy
 
     redirect_to shifts_path(month: target_month.strftime("%Y-%m")),
