@@ -902,6 +902,19 @@ class ShiftPostProcessor
                @shifts.select { |s| base_filter.call(s) && unavailable_wdays.include?(s[:date].wday) }
                        .sort_by { |s| [daily_counts[s[:date]], s[:date]] }
 
+      # TEMP DEBUG2: 目標未達の原因再調査用。原因特定後に削除する
+      existing_violation = find_consecutive_date_groups(working_dates_for(staff_name)).any? { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
+      all_off = @shifts.select { |s| s[:staff_name] == staff_name && !s[:is_working] }
+      Rails.logger.info "[TargetDaysDebug2] staff=#{staff_name} shortfall=#{shortfall} resting_total=#{resting.size} total_off=#{all_off.size} existing_violation_at_start=#{existing_violation}"
+      all_off.each do |s|
+        next if resting.include?(s)
+        reason = if @closed_days.key?(s[:date]) then "closed"
+                 elsif @leave_set.include?([staff_name, s[:date]]) then "leave"
+                 elsif @locked_rest_days.include?([staff_name, s[:date]]) then "locked"
+                 else "unknown" end
+        Rails.logger.info "[TargetDaysDebug2]   excluded_from_resting date=#{s[:date]} reason=#{reason}"
+      end
+
       added = 0
       # 優先度1: 5日超え連続にも土日連続にも週上限超過にもならない日
       resting.each do |shift|
@@ -933,6 +946,15 @@ class ShiftPostProcessor
         shift[:is_working] = true
         daily_counts[shift[:date]] += 1
         added += 1
+      end
+
+      # TEMP DEBUG2続き
+      if added < shortfall
+        Rails.logger.info "[TargetDaysDebug2] staff=#{staff_name} final added=#{added}/#{shortfall}"
+        resting.each do |shift|
+          next if shift[:is_working]
+          Rails.logger.info "[TargetDaysDebug2]   date=#{shift[:date]} consec=#{would_cause_consecutive_violation?(staff_name, shift[:date])} weekend=#{would_cause_weekend_consecutive?(staff_name, shift[:date])} weekly_cap=#{would_exceed_weekly_cap?(staff_name, shift[:date])}"
+        end
       end
     end
   end
