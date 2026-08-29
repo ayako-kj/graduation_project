@@ -92,7 +92,7 @@
           <div class="mt-1">
             <% @temporary_closed_dates_in_month.each do |date, label| %>
               <span class="badge rounded-pill text-bg-danger me-1" style="font-size:0.7rem;">
-                臨時休館 <%= date.strftime('%-m/%-d') %>（<%= label %>）
+                臨時公休 <%= date.strftime('%-m/%-d') %>（<%= label %>）
               </span>
             <% end %>
           </div>
@@ -101,7 +101,7 @@
           <div class="mt-1">
             <% @temporary_open_dates_in_month.each do |date, label| %>
               <span class="badge rounded-pill text-bg-success me-1" style="font-size:0.7rem;">
-                臨時開館 <%= date.strftime('%-m/%-d') %>（<%= label %>）
+                臨時出勤 <%= date.strftime('%-m/%-d') %>（<%= label %>）
               </span>
             <% end %>
           </div>
