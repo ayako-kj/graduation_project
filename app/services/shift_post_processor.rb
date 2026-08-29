@@ -902,19 +902,6 @@ class ShiftPostProcessor
                @shifts.select { |s| base_filter.call(s) && unavailable_wdays.include?(s[:date].wday) }
                        .sort_by { |s| [daily_counts[s[:date]], s[:date]] }
 
-      # TEMP DEBUG2: 目標未達の原因再調査用。原因特定後に削除する
-      existing_violation = find_consecutive_date_groups(working_dates_for(staff_name)).any? { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
-      all_off = @shifts.select { |s| s[:staff_name] == staff_name && !s[:is_working] }
-      Rails.logger.info "[TargetDaysDebug2] staff=#{staff_name} shortfall=#{shortfall} resting_total=#{resting.size} total_off=#{all_off.size} existing_violation_at_start=#{existing_violation}"
-      all_off.each do |s|
-        next if resting.include?(s)
-        reason = if @closed_days.key?(s[:date]) then "closed"
-                 elsif @leave_set.include?([staff_name, s[:date]]) then "leave"
-                 elsif @locked_rest_days.include?([staff_name, s[:date]]) then "locked"
-                 else "unknown" end
-        Rails.logger.info "[TargetDaysDebug2]   excluded_from_resting date=#{s[:date]} reason=#{reason}"
-      end
-
       added = 0
       # 優先度1: 5日超え連続にも土日連続にも週上限超過にもならない日
       resting.each do |shift|
@@ -946,15 +933,6 @@ class ShiftPostProcessor
         shift[:is_working] = true
         daily_counts[shift[:date]] += 1
         added += 1
-      end
-
-      # TEMP DEBUG2続き
-      if added < shortfall
-        Rails.logger.info "[TargetDaysDebug2] staff=#{staff_name} final added=#{added}/#{shortfall}"
-        resting.each do |shift|
-          next if shift[:is_working]
-          Rails.logger.info "[TargetDaysDebug2]   date=#{shift[:date]} consec=#{would_cause_consecutive_violation?(staff_name, shift[:date])} weekend=#{would_cause_weekend_consecutive?(staff_name, shift[:date])} weekly_cap=#{would_exceed_weekly_cap?(staff_name, shift[:date])}"
-        end
       end
     end
   end
@@ -1020,10 +998,16 @@ class ShiftPostProcessor
     (own_dates + ((@month_start - trailing)...@month_start).to_a).uniq.sort
   end
 
+  # dateを出勤にした場合、dateを含む連続グループが5日を超えるかどうかだけを
+  # 見る。月内の他の場所（別の連続グループ）に解消しきれない既存の違反が
+  # 残っていても、dateとは無関係であれば影響しない。groups.any?で月全体を
+  # 見てしまうと、既存の違反が1つでも残っている職員は、以降どの候補日を
+  # 試しても常に「違反あり」と誤判定され、目標出勤日数が全く埋まらなく
+  # なってしまう
   def would_cause_consecutive_violation?(staff_name, date)
     test_dates = (working_dates_for(staff_name) + [date]).uniq.sort
-    groups = find_consecutive_date_groups(test_dates)
-    groups.any? { |g| g.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS }
+    group = find_consecutive_date_groups(test_dates).find { |g| g.include?(date) }
+    group && group.size > ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS
   end
 
   # 指定日に出勤させると、その職員の土日連続出勤（fix_weekend_consecutiveが
