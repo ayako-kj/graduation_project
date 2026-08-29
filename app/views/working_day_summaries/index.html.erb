@@ -1,12 +1,26 @@
 <% content_for :title, "年間勤務日数サマリー | LibShift_Pitat" %>
 
+<style>
+  @media print {
+    /* このページはA4縦1枚に収める（シフト表ページのA4横指定を上書き） */
+    @page { size: A4 portrait; margin: 10mm; }
+    .container { padding: 0 !important; max-width: 100% !important; }
+    h1 { font-size: 1.1rem !important; }
+    table { font-size: 0.7rem !important; }
+    table th, table td { padding: 3px 4px !important; }
+  }
+</style>
+
 <div class="container py-5">
-  <div class="mb-4">
+  <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
     <h1 class="fs-4 fw-bold mb-0">年間勤務日数・時間サマリー</h1>
+    <button type="button" onclick="window.print()" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold d-print-none">
+      <i class="bi bi-printer me-1"></i>印刷する
+    </button>
   </div>
 
   <%# 年度選択 %>
-  <div class="pitat-card p-3 mb-4">
+  <div class="pitat-card p-3 mb-4 d-print-none">
     <%= form_with url: working_day_summaries_path, method: :get, class: "d-flex align-items-center gap-2" do |f| %>
       <%= f.hidden_field :tab, value: @active_tab %>
       <%= f.select :fiscal_year,
@@ -17,7 +31,7 @@
   </div>
 
   <%# タブ %>
-  <ul class="nav nav-tabs mb-4">
+  <ul class="nav nav-tabs mb-4 d-print-none">
     <li class="nav-item">
       <%= link_to "月別・全職員一覧", working_day_summaries_path(fiscal_year: @fiscal_year, tab: "monthly"),
           class: "nav-link #{'active fw-semibold' if @active_tab == 'monthly'}" %>
@@ -34,7 +48,7 @@
 
   <% if @active_tab == "duty" %>
     <%# ---- 当番回数集計タブ ---- %>
-    <%= form_with url: working_day_summaries_path, method: :get, class: "mb-4" do |f| %>
+    <%= form_with url: working_day_summaries_path, method: :get, class: "mb-4 d-print-none" do |f| %>
       <%= f.hidden_field :fiscal_year, value: @fiscal_year %>
       <%= f.hidden_field :tab, value: "duty" %>
       <div class="d-flex align-items-center gap-2">
@@ -47,7 +61,11 @@
       </div>
     <% end %>
 
-    <div class="pitat-card p-3 mb-4 small text-muted">
+    <div class="d-none d-print-block fw-bold fs-5 mb-2">
+      当番回数集計（<%= @fiscal_year %>年度　〜<%= @view_month.strftime("%Y年%-m月") %>末）
+    </div>
+
+    <div class="pitat-card p-3 mb-4 small text-muted d-print-none">
       <i class="bi bi-info-circle me-1"></i>
       <%= @fiscal_year %>年度開始（<%= @fiscal_year %>/4）から<%= @view_month.strftime("%Y年%-m月") %>末までの累計の当番回数集計です。自動生成済みの月の実績と、<%= link_to "勤務実績の手入力", workday_manual_entries_path, class: "text-muted" %>から登録した回数を合算して表示します。
     </div>
@@ -83,7 +101,7 @@
 
   <% elsif @active_tab == "staff" %>
     <%# ---- 職員別タブ ---- %>
-    <%= form_with url: working_day_summaries_path, method: :get, class: "mb-4" do |f| %>
+    <%= form_with url: working_day_summaries_path, method: :get, class: "mb-4 d-print-none" do |f| %>
       <%= f.hidden_field :fiscal_year, value: @fiscal_year %>
       <%= f.hidden_field :tab, value: "staff" %>
       <div class="d-flex align-items-center gap-2">
@@ -182,7 +200,7 @@
 
   <% else %>
     <%# ---- 月別・全職員タブ ---- %>
-    <%= form_with url: working_day_summaries_path, method: :get, class: "mb-4" do |f| %>
+    <%= form_with url: working_day_summaries_path, method: :get, class: "mb-4 d-print-none" do |f| %>
       <%= f.hidden_field :fiscal_year, value: @fiscal_year %>
       <%= f.hidden_field :tab, value: "monthly" %>
       <div class="d-flex align-items-center gap-2">
@@ -195,7 +213,11 @@
       </div>
     <% end %>
 
-    <div class="pitat-card p-3 mb-4 small text-muted">
+    <div class="d-none d-print-block fw-bold fs-5 mb-2">
+      月別・全職員一覧（<%= @view_month.strftime("%Y年%-m月") %>時点）
+    </div>
+
+    <div class="pitat-card p-3 mb-4 small text-muted d-print-none">
       <i class="bi bi-info-circle me-1"></i>
       <%= @view_month.strftime("%Y年%-m月") %>単月の実績・基準と、年度開始から<%= @view_month.strftime("%Y年%-m月") %>末までの累計を全職員で一覧表示します。
       市役所基準は実績の入力有無にかかわらず、暦通りに毎月更新されます。
