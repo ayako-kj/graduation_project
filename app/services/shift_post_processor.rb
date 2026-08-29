@@ -906,6 +906,15 @@ class ShiftPostProcessor
         daily_counts[shift[:date]] += 1
         added += 1
       end
+
+      # TEMP DEBUG: 目標未達の原因調査用。原因特定後に削除する
+      if added < shortfall
+        Rails.logger.info "[TargetDaysDebug] staff=#{staff_name} shortfall=#{shortfall} added=#{added} resting_total=#{resting.size}"
+        resting.each do |shift|
+          next if shift[:is_working]
+          Rails.logger.info "[TargetDaysDebug]   date=#{shift[:date]} consec=#{would_cause_consecutive_violation?(staff_name, shift[:date])} weekend=#{would_cause_weekend_consecutive?(staff_name, shift[:date])} weekly_cap=#{would_exceed_weekly_cap?(staff_name, shift[:date])}"
+        end
+      end
     end
   end
 
