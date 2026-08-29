@@ -56,11 +56,19 @@
           <button type="button" onclick="window.print()" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold">
             <i class="bi bi-printer me-1"></i>印刷する
           </button>
-          <%= button_to destroy_group_shifts_path(month: @target_month.strftime("%Y-%m")),
-              method: :delete,
-              class: "btn btn-outline-danger rounded-pill px-3 fw-semibold",
-              data: { turbo_confirm: "#{@target_month.strftime('%Y年%-m月')}の生成データを削除しますか？\nシフト表・確定バックアップがすべて消えます。年間サマリーの手入力データは残ります。" } do %>
-            <i class="bi bi-trash me-1"></i>生成データを削除
+          <% if @snapshot %>
+            <%# 確定済みの場合は誤操作防止のためパスワード入力を必須にする %>
+            <button type="button" class="btn btn-outline-danger rounded-pill px-3 fw-semibold"
+                    data-bs-toggle="modal" data-bs-target="#deleteGroupModal">
+              <i class="bi bi-trash me-1"></i>生成データを削除
+            </button>
+          <% else %>
+            <%= button_to destroy_group_shifts_path(month: @target_month.strftime("%Y-%m")),
+                method: :delete,
+                class: "btn btn-outline-danger rounded-pill px-3 fw-semibold",
+                data: { turbo_confirm: "#{@target_month.strftime('%Y年%-m月')}の生成データを削除しますか？\nシフト表がすべて消えます。年間サマリーの手入力データは残ります。" } do %>
+              <i class="bi bi-trash me-1"></i>生成データを削除
+            <% end %>
           <% end %>
         </div>
       <% end %>
@@ -373,6 +381,35 @@
     </div>
   </div>
 </div>
+
+<% if @snapshot %>
+  <%# 生成データ削除モーダル（確定済みの月のみ・誤操作防止のためパスワード必須） %>
+  <div class="modal fade d-print-none" id="deleteGroupModal" tabindex="-1" aria-labelledby="deleteGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header py-2">
+          <h6 class="modal-title fw-bold" id="deleteGroupModalLabel">生成データを削除</h6>
+          <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+        </div>
+        <%= form_with url: destroy_group_shifts_path(month: @target_month.strftime("%Y-%m")), method: :delete do |f| %>
+          <div class="modal-body py-3">
+            <p class="small text-muted">
+              <%= @target_month.strftime('%Y年%-m月') %>は確定済みです。生成データ・確定バックアップがすべて削除されます（年間サマリーの手入力データは残ります）。誤操作防止のため、パスワードを入力してください。
+            </p>
+            <label class="form-label small fw-semibold mb-1">
+              パスワード<span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
+            </label>
+            <%= f.password_field :password, class: "form-control form-control-sm", required: true, autocomplete: "current-password" %>
+          </div>
+          <div class="modal-footer py-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">キャンセル</button>
+            <%= f.submit "削除する", class: "btn btn-danger btn-sm rounded-pill px-3 fw-semibold" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
 
 <script>
   (function () {
