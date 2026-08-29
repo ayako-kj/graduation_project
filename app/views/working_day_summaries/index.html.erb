@@ -34,9 +34,22 @@
 
   <% if @active_tab == "duty" %>
     <%# ---- 当番回数集計タブ ---- %>
+    <%= form_with url: working_day_summaries_path, method: :get, class: "mb-4" do |f| %>
+      <%= f.hidden_field :fiscal_year, value: @fiscal_year %>
+      <%= f.hidden_field :tab, value: "duty" %>
+      <div class="d-flex align-items-center gap-2">
+        <label class="form-label small fw-semibold mb-0">表示月：</label>
+        <%= f.select :view_month,
+            options_for_select(@fiscal_months.map { |m| [m.strftime("%Y年%-m月"), m.strftime("%Y-%m")] }, @view_month.strftime("%Y-%m")),
+            {},
+            { class: "form-select form-select-sm", style: "width: auto;" } %>
+        <%= f.submit "表示", class: "btn btn-sm btn-pitat rounded-pill px-3" %>
+      </div>
+    <% end %>
+
     <div class="pitat-card p-3 mb-4 small text-muted">
       <i class="bi bi-info-circle me-1"></i>
-      <%= @fiscal_year %>年度（<%= @fiscal_year %>/4〜<%= @fiscal_year + 1 %>/3）の当番回数集計です。自動生成済みの月の実績と、<%= link_to "勤務実績の手入力", workday_manual_entries_path, class: "text-muted" %>から登録した回数を合算して表示します。
+      <%= @fiscal_year %>年度開始（<%= @fiscal_year %>/4）から<%= @view_month.strftime("%Y年%-m月") %>末までの累計の当番回数集計です。自動生成済みの月の実績と、<%= link_to "勤務実績の手入力", workday_manual_entries_path, class: "text-muted" %>から登録した回数を合算して表示します。
     </div>
 
     <div class="pitat-card p-0 overflow-hidden">
