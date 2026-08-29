@@ -81,6 +81,14 @@ class ShiftPostProcessor
       end
       break if @shifts.map { |s| s[:is_working] } == snapshot
     end
+    # ループ内ではfix_consecutive_workの直後にfix_dayが実行されるため、
+    # 人数確保のための最後の手段（add_staffのrisky枠）でfix_day側が新たに
+    # 連勤違反を作ってしまうことがある。これが残ったままfix_target_daysに
+    # 入ると、would_cause_consecutive_violation?は月内のどこかに違反が
+    # あるだけで真になるため、その職員の残り候補日が全て「違反あり」
+    # 扱いになり、目標日数が全く埋まらなくなる。fix_target_days前に
+    # 最終確認として呼び直す
+    fix_consecutive_work
     fix_target_days
     fix_excess_days
     @shifts
@@ -732,20 +740,40 @@ class ShiftPostProcessor
         break unless violation
 
         # 6日目以降で、当日の出勤者が最も多い日を選んで休みにする（担当会議日は保護）。
-        # 前月分の連勤日数（phantom）は当月のシフトデータが無く動かせないため対象外
+        # 前月分の連勤日数（phantom）は当月のシフトデータが無く動かせないため対象外。
+        # 職種を絞った狭い配置ルール（例：司書（正規職員）最低1人）上、その職員が
+        # いないと満たせない日は候補から外す（cancel_and_backfillは総人数の
+        # 増減しか見ておらず、狭いルール単体の違反は検知できないため）
         excess_dates = violation[ConsecutiveWorkValidator::MAX_CONSECUTIVE_DAYS..]
                          .select { |d| d >= @month_start }
                          .reject { |d| assignment_protected?(staff_name, d) }
+                         .reject { |d|
+                           shift = staff_shifts.find { |s| s[:date] == d }
+                           day_working = @shifts.select { |s| s[:date] == d && s[:is_working] }
+                           shift.nil? || essential_for_narrow_rules?(shift, day_working)
+                         }
         break if excess_dates.empty?
         target_date = excess_dates.max_by { |d| @shifts.count { |s| s[:date] == d && s[:is_working] } }
         target_shift = staff_shifts.find { |s| s[:date] == target_date }
         break unless target_shift
 
-        # 休みにし、その日を即座に別の職員で補完する（本人は補完対象から除く）
+        # 休みにし、その日を即座に別の職員で補完する（本人は補完対象から除く）。
+        # 代わりが見つからず総人数が減ってしまう場合は元に戻す。
+        # cancel_and_backfill（lock_rest_dayで恒久的にロックする）は使わない。
+        # ここでロックしてしまうと、この職員はこの日の配置ルール補充候補から
+        # 恒久的に除外され、後から別の狭いルール（例：専門司書最低3人）の
+        # 人数が別の理由で不足した際にも二度と充当できなくなり、複数人が
+        # 少しずつ同じ日から外れ続けて枯渇するおそれがある
+        before_count = @shifts.count { |s| s[:date] == target_date && s[:is_working] }
         target_shift[:is_working] = false
         unless @closed_days.key?(target_date)
           day_shifts = @shifts.select { |s| s[:date] == target_date }
           fix_day(day_shifts, exclude_name: staff_name)
+        end
+        after_count = @shifts.count { |s| s[:date] == target_date && s[:is_working] }
+        if after_count < before_count
+          target_shift[:is_working] = true
+          break
         end
       end
     end
@@ -905,15 +933,6 @@ class ShiftPostProcessor
         shift[:is_working] = true
         daily_counts[shift[:date]] += 1
         added += 1
-      end
-
-      # TEMP DEBUG: 目標未達の原因調査用。原因特定後に削除する
-      if added < shortfall
-        Rails.logger.info "[TargetDaysDebug] staff=#{staff_name} shortfall=#{shortfall} added=#{added} resting_total=#{resting.size}"
-        resting.each do |shift|
-          next if shift[:is_working]
-          Rails.logger.info "[TargetDaysDebug]   date=#{shift[:date]} consec=#{would_cause_consecutive_violation?(staff_name, shift[:date])} weekend=#{would_cause_weekend_consecutive?(staff_name, shift[:date])} weekly_cap=#{would_exceed_weekly_cap?(staff_name, shift[:date])}"
-        end
       end
     end
   end
