@@ -11,16 +11,16 @@
         <%= f.submit "表示", class: "btn btn-sm btn-outline-secondary rounded-pill px-3" %>
       <% end %>
 
-      <%# 臨時休館日設定ボタン %>
+      <%# 臨時公休日設定ボタン %>
       <%= link_to temporary_closed_dates_path(month: @target_month.strftime("%Y-%m")),
           class: "btn btn-outline-secondary rounded-pill px-3 fw-semibold" do %>
-        <i class="bi bi-door-closed me-1"></i>臨時休館日
+        <i class="bi bi-door-closed me-1"></i>臨時公休日
       <% end %>
 
-      <%# 臨時開館日設定ボタン %>
+      <%# 臨時出勤日設定ボタン %>
       <%= link_to temporary_open_dates_path(month: @target_month.strftime("%Y-%m")),
           class: "btn btn-outline-secondary rounded-pill px-3 fw-semibold" do %>
-        <i class="bi bi-door-open me-1"></i>臨時開館日
+        <i class="bi bi-door-open me-1"></i>臨時出勤日
       <% end %>
 
       <%# 入力締め切り日設定ボタン %>
@@ -92,7 +92,7 @@
           <div class="mt-1">
             <% @temporary_closed_dates_in_month.each do |date, label| %>
               <span class="badge rounded-pill text-bg-danger me-1" style="font-size:0.7rem;">
-                臨時休館 <%= date.strftime('%-m/%-d') %>（<%= label %>）
+                臨時公休 <%= date.strftime('%-m/%-d') %>（<%= label %>）
               </span>
             <% end %>
           </div>
@@ -101,7 +101,7 @@
           <div class="mt-1">
             <% @temporary_open_dates_in_month.each do |date, label| %>
               <span class="badge rounded-pill text-bg-success me-1" style="font-size:0.7rem;">
-                臨時開館 <%= date.strftime('%-m/%-d') %>（<%= label %>）
+                臨時出勤 <%= date.strftime('%-m/%-d') %>（<%= label %>）
               </span>
             <% end %>
           </div>

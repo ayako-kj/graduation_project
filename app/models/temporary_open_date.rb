@@ -2,7 +2,7 @@ class TemporaryOpenDate < ApplicationRecord
   belongs_to :library
 
   validates :date, presence: true
-  validates :date, uniqueness: { scope: :library_id, message: "はすでに臨時開館日として登録されています" }
+  validates :date, uniqueness: { scope: :library_id, message: "はすでに臨時出勤日として登録されています" }
   validates :label, presence: true
 
   scope :for_month, ->(month) { where(date: month.beginning_of_month..month.end_of_month) }
