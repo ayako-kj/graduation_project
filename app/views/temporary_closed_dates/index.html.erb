@@ -1,11 +1,11 @@
-<% content_for :title, "臨時休館日設定 | LibShift_Pitat" %>
+<% content_for :title, "臨時公休日設定 | LibShift_Pitat" %>
 
 <div class="container py-5" style="max-width: 720px;">
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-      <h1 class="fs-4 fw-bold mb-1">臨時休館日の設定</h1>
+      <h1 class="fs-4 fw-bold mb-1">臨時公休日の設定</h1>
       <p class="text-muted small mb-0">
-        図書館システム更新・蔵書点検など、不定期に発生する臨時休館日を登録します。<br>
+        図書館システム更新・蔵書点検など、不定期に発生する臨時公休日を登録します。<br>
         登録した日はシフト表で「閉」と表示され、AIシフト生成でも休館日として扱われます。
       </p>
     </div>
@@ -41,7 +41,7 @@
 
   <%# 登録フォーム %>
   <div class="pitat-card p-3 mb-4">
-    <div class="small fw-semibold text-muted mb-3">臨時休館日を追加する</div>
+    <div class="small fw-semibold text-muted mb-3">臨時公休日を追加する</div>
     <%= form_with model: @temporary_closed_date,
         url: temporary_closed_dates_path(month: @target_month.strftime("%Y-%m")),
         method: :post do |f| %>
@@ -72,7 +72,7 @@
   <% if @temporary_closed_dates.empty? %>
     <div class="pitat-card p-4 text-center text-muted small">
       <i class="bi bi-door-closed fs-2 d-block mb-2"></i>
-      <%= @target_month.strftime("%Y年%-m月") %>に登録された臨時休館日はありません。
+      <%= @target_month.strftime("%Y年%-m月") %>に登録された臨時公休日はありません。
     </div>
   <% else %>
     <div class="pitat-card p-0 overflow-hidden">

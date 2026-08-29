@@ -1,8 +1,8 @@
 class ClosedDayCalculator
   # closed_wdays: 0=日 1=月 2=火 3=水 4=木 5=金 6=土 の整数配列
-  # extra_closed_dates: { date => label } の形式（臨時休館日）
-  # forced_open_dates: { date => label } の形式（臨時開館日）。定休日・祝日・
-  # 臨時休館日のいずれであっても、この日は休館日として扱わない
+  # extra_closed_dates: { date => label } の形式（臨時公休日）
+  # forced_open_dates: { date => label } の形式（臨時出勤日）。定休日・祝日・
+  # 臨時公休日のいずれであっても、この日は休館日として扱わない
   def initialize(target_month, holidays, closed_wdays: [2], extra_closed_dates: {}, forced_open_dates: {})
     @start_date         = target_month.beginning_of_month
     @end_date           = target_month.end_of_month

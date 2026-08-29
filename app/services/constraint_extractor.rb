@@ -17,10 +17,10 @@ class ConstraintExtractor
     wdays = @library.closed_wdays_array
     extra = TemporaryClosedDate
       .where(library: @library, date: @start_date..@end_date)
-      .each_with_object({}) { |tcd, h| h[tcd.date] = tcd.label.presence || "臨時休館日" }
+      .each_with_object({}) { |tcd, h| h[tcd.date] = tcd.label.presence || "臨時公休日" }
     forced_open = TemporaryOpenDate
       .where(library: @library, date: @start_date..@end_date)
-      .each_with_object({}) { |tod, h| h[tod.date] = tod.label.presence || "臨時開館日" }
+      .each_with_object({}) { |tod, h| h[tod.date] = tod.label.presence || "臨時出勤日" }
     @closed_calc = ClosedDayCalculator.new(@target_month, @holidays, closed_wdays: wdays, extra_closed_dates: extra, forced_open_dates: forced_open)
     @working_calc = WorkingDayCalculator.new(@target_month, @holidays, closed_wdays: wdays)
     @n_city_hall = @working_calc.city_hall_days

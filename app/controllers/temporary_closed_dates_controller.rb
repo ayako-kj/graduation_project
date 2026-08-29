@@ -16,7 +16,7 @@ class TemporaryClosedDatesController < ApplicationController
 
     if @temporary_closed_date.save
       redirect_to temporary_closed_dates_path(month: @target_month.strftime("%Y-%m")),
-                  notice: "臨時休館日「#{@temporary_closed_date.label}」を登録しました。"
+                  notice: "臨時公休日「#{@temporary_closed_date.label}」を登録しました。"
     else
       @temporary_closed_dates = current_library.temporary_closed_dates.for_month(@target_month).ordered
       render :index, status: :unprocessable_entity
@@ -31,7 +31,7 @@ class TemporaryClosedDatesController < ApplicationController
     @target_month = parse_target_month
     if @temporary_closed_date.update(tcd_params)
       redirect_to temporary_closed_dates_path(month: @target_month.strftime("%Y-%m")),
-                  notice: "臨時休館日を更新しました。"
+                  notice: "臨時公休日を更新しました。"
     else
       render :edit, status: :unprocessable_entity
     end
@@ -41,7 +41,7 @@ class TemporaryClosedDatesController < ApplicationController
     month = @temporary_closed_date.date.strftime("%Y-%m")
     @temporary_closed_date.destroy
     redirect_to temporary_closed_dates_path(month: month),
-                notice: "臨時休館日を削除しました。"
+                notice: "臨時公休日を削除しました。"
   end
 
   private

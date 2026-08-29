@@ -11,16 +11,16 @@
         <%= f.submit "表示", class: "btn btn-sm btn-outline-secondary rounded-pill px-3" %>
       <% end %>
 
-      <%# 臨時休館日設定ボタン %>
+      <%# 臨時公休日設定ボタン %>
       <%= link_to temporary_closed_dates_path(month: @target_month.strftime("%Y-%m")),
           class: "btn btn-outline-secondary rounded-pill px-3 fw-semibold" do %>
-        <i class="bi bi-door-closed me-1"></i>臨時休館日
+        <i class="bi bi-door-closed me-1"></i>臨時公休日
       <% end %>
 
-      <%# 臨時開館日設定ボタン %>
+      <%# 臨時出勤日設定ボタン %>
       <%= link_to temporary_open_dates_path(month: @target_month.strftime("%Y-%m")),
           class: "btn btn-outline-secondary rounded-pill px-3 fw-semibold" do %>
-        <i class="bi bi-door-open me-1"></i>臨時開館日
+        <i class="bi bi-door-open me-1"></i>臨時出勤日
       <% end %>
 
       <%# 入力締め切り日設定ボタン %>

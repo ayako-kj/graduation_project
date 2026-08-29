@@ -16,7 +16,7 @@ class TemporaryOpenDatesController < ApplicationController
 
     if @temporary_open_date.save
       redirect_to temporary_open_dates_path(month: @target_month.strftime("%Y-%m")),
-                  notice: "臨時開館日「#{@temporary_open_date.label}」を登録しました。"
+                  notice: "臨時出勤日「#{@temporary_open_date.label}」を登録しました。"
     else
       @temporary_open_dates = current_library.temporary_open_dates.for_month(@target_month).ordered
       render :index, status: :unprocessable_entity
@@ -31,7 +31,7 @@ class TemporaryOpenDatesController < ApplicationController
     @target_month = parse_target_month
     if @temporary_open_date.update(tod_params)
       redirect_to temporary_open_dates_path(month: @target_month.strftime("%Y-%m")),
-                  notice: "臨時開館日を更新しました。"
+                  notice: "臨時出勤日を更新しました。"
     else
       render :edit, status: :unprocessable_entity
     end
@@ -41,7 +41,7 @@ class TemporaryOpenDatesController < ApplicationController
     month = @temporary_open_date.date.strftime("%Y-%m")
     @temporary_open_date.destroy
     redirect_to temporary_open_dates_path(month: month),
-                notice: "臨時開館日を削除しました。"
+                notice: "臨時出勤日を削除しました。"
   end
 
   private
