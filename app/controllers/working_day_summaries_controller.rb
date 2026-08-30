@@ -212,7 +212,7 @@ class WorkingDaySummariesController < ApplicationController
     end
 
     weekend_work_counts = weekend_consecutive_work_counts(shift_groups)
-    weekend_off_counts  = weekend_consecutive_off_counts(months)
+    weekend_off_counts  = weekend_consecutive_off_counts(shift_groups)
 
     @duty_summaries = @staffs.map do |staff|
       early_eligible = !staff.employment_type.is_regular && DutyAssigner::EARLY_STAFF_TYPES.include?(staff.staff_type.name)
@@ -249,18 +249,20 @@ class WorkingDaySummariesController < ApplicationController
     counts
   end
 
-  # 土日とも希望休（LeaveRequest）になっている回数を職員ごとに集計する
-  def weekend_consecutive_off_counts(months)
+  # 土日とも休み（is_working: false）になっている回数を職員ごとに集計する
+  def weekend_consecutive_off_counts(shift_groups)
     counts = Hash.new(0)
-    LeaveRequest.where(staff: @staffs, date: months.first.beginning_of_month..months.last.end_of_month)
-      .group_by(&:staff_id)
-      .each do |staff_id, list|
-        dates = list.map(&:date).to_set
+    shift_groups.each do |sg|
+      dates_by_staff = Shift.where(shift_group: sg, is_working: false)
+        .group_by(&:staff_id)
+        .transform_values { |list| list.map(&:date).to_set }
+      dates_by_staff.each do |staff_id, dates|
         dates.each do |d|
           next unless d.saturday? && dates.include?(d + 1)
           counts[staff_id] += 1
         end
       end
+    end
     counts
   end
 end
