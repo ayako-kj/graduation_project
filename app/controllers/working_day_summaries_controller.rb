@@ -193,26 +193,17 @@ class WorkingDaySummariesController < ApplicationController
     shift_groups = current_library.shift_groups
                                   .where(target_month: months.first.beginning_of_month..months.last.beginning_of_month)
 
-    early_counts         = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_early: true).group(:staff_id).count
-    post_counts          = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_post_duty: true).group(:staff_id).count
-    holiday_post_counts  = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_holiday_post_duty: true).group(:staff_id).count
+    early_by_month         = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_early: true)
+                                   .group(:staff_id, "shift_groups.target_month").count
+    post_by_month          = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_post_duty: true)
+                                   .group(:staff_id, "shift_groups.target_month").count
+    holiday_post_by_month  = Shift.joins(:shift_group).where(shift_groups: { id: shift_groups }, is_holiday_post_duty: true)
+                                   .group(:staff_id, "shift_groups.target_month").count
+    weekend_work_by_month  = weekend_consecutive_pair_counts_by_month(shift_groups, true)
+    weekend_off_by_month   = weekend_consecutive_pair_counts_by_month(shift_groups, false)
 
-    manual = WorkdayManualEntry.where(staff: @staffs, year_month: months.first..months.last)
-    manual_early = Hash.new(0)
-    manual_post  = Hash.new(0)
-    manual_holiday_post = Hash.new(0)
-    manual_wc_work = Hash.new(0)
-    manual_wc_off  = Hash.new(0)
-    manual.each do |e|
-      manual_early[e.staff_id]        += e.early_count || 0
-      manual_post[e.staff_id]         += e.post_duty_count || 0
-      manual_holiday_post[e.staff_id] += e.holiday_post_duty_count || 0
-      manual_wc_work[e.staff_id]      += e.weekend_consecutive_work_count || 0
-      manual_wc_off[e.staff_id]       += e.weekend_consecutive_off_count || 0
-    end
-
-    weekend_work_counts = weekend_consecutive_work_counts(shift_groups)
-    weekend_off_counts  = weekend_consecutive_off_counts(shift_groups)
+    manual_by_key = WorkdayManualEntry.where(staff: @staffs, year_month: months.first..months.last)
+                                       .index_by { |e| [e.staff_id, e.year_month.beginning_of_month] }
 
     @duty_summaries = @staffs.map do |staff|
       early_eligible = !staff.employment_type.is_regular && DutyAssigner::EARLY_STAFF_TYPES.include?(staff.staff_type.name)
@@ -223,44 +214,45 @@ class WorkingDaySummariesController < ApplicationController
 
       {
         staff: staff,
-        early_count: early_eligible ? (early_counts[staff.id] || 0) + manual_early[staff.id] : nil,
-        post_duty_count: post_eligible ? (post_counts[staff.id] || 0) + manual_post[staff.id] : nil,
-        holiday_post_duty_count: post_eligible ? (holiday_post_counts[staff.id] || 0) + manual_holiday_post[staff.id] : nil,
-        weekend_consecutive_work_count: weekend_eligible ? (weekend_work_counts[staff.id] || 0) + manual_wc_work[staff.id] : nil,
-        weekend_consecutive_off_count: weekend_eligible ? (weekend_off_counts[staff.id] || 0) + manual_wc_off[staff.id] : nil
+        early_count: early_eligible ?
+          monthly_duty_total(staff.id, months, early_by_month, manual_by_key, :early_count) : nil,
+        post_duty_count: post_eligible ?
+          monthly_duty_total(staff.id, months, post_by_month, manual_by_key, :post_duty_count) : nil,
+        holiday_post_duty_count: post_eligible ?
+          monthly_duty_total(staff.id, months, holiday_post_by_month, manual_by_key, :holiday_post_duty_count) : nil,
+        weekend_consecutive_work_count: weekend_eligible ?
+          monthly_duty_total(staff.id, months, weekend_work_by_month, manual_by_key, :weekend_consecutive_work_count) : nil,
+        weekend_consecutive_off_count: weekend_eligible ?
+          monthly_duty_total(staff.id, months, weekend_off_by_month, manual_by_key, :weekend_consecutive_off_count) : nil
       }
     end
   end
 
-  # 土日とも出勤（is_working）になっている回数を職員ごとに集計する
-  def weekend_consecutive_work_counts(shift_groups)
-    counts = Hash.new(0)
-    shift_groups.each do |sg|
-      dates_by_staff = Shift.where(shift_group: sg, is_working: true)
-        .group_by(&:staff_id)
-        .transform_values { |list| list.map(&:date).to_set }
-      dates_by_staff.each do |staff_id, dates|
-        dates.each do |d|
-          next unless d.saturday? && dates.include?(d + 1)
-          counts[staff_id] += 1
-        end
-      end
+  # 月ごとに「その月の手入力があればそちらを優先し、なければ自動生成の
+  # 集計値を使う」方針で全月分を合算する。自動生成済みの月であっても、
+  # 手入力で上書きされている場合はそちらを正としたいため（例：生成後に
+  # 実態と異なることが分かり手動で補正したケース）、常に手入力を優先する。
+  def monthly_duty_total(staff_id, months, generated_by_month, manual_by_key, field)
+    months.sum do |month|
+      manual_entry = manual_by_key[[staff_id, month]]
+      manual_value = manual_entry&.public_send(field)
+      next manual_value if manual_value.present?
+      generated_by_month[[staff_id, month]] || 0
     end
-    counts
   end
 
-  # 土日とも休み（is_working: false）になっている回数を職員ごとに集計する
-  def weekend_consecutive_off_counts(shift_groups)
+  # 土日とも指定の状態（is_working）になっている回数を、土曜日が属する月
+  # ごとに集計する。月末が土曜・月初が日曜のように月をまたぐペアも検出
+  # できるよう、対象の全shift_groupの日付をまとめてから判定する
+  def weekend_consecutive_pair_counts_by_month(shift_groups, is_working)
+    dates_by_staff = Shift.where(shift_group: shift_groups, is_working: is_working)
+      .group_by(&:staff_id)
+      .transform_values { |list| list.map(&:date).to_set }
     counts = Hash.new(0)
-    shift_groups.each do |sg|
-      dates_by_staff = Shift.where(shift_group: sg, is_working: false)
-        .group_by(&:staff_id)
-        .transform_values { |list| list.map(&:date).to_set }
-      dates_by_staff.each do |staff_id, dates|
-        dates.each do |d|
-          next unless d.saturday? && dates.include?(d + 1)
-          counts[staff_id] += 1
-        end
+    dates_by_staff.each do |staff_id, dates|
+      dates.each do |d|
+        next unless d.saturday? && dates.include?(d + 1)
+        counts[[staff_id, d.beginning_of_month]] += 1
       end
     end
     counts
