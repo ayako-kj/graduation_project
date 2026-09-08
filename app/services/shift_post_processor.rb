@@ -70,6 +70,7 @@ class ShiftPostProcessor
       # 新たに作ることがあるため、毎回ループの先頭でチェックし直す
       fix_regular_weekly_pattern
       fix_hourly_weekend_balance
+      fix_hourly_weekend_minimum
       fix_weekly_overwork
       pay_down_weekend_consecutive_debt
       fix_weekend_consecutive
@@ -344,6 +345,47 @@ class ShiftPostProcessor
 
       movable = @all_staff_dates.include?(sat) ? sun : sat
       balance_weekend_half(hourly_names, movable)
+    end
+  end
+
+  # 会計年度任用職員（非正規）も、正規職員（fix_regular_weekly_pattern）と
+  # 同様に「土日どちらか一方は基本的に出勤する」ことを保証する。専門司書
+  # など人数の多い職種グループでは、最低出勤人数さえ満たせば個々の職員は
+  # 「その週は誰にも選ばれない」ことがあり得るため、これを補わないと
+  # 希望休を出していないのに土日が丸ごと空いてしまう職員が発生する。
+  # 土日どちらも希望休の週や、土日とも勤務不可（unavailable_wdays）の
+  # 職員（館長など）は対象外にする
+  def fix_hourly_weekend_minimum
+    hourly_names = @staff_info.reject { |_, info| info[:is_regular] }.keys
+    by_staff = @shifts.group_by { |s| s[:staff_name] }
+
+    @shifts.select { |s| s[:date].saturday? }.map { |s| s[:date] }.uniq.sort.each do |sat|
+      sun = sat + 1
+      next unless @shifts.any? { |s| s[:date] == sun }
+
+      hourly_names.shuffle.each do |staff_name|
+        unavailable_wdays = @staff_info.dig(staff_name, :unavailable_wdays) || []
+        next if unavailable_wdays.include?(0) && unavailable_wdays.include?(6)
+
+        staff_shifts = by_staff[staff_name] || []
+        sat_shift = staff_shifts.find { |s| s[:date] == sat }
+        sun_shift = staff_shifts.find { |s| s[:date] == sun }
+        next unless sat_shift && sun_shift
+        next if sat_shift[:is_working] || sun_shift[:is_working]
+        next if @leave_set.include?([staff_name, sat]) && @leave_set.include?([staff_name, sun])
+
+        candidates = [sat_shift, sun_shift].reject do |s|
+          fixed_and_unmovable?(staff_name, s[:date]) ||
+            unavailable_wdays.include?(s[:date].wday) ||
+            would_cause_consecutive_violation?(staff_name, s[:date])
+        end
+        next if candidates.empty?
+
+        target_shift = candidates.first
+        target_shift[:is_working] = true
+        make_room_for_weekly_cap(staff_name, target_shift[:date])
+        @extra_protected_dates << [staff_name, target_shift[:date]]
+      end
     end
   end
 
