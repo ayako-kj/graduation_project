@@ -281,14 +281,10 @@ class ShiftPostProcessor
   end
 
   REGULAR_FIXED_WDAYS = [1, 3, 4, 5].freeze # 月・水・木・金
-  # 配置ルール上「どちらかがいればいい」関係にある職種は、土日の均等配分でも
-  # 同じグループとして扱う（副館長・行政職・一般事務はteam_minルールで
-  # 合計1名以上いればよく、同じ枠を共有するため。館長はこのルールに含まれない）
-  WEEKEND_GROUP_OVERRIDES = { "副館長" => "配置ルール共有枠", "行政職" => "配置ルール共有枠", "一般事務" => "配置ルール共有枠" }.freeze
 
   def weekend_group_key(staff_name)
     staff_type = @staff_info.dig(staff_name, :staff_type)
-    WEEKEND_GROUP_OVERRIDES[staff_type] || staff_type
+    WeekendGroupKey.for(staff_type)
   end
 
   # 正規職員は月・水・木・金を基本的に出勤とし、土日はどちらか1日だけ出勤する

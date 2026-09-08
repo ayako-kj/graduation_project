@@ -148,12 +148,21 @@ class ConstraintExtractor
 
   # 今年度これまでに、土日連続勤務を何回したか（work_count）と、
   # 土日連続休み（家庭の事情等での希望休）を何回取ったか（off_count）を
-  # 集計し、「off_count - work_count」を返す。値が大きい職員ほど、
-  # 土日連続休みを取った分に見合うだけの土日連続勤務をまだしていない
-  # （＝次に土日連続勤務が避けられない場面では、この職員に割り当てる
-  # のが公平）とみなす。逆に値が小さい（マイナスの）職員ほど、既に
-  # 土日連続勤務を多くこなしているため、優先して救済（片方をキャンセル）
-  # する対象になる
+  # 集計し、「off_count - work_count」（＝leave_based debt）を基本の負債とする。
+  # 値が大きい職員ほど、土日連続休みを取った分に見合うだけの土日連続勤務を
+  # まだしていない（＝次に土日連続勤務が避けられない場面では、この職員に
+  # 割り当てるのが公平）とみなす。逆に値が小さい（マイナスの）職員ほど、
+  # 既に土日連続勤務を多くこなしているため、優先して救済（片方をキャンセル）
+  # する対象になる。
+  #
+  # ただし、土日を両方とも希望休にする職員が誰もいない職種グループでは
+  # off_countが全員ゼロのままとなり、leave_based debtは常に0以下にしかなら
+  # ない。この場合、後段の積極的な埋め合わせ（pay_down_weekend_consecutive_
+  # debt、debt > 0で発動）が一切働かず、たまたま選ばれにくかった職員に
+  # 土日連続出勤が偏っても是正されないまま拡大してしまう。そこで、
+  # 同じ職種グループ（WeekendGroupKey基準）内の平均work_countとの差分
+  # （relative debt）も算出し、leave_based debtとの大きい方を最終的な負債
+  # とする。土日とも勤務不可な職員はグループ平均の対象外とする
   def weekend_consecutive_debt_data(staffs, past_months)
     start_date = past_months.first.beginning_of_month
     end_date = past_months.last.end_of_month
@@ -189,7 +198,21 @@ class ConstraintExtractor
       off_count[e.staff_id]  += e.weekend_consecutive_off_count || 0
     end
 
-    staff_ids.each_with_object({}) { |id, h| h[id] = off_count[id] - work_count[id] }
+    eligible_staffs = staffs.reject { |s| both_weekend_days_unavailable?(s) }
+    group_avg_work = eligible_staffs.group_by { |s| WeekendGroupKey.for(s.staff_type.name) }
+      .transform_values { |members| members.sum { |s| work_count[s.id] }.to_f / members.size }
+    group_key_by_staff_id = eligible_staffs.index_by(&:id).transform_values { |s| WeekendGroupKey.for(s.staff_type.name) }
+
+    staff_ids.each_with_object({}) do |id, h|
+      leave_based = off_count[id] - work_count[id]
+      relative = group_key_by_staff_id.key?(id) ? (group_avg_work[group_key_by_staff_id[id]] - work_count[id]) : 0
+      h[id] = [leave_based, relative].max.round
+    end
+  end
+
+  def both_weekend_days_unavailable?(staff)
+    wdays = staff.unavailable_wdays_array
+    wdays.include?(0) && wdays.include?(6)
   end
 
   def preload_past_actual_data(staffs, past_months)
