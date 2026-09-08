@@ -234,10 +234,17 @@ class ShiftPostProcessor
     end
   end
 
-  def assignment_protected?(staff_name, date)
+  # include_extra: false の場合、@extra_protected_dates（土日連続の割当を
+  # 他の後処理が勝手に取り消さないようにするための内部的な保護）は無視する。
+  # スケジュール・担当会議・移動図書館・全員出勤日など、外部要因による
+  # 保護のみを見る。fix_excess_days（月間目標日数の超過是正）で使う。
+  # 月間の目標日数・実績時間の公平性は、土日連続の組み合わせを崩さない
+  # ことよりも優先度が高いと判断し、超過している場合はその日が土日連続
+  # 割当の一部であっても削減対象にする
+  def assignment_protected?(staff_name, date, include_extra: true)
     return false if @leave_set.include?([staff_name, date])
     return true if @all_staff_dates.include?(date)
-    return true if @extra_protected_dates.include?([staff_name, date])
+    return true if include_extra && @extra_protected_dates.include?([staff_name, date])
     return true if @assignment_dates[date]&.include?(staff_name)
     return true if @designated_dates[date]&.include?(staff_name)
     return true if @mobile_dates[date]&.include?(staff_name)
@@ -995,7 +1002,7 @@ class ShiftPostProcessor
         s[:staff_name] == staff_name && s[:is_working] &&
           !@closed_days.key?(s[:date]) && !@all_staff_dates.include?(s[:date]) &&
           !@leave_set.include?([staff_name, s[:date]]) &&
-          !assignment_protected?(staff_name, s[:date])
+          !assignment_protected?(staff_name, s[:date], include_extra: false)
       }.sort_by { |s|
         day_count = @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] }
         d = s[:date] - 1
