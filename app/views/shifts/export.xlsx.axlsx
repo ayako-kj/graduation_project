@@ -33,6 +33,11 @@ hol_post_s    = s.add_style center.merge(bg_color: "FEE2E2", fg_color: "DC2626",
 early_schedule_s    = s.add_style center.merge(bg_color: "D1FAE5", fg_color: "D97706", b: true)
 post_schedule_s     = s.add_style center.merge(bg_color: "D1FAE5", fg_color: "2563EB", b: true)
 hol_post_schedule_s = s.add_style center.merge(bg_color: "D1FAE5", fg_color: "DC2626", b: true)
+# 移動図書館：他のスケジュール（緑）と区別するためパープルにする
+mobile_s            = s.add_style center.merge(bg_color: "E9D5FF", fg_color: "6D28D9", b: true)
+early_mobile_s       = s.add_style center.merge(bg_color: "E9D5FF", fg_color: "D97706", b: true)
+post_mobile_s        = s.add_style center.merge(bg_color: "E9D5FF", fg_color: "2563EB", b: true)
+hol_post_mobile_s    = s.add_style center.merge(bg_color: "E9D5FF", fg_color: "DC2626", b: true)
 error_s       = s.add_style center.merge(bg_color: "F8D7DA", fg_color: "842029", b: true)
 count_s       = s.add_style center.merge(bg_color: "DCFCE7", b: true, fg_color: "166534")
 total_s       = s.add_style center.merge(bg_color: "EFF6FF", b: true, fg_color: "1E40AF")
@@ -81,12 +86,15 @@ cell_val = lambda do |staff, date|
     [leave_reason_labels[lr_reason] || "休", leave_s]
   elsif shift&.is_working
     scheduled = @schedule_map[[staff.id, date]]
+    mobile    = @mobile_schedule_map[[staff.id, date]]
     if shift.is_early
-      scheduled ? ["早", early_schedule_s] : ["早", weekend_style.call(early_sat_s, early_sun_s, early_s)]
+      mobile ? ["早", early_mobile_s] : (scheduled ? ["早", early_schedule_s] : ["早", weekend_style.call(early_sat_s, early_sun_s, early_s)])
     elsif shift.is_holiday_post_duty
-      scheduled ? ["Ｐ", hol_post_schedule_s] : ["Ｐ", hol_post_s]
+      mobile ? ["Ｐ", hol_post_mobile_s] : (scheduled ? ["Ｐ", hol_post_schedule_s] : ["Ｐ", hol_post_s])
     elsif shift.is_post_duty
-      scheduled ? ["ｐ", post_schedule_s] : ["ｐ", weekend_style.call(post_sat_s, post_sun_s, post_s)]
+      mobile ? ["ｐ", post_mobile_s] : (scheduled ? ["ｐ", post_schedule_s] : ["ｐ", weekend_style.call(post_sat_s, post_sun_s, post_s)])
+    elsif mobile
+      ["○", mobile_s]
     elsif scheduled
       ["○", schedule_s]
     else

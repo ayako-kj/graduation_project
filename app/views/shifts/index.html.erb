@@ -156,7 +156,8 @@
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">夏</span>夏期休暇</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">病</span>病気休暇</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">特</span>特別休暇</span>
-      <span><span class="badge me-1" style="background-color:#D1FAE5; color:#065F46; border:1px solid #6ee7b7;">○</span>スケジュール・移動図書館・定例会議</span>
+      <span><span class="badge me-1" style="background-color:#D1FAE5; color:#065F46; border:1px solid #6ee7b7;">○</span>スケジュール・定例会議</span>
+      <span><span class="badge me-1" style="background-color:#E9D5FF; color:#6D28D9; border:1px solid #c084fc;">○</span>移動図書館</span>
       <% if @shift_group&.suppress_all_errors? %>
         <%= button_to restore_errors_shifts_path(month: @target_month.strftime("%Y-%m")),
             method: :post,
@@ -232,7 +233,9 @@
                     "background-color:#FEE2E2;"
                   elsif is_leave && shift && !shift.is_working
                     "background-color:#FEF3C7;"
-                  elsif (is_special || is_mobile || is_assignment) && shift&.is_working
+                  elsif is_mobile && shift&.is_working
+                    "background-color:#E9D5FF;"
+                  elsif (is_special || is_assignment) && shift&.is_working
                     "background-color:#D1FAE5;"
                   elsif date.saturday?
                     "background-color:#DBEAFE;"
@@ -243,7 +246,9 @@
                 <%
                   cell_type_class = if is_leave && shift && !shift.is_working
                     "cell-leave"
-                  elsif (is_special || is_mobile || is_assignment) && shift&.is_working
+                  elsif is_mobile && shift&.is_working
+                    "cell-mobile"
+                  elsif (is_special || is_assignment) && shift&.is_working
                     "cell-schedule"
                   elsif date.saturday?
                     "cell-weekend-sat"
