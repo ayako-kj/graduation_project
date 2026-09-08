@@ -234,17 +234,10 @@ class ShiftPostProcessor
     end
   end
 
-  # include_extra: false の場合、@extra_protected_dates（土日連続の割当を
-  # 他の後処理が勝手に取り消さないようにするための内部的な保護）は無視する。
-  # スケジュール・担当会議・移動図書館・全員出勤日など、外部要因による
-  # 保護のみを見る。fix_excess_days（月間目標日数の超過是正）で使う。
-  # 月間の目標日数・実績時間の公平性は、土日連続の組み合わせを崩さない
-  # ことよりも優先度が高いと判断し、超過している場合はその日が土日連続
-  # 割当の一部であっても削減対象にする
-  def assignment_protected?(staff_name, date, include_extra: true)
+  def assignment_protected?(staff_name, date)
     return false if @leave_set.include?([staff_name, date])
     return true if @all_staff_dates.include?(date)
-    return true if include_extra && @extra_protected_dates.include?([staff_name, date])
+    return true if @extra_protected_dates.include?([staff_name, date])
     return true if @assignment_dates[date]&.include?(staff_name)
     return true if @designated_dates[date]&.include?(staff_name)
     return true if @mobile_dates[date]&.include?(staff_name)
@@ -391,6 +384,7 @@ class ShiftPostProcessor
         target_shift = candidates.first
         target_shift[:is_working] = true
         make_room_for_weekly_cap(staff_name, target_shift[:date])
+        make_room_for_monthly_target(staff_name, target_shift[:date])
         @extra_protected_dates << [staff_name, target_shift[:date]]
       end
     end
@@ -434,6 +428,7 @@ class ShiftPostProcessor
       candidates.first(shortfall).each do |name, s|
         s[:is_working] = true
         make_room_for_weekly_cap(name, s[:date])
+        make_room_for_monthly_target(name, s[:date])
         # fix_weekly_overwork等の後続処理（reconcile_weekend_consecutive!内も
         # 含む）がこの意図的な出勤を「超過」とみなして打ち消してしまわない
         # よう、保護日として確定させる
@@ -455,6 +450,29 @@ class ShiftPostProcessor
     return if excess <= 0
 
     candidates = working
+      .reject { |s| s[:date].saturday? || s[:date].sunday? }
+      .reject { |s| @leave_set.include?([staff_name, s[:date]]) }
+      .reject { |s| assignment_protected?(staff_name, s[:date]) }
+
+    candidates.first(excess).each { |s| cancel_and_backfill(s, staff_name) }
+  end
+
+  # 土日連続勤務の埋め合わせ（pay_down_weekend_consecutive_debt等）で意図的に
+  # 追加した1日分、月間目標日数を超過している場合は、同月内の他の（保護
+  # されていない）平日出勤を1日分キャンセルして帳尻を合わせる。土日連続の
+  # 組み合わせ自体（今回追加した日）は崩さない。月間の目標日数・実績時間の
+  # 公平性は土日連続の均等化ほど優先度は高くないが、できる範囲で近づける
+  def make_room_for_monthly_target(staff_name, added_date)
+    target = @staff_target_days[staff_name]
+    return unless target
+
+    month_shifts = @shifts.select { |s| s[:staff_name] == staff_name }
+    working = month_shifts.select { |s| s[:is_working] }
+    excess = working.size - target
+    return if excess <= 0
+
+    candidates = working
+      .reject { |s| s[:date] == added_date }
       .reject { |s| s[:date].saturday? || s[:date].sunday? }
       .reject { |s| @leave_set.include?([staff_name, s[:date]]) }
       .reject { |s| assignment_protected?(staff_name, s[:date]) }
@@ -602,6 +620,7 @@ class ShiftPostProcessor
 
         targets.each { |s| s[:is_working] = true }
         targets.each { |s| make_room_for_weekly_cap(staff_name, s[:date]) }
+        targets.each { |s| make_room_for_monthly_target(staff_name, s[:date]) }
         targets.each { |s| @extra_protected_dates << [staff_name, s[:date]] }
         needed -= 1
       end
@@ -1002,7 +1021,7 @@ class ShiftPostProcessor
         s[:staff_name] == staff_name && s[:is_working] &&
           !@closed_days.key?(s[:date]) && !@all_staff_dates.include?(s[:date]) &&
           !@leave_set.include?([staff_name, s[:date]]) &&
-          !assignment_protected?(staff_name, s[:date], include_extra: false)
+          !assignment_protected?(staff_name, s[:date])
       }.sort_by { |s|
         day_count = @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] }
         d = s[:date] - 1
