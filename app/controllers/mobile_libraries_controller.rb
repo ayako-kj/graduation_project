@@ -51,6 +51,6 @@ class MobileLibrariesController < ApplicationController
   end
 
   def mobile_library_params
-    params.require(:mobile_library).permit(:name)
+    params.require(:mobile_library).permit(:name, :is_irregular)
   end
 end

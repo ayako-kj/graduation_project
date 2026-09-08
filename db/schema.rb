@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_010911) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_08_091839) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -86,6 +86,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_010911) do
 
   create_table "mobile_libraries", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.boolean "is_irregular", default: false, null: false
     t.bigint "library_id", null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
@@ -206,10 +207,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_010911) do
     t.time "end_time"
     t.string "label"
     t.bigint "library_id"
+    t.bigint "mobile_library_id"
     t.time "start_time"
     t.string "target_group"
     t.datetime "updated_at", null: false
     t.index ["library_id"], name: "index_special_dates_on_library_id"
+    t.index ["mobile_library_id"], name: "index_special_dates_on_mobile_library_id"
   end
 
   create_table "staff_assignments", force: :cascade do |t|
@@ -306,6 +309,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_010911) do
   add_foreign_key "special_date_staffs", "special_dates"
   add_foreign_key "special_date_staffs", "staffs"
   add_foreign_key "special_dates", "libraries"
+  add_foreign_key "special_dates", "mobile_libraries"
   add_foreign_key "staff_assignments", "assignments"
   add_foreign_key "staff_assignments", "staffs"
   add_foreign_key "staffs", "employment_types"

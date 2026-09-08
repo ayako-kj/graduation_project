@@ -7,7 +7,7 @@ class SpecialDatesController < ApplicationController
   def index
     @target_month = params[:month].present? ? Date.parse("#{params[:month]}-01") : Date.today.beginning_of_month.next_month
     @special_dates = current_library.special_dates
-                       .includes(:designated_staffs, :created_by_staff)
+                       .includes(:designated_staffs, :created_by_staff, :mobile_library)
                        .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                        .order(:date)
 
@@ -64,6 +64,7 @@ class SpecialDatesController < ApplicationController
   def set_form_options
     @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
     @assignments = current_library.assignments.includes(:staffs).order(:sort_order, :id)
+    @irregular_mobile_libraries = current_library.mobile_libraries.where(is_irregular: true).order(:id)
   end
 
   def sync_designated_staffs
@@ -75,7 +76,7 @@ class SpecialDatesController < ApplicationController
   end
 
   def special_date_params
-    params.require(:special_date).permit(:date, :label, :target_group, :start_time, :end_time)
+    params.require(:special_date).permit(:date, :label, :target_group, :start_time, :end_time, :mobile_library_id)
   end
 
   # 指定した職員が、そのスケジュールの対象かどうか

@@ -56,7 +56,12 @@
               <% @special_dates.each do |special_date| %>
                 <tr>
                   <td class="ps-4 py-3 fw-semibold"><%= special_date.date.strftime("%Y年%m月%d日") %></td>
-                  <td class="py-3"><%= special_date.label %></td>
+                  <td class="py-3">
+                    <%= special_date.label %>
+                    <% if special_date.mobile_library_id.present? %>
+                      <span class="badge rounded-pill me-1" style="background-color:#E9D5FF; color:#6D28D9; font-size:0.7rem;"><%= special_date.mobile_library.name %></span>
+                    <% end %>
+                  </td>
                   <td class="py-3"><%= special_date.target_group.presence || "－" %></td>
                   <td class="py-3">
                     <% if special_date.designated_staffs.any? %>
@@ -116,7 +121,12 @@
                 <% special_dates.sort_by(&:date).each do |special_date| %>
                   <tr>
                     <td class="ps-4 py-2 fw-semibold"><%= special_date.date.strftime("%m月%d日（#{%w[日 月 火 水 木 金 土][special_date.date.wday]}）") %></td>
-                    <td class="py-2"><%= special_date.label %></td>
+                    <td class="py-2">
+                      <%= special_date.label %>
+                      <% if special_date.mobile_library_id.present? %>
+                        <span class="badge rounded-pill me-1" style="background-color:#E9D5FF; color:#6D28D9; font-size:0.65rem;"><%= special_date.mobile_library.name %></span>
+                      <% end %>
+                    </td>
                     <td class="py-2 text-muted small"><%= special_date.time_range_label || "－" %></td>
                     <td class="py-2 text-muted small">
                       <% if special_date.target_group.present? %>
