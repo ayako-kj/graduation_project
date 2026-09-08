@@ -98,9 +98,15 @@ $pitat-cream: #FAF6F0;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  // スケジュール・移動図書館・定例会議セル：画面より濃いグリーン
+  // スケジュール・定例会議セル：画面より濃いグリーン
   .cell-schedule {
     background-color: #6ee7b7 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  // 移動図書館セル：画面より濃いパープル
+  .cell-mobile {
+    background-color: #c084fc !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }

@@ -263,12 +263,15 @@ class ShiftsController < ApplicationController
         sd.designated_staffs.each { |s| @schedule_map[[s.id, sd.date]] = true } if sd.designated_staffs.any?
       end
     end
+    # 移動図書館は他のスケジュール（定例会議など）と区別して色分けするため、
+    # @schedule_mapとは別に専用のマップを持つ
+    @mobile_schedule_map = {}
     @mobile_library_items_for_export = []
     MobileLibrary.includes(mobile_library_routes: [:staffs, :mobile_library_exceptions]).where(library: current_library).each do |ml|
       ml.mobile_library_routes.each do |route|
         occurrence = route.occurrence_for(@target_month, closed_days: @closed_days)
         next if occurrence.nil?
-        occurrence.staffs.each { |s| @schedule_map[[s.id, occurrence.date]] = true }
+        occurrence.staffs.each { |s| @mobile_schedule_map[[s.id, occurrence.date]] = true }
         label = "#{ml.name}#{route.name}"
         (@special_date_labels[occurrence.date] ||= []) << label
         @mobile_library_items_for_export << { date: occurrence.date, name: label, staff_names: occurrence.staffs.map(&:name) }
