@@ -7,7 +7,7 @@ class StaffSpecialDatesController < ApplicationController
     @target_month  = parse_target_month
     @special_date  = SpecialDate.new(date: @target_month.beginning_of_month)
     @special_dates = @current_staff.library.special_dates
-                       .includes(:created_by_staff, :designated_staffs)
+                       .includes(:created_by_staff, :designated_staffs, :mobile_library)
                        .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                        .order(:date)
     @input_deadline = @current_staff.library.input_deadlines.find_by(target_month: @target_month.beginning_of_month)
@@ -29,7 +29,7 @@ class StaffSpecialDatesController < ApplicationController
     else
       @target_month  = parse_target_month
       @special_dates = @current_staff.library.special_dates
-                         .includes(:created_by_staff, :designated_staffs)
+                         .includes(:created_by_staff, :designated_staffs, :mobile_library)
                          .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                          .order(:date)
       @input_deadline = @current_staff.library.input_deadlines.find_by(target_month: @target_month.beginning_of_month)
@@ -109,6 +109,7 @@ class StaffSpecialDatesController < ApplicationController
   def load_form_data
     @staffs      = @current_staff.library.staffs.includes(:staff_type).order(:sort_order, :id)
     @assignments = @current_staff.library.assignments.includes(:staffs).order(:id)
+    @irregular_mobile_libraries = @current_staff.library.mobile_libraries.where(is_irregular: true).order(:id)
   end
 
   def sync_designated_staffs
@@ -120,7 +121,7 @@ class StaffSpecialDatesController < ApplicationController
   end
 
   def special_date_params
-    params.require(:special_date).permit(:date, :label, :target_group, :start_time, :end_time)
+    params.require(:special_date).permit(:date, :label, :target_group, :start_time, :end_time, :mobile_library_id)
   end
 
   def parse_target_month

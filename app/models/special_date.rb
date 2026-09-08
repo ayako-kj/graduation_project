@@ -4,6 +4,7 @@ class SpecialDate < ApplicationRecord
 
   belongs_to :library
   belongs_to :created_by_staff, class_name: "Staff", optional: true
+  belongs_to :mobile_library, optional: true
   has_many :special_date_staffs, dependent: :destroy
   has_many :designated_staffs, through: :special_date_staffs, source: :staff
 

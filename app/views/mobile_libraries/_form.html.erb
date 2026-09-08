@@ -13,7 +13,18 @@
   <div class="mb-4">
     <%= f.label :name, "移動図書館名", class: "form-label fw-semibold small" %>
     <span class="badge bg-danger ms-1" style="font-size:0.7rem;">必須</span>
-    <%= f.text_field :name, class: "form-control", placeholder: "例：わかくさ号" %>
+    <%= f.text_field :name, class: "form-control", placeholder: "例：〇〇号" %>
+  </div>
+
+  <div class="mb-4">
+    <div class="form-check">
+      <%= f.check_box :is_irregular, class: "form-check-input" %>
+      <%= f.label :is_irregular, "不定期に巡回する", class: "form-check-label small" %>
+    </div>
+    <div class="form-text text-muted">
+      チェックすると、この移動図書館は「コース管理」（第1木曜など曜日ベースの定例巡回）の対象外になります。
+      巡回日はその都度「スケジュール」画面から登録してください。
+    </div>
   </div>
 
   <%= f.submit mobile_library.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>

@@ -32,6 +32,19 @@
         <%= f.text_field :label, class: "form-control", placeholder: "例：定例会議" %>
       </div>
 
+      <% if @irregular_mobile_libraries.present? && @irregular_mobile_libraries.any? %>
+        <div class="mb-3 p-3 rounded-3" style="background-color:#F5F3FF; border:1px solid #c084fc;">
+          <%= f.label :mobile_library_id, class: "form-label fw-semibold small mb-1" do %>
+            <i class="bi bi-truck me-1" style="color:#6D28D9;"></i>移動図書館（不定期）のスケジュールですか？
+          <% end %>
+          <%= f.collection_select :mobile_library_id, @irregular_mobile_libraries, :id, :name,
+              { include_blank: "いいえ" }, class: "form-select" %>
+          <div class="form-text" style="color:#6D28D9;">
+            巡回であれば必ず選択してください。選択すると、シフト表で移動図書館専用の色（紫）で表示されます。
+          </div>
+        </div>
+      <% end %>
+
       <div class="mb-3">
         <label class="form-label fw-semibold small">時間<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span></label>
         <div class="d-flex align-items-center gap-2">

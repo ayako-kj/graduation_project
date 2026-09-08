@@ -40,32 +40,42 @@ class ShiftsController < ApplicationController
     @actual_leave_set = @actual_leave_map.keys.to_set
 
     # スケジュールマップ：date => Set of staff_id（または :all）＋ラベル（複数対応）
+    # 移動図書館マップ：date => Set of staff_id
+    # mobile_library_idが設定されたスケジュール（不定期の小学校向け巡回など）は、
+    # 定例巡回の移動図書館（MobileLibraryRoute）と同じ色でシフト表に
+    # 表示したいため、@special_dates_mapではなく@mobile_library_mapに含める
     @special_dates_map   = {}
+    @mobile_library_map  = {}
     @special_date_labels = {}
-    SpecialDate.includes(:designated_staffs)
+    SpecialDate.includes(:designated_staffs, :mobile_library)
                .where(library: current_library, date: @target_month.beginning_of_month..@target_month.end_of_month)
                .each do |sd|
       if sd.label.present?
         @special_date_labels[sd.date] ||= []
         @special_date_labels[sd.date] << [sd.time_range_label, sd.label].compact_blank.join(" ")
       end
+
+      target_staff_ids = []
       if sd.target_group == "全職員"
+        target_staff_ids = @staffs.map(&:id)
+      elsif sd.target_group.present?
+        target_staff_ids = @staffs.select { |s| s.staff_type.name == sd.target_group }.map(&:id)
+      end
+      target_staff_ids += sd.designated_staffs.map(&:id) if sd.designated_staffs.any?
+
+      if sd.mobile_library_id.present?
+        @mobile_library_map[sd.date] ||= Set.new
+        @mobile_library_map[sd.date].merge(target_staff_ids)
+      elsif sd.target_group == "全職員"
         @special_dates_map[sd.date] = :all
       else
         unless @special_dates_map[sd.date] == :all
           @special_dates_map[sd.date] ||= Set.new
-          if sd.target_group.present?
-            @staffs.select { |s| s.staff_type.name == sd.target_group }.each do |s|
-              @special_dates_map[sd.date] << s.id
-            end
-          end
-          @special_dates_map[sd.date].merge(sd.designated_staffs.map(&:id)) if sd.designated_staffs.any?
+          @special_dates_map[sd.date].merge(target_staff_ids)
         end
       end
     end
 
-    # 移動図書館マップ：date => Set of staff_id
-    @mobile_library_map = {}
     MobileLibrary.includes(mobile_library_routes: [:staffs, :mobile_library_exceptions]).where(library: current_library).each do |ml|
       ml.mobile_library_routes.each do |route|
         occurrence = route.occurrence_for(@target_month, closed_days: @closed_days)
@@ -243,7 +253,7 @@ class ShiftsController < ApplicationController
 
     @special_date_labels = {}
     @special_dates_for_export = SpecialDate
-      .includes(:designated_staffs)
+      .includes(:designated_staffs, :mobile_library)
       .where(library: current_library, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .order(:date)
     @special_dates_for_export.each do |sd|
@@ -252,20 +262,22 @@ class ShiftsController < ApplicationController
     end
 
     # スケジュール・移動図書館・担当会議マップ: [staff_id, date] => true
+    # 移動図書館（定例巡回・mobile_library_idを持つ不定期巡回のいずれも）は
+    # 他のスケジュール（定例会議など）と区別して色分けするため、
+    # @schedule_mapとは別に専用のマップを持つ
     @schedule_map = {}
+    @mobile_schedule_map = {}
     @special_dates_for_export.each do |sd|
+      target = sd.mobile_library_id.present? ? @mobile_schedule_map : @schedule_map
       if sd.target_group == "全職員"
-        @staffs.each { |s| @schedule_map[[s.id, sd.date]] = true }
+        @staffs.each { |s| target[[s.id, sd.date]] = true }
       else
         if sd.target_group.present?
-          @staffs.select { |s| s.staff_type.name == sd.target_group }.each { |s| @schedule_map[[s.id, sd.date]] = true }
+          @staffs.select { |s| s.staff_type.name == sd.target_group }.each { |s| target[[s.id, sd.date]] = true }
         end
-        sd.designated_staffs.each { |s| @schedule_map[[s.id, sd.date]] = true } if sd.designated_staffs.any?
+        sd.designated_staffs.each { |s| target[[s.id, sd.date]] = true } if sd.designated_staffs.any?
       end
     end
-    # 移動図書館は他のスケジュール（定例会議など）と区別して色分けするため、
-    # @schedule_mapとは別に専用のマップを持つ
-    @mobile_schedule_map = {}
     @mobile_library_items_for_export = []
     MobileLibrary.includes(mobile_library_routes: [:staffs, :mobile_library_exceptions]).where(library: current_library).each do |ml|
       ml.mobile_library_routes.each do |route|
