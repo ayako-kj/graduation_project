@@ -1,4 +1,9 @@
 class ConstraintExtractor
+  # 月間目標日数の累計誤差補正で、1ヶ月あたりどれだけ埋めるかの割合。
+  # 1.0だと毎月残り乖離を全部埋めようとしてオーバーシュートしやすいため、
+  # 半分程度に抑えて緩やかに収束させる（calculate_monthly_target参照）
+  DAMPING_FACTOR = 0.5
+
   def initialize(target_month, library)
     @target_month = target_month
     @library = library
@@ -270,10 +275,11 @@ class ConstraintExtractor
       cumulative_diff += actual * daily_hours - n * city_hall_daily
     end
 
-    # 累計差は毎月0に近づけることを目標にする。1日単位でしかシフトを組めない
-    # ため、四捨五入で達成可能な範囲で最も0に近い日数にする（端数が残っても
-    # 日あたり勤務時間分＝正規職員1日・会計年度任用職員7.5時間以内に収まる）。
-    extra = (-cumulative_diff / daily_hours).round
+    # 累計差を1ヶ月で全部埋めようとすると、市役所基準が特に高い月（年末など）
+    # の後に大きく超過・不足した分の反動で、翌月以降に逆方向へ大きく振れて
+    # しまう（オーバーシュート）。DAMPING_FACTORで毎月の補正量を残り乖離の
+    # 半分程度に抑え、数ヶ月かけて緩やかに0へ収束させる
+    extra = (-cumulative_diff * DAMPING_FACTOR / daily_hours).round
     [[base_days + extra, 0].max, @n_city_hall].min
   end
 
