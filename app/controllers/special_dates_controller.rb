@@ -95,14 +95,19 @@ class SpecialDatesController < ApplicationController
     end
 
     # 移動図書館（定例巡回）
+    # 列見出しには移動図書館の実際の名称を使う（1件のみの場合はその名称、
+    # 0件または複数件の場合は汎用の「移動図書館」とする）
+    regular_libraries = current_library.mobile_libraries.where(is_irregular: false)
+                          .includes(mobile_library_routes: [:staffs, :mobile_library_exceptions]).order(:id)
+    @mobile_column_label = regular_libraries.size == 1 ? regular_libraries.first.name : "移動図書館"
+
     @mobile_lines = Hash.new { |h, k| h[k] = [] }
-    current_library.mobile_libraries.where(is_irregular: false)
-                    .includes(mobile_library_routes: [:staffs, :mobile_library_exceptions]).each do |ml|
+    regular_libraries.each do |ml|
       ml.mobile_library_routes.each do |route|
         occurrence = route.occurrence_for(@target_month, closed_days: @closed_days)
         next if occurrence.nil?
         staff_names = occurrence.staffs.map(&:name).join("・")
-        line = "#{ml.name}#{route.name}"
+        line = route.name
         line += "〔#{staff_names}〕" if staff_names.present?
         @mobile_lines[occurrence.date] << line
       end
