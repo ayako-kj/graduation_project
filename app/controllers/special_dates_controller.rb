@@ -55,6 +55,64 @@ class SpecialDatesController < ApplicationController
     redirect_to special_dates_path(month: @special_date.date.strftime("%Y-%m")), notice: "#{@special_date.label}を削除しました。"
   end
 
+  def export
+    @target_month = params[:month].present? ? Date.parse("#{params[:month]}-01") : Date.today.beginning_of_month.next_month
+    @dates = (@target_month.beginning_of_month..@target_month.end_of_month).to_a
+
+    holidays = HolidayFetcher.fetch(@target_month.year)
+    wdays = current_library.closed_wdays_array
+    extra = temporary_closed_dates_map(current_library, @target_month)
+    forced_open = temporary_open_dates_map(current_library, @target_month)
+    @closed_days = ClosedDayCalculator.new(@target_month, holidays,
+                     closed_wdays: wdays, extra_closed_dates: extra, forced_open_dates: forced_open).closed_days_with_labels
+
+    special_dates = current_library.special_dates
+                      .includes(:designated_staffs, :mobile_library)
+                      .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
+                      .order(:date)
+
+    # 個別スケジュール：あおばな号等の不定期移動図書館に紐付かないもの
+    @individual_lines = Hash.new { |h, k| h[k] = [] }
+    special_dates.reject { |sd| sd.mobile_library_id.present? }.each do |sd|
+      target = sd.target_group.presence || (sd.designated_staffs.any? ? sd.designated_staffs.map(&:name).join("・") : nil)
+      line = [sd.time_range_label, sd.label].compact_blank.join(" ")
+      line += "〔#{target}〕" if target
+      @individual_lines[sd.date] << line
+    end
+
+    # 不定期移動図書館ごとの列（あおばな号等）：現状登録されている全ての
+    # 不定期移動図書館を列として表示する
+    @irregular_libraries = current_library.mobile_libraries.where(is_irregular: true).order(:id)
+    @irregular_lines = @irregular_libraries.each_with_object({}) do |ml, h|
+      h[ml.id] = Hash.new { |hash, k| hash[k] = [] }
+    end
+    special_dates.select { |sd| sd.mobile_library_id.present? }.each do |sd|
+      next unless @irregular_lines.key?(sd.mobile_library_id)
+      staff_names = sd.designated_staffs.map(&:name).join("・")
+      line = [sd.time_range_label, sd.label].compact_blank.join(" ")
+      line += "〔#{staff_names}〕" if staff_names.present?
+      @irregular_lines[sd.mobile_library_id][sd.date] << line
+    end
+
+    # 移動図書館（定例巡回）
+    @mobile_lines = Hash.new { |h, k| h[k] = [] }
+    current_library.mobile_libraries.where(is_irregular: false)
+                    .includes(mobile_library_routes: [:staffs, :mobile_library_exceptions]).each do |ml|
+      ml.mobile_library_routes.each do |route|
+        occurrence = route.occurrence_for(@target_month, closed_days: @closed_days)
+        next if occurrence.nil?
+        staff_names = occurrence.staffs.map(&:name).join("・")
+        line = "#{ml.name}#{route.name}"
+        line += "〔#{staff_names}〕" if staff_names.present?
+        @mobile_lines[occurrence.date] << line
+      end
+    end
+
+    filename = "行事予定表_#{@target_month.strftime('%Y年%m月')}.xlsx"
+    response.headers["Content-Disposition"] = "attachment; filename*=UTF-8''#{ERB::Util.url_encode(filename)}"
+    render "export", formats: [:xlsx]
+  end
+
   private
 
   def set_special_date
