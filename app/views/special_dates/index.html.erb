@@ -7,6 +7,9 @@
       <%= link_to special_date_urls_staffs_path, class: "btn btn-outline-secondary rounded-pill px-4" do %>
         <i class="bi bi-link-45deg me-1"></i>スケジュール入力URL一覧
       <% end %>
+      <%= link_to export_special_dates_path(month: @target_month.strftime("%Y-%m")), class: "btn btn-outline-success rounded-pill px-4" do %>
+        <i class="bi bi-file-earmark-excel me-1"></i>行事予定表(Excel)
+      <% end %>
       <%= link_to "＋ スケジュールを登録する", new_special_date_path, class: "btn btn-pitat rounded-pill px-4" %>
     </div>
   </div>

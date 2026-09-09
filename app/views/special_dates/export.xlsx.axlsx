@@ -1,0 +1,106 @@
+wb = xlsx_package.workbook
+s  = wb.styles
+
+# ---- スタイル定義（WEB画面の配色に合わせる） ----
+base   = { font_name: "游ゴシック", sz: 9, border: { style: :thin, color: "CCCCCC" } }
+center = base.merge(alignment: { horizontal: :center, vertical: :center })
+left   = base.merge(alignment: { horizontal: :left,   vertical: :center })
+wrap   = base.merge(alignment: { horizontal: :left,   vertical: :top, wrap_text: true })
+
+title_main_s  = s.add_style left.merge(b: true, sz: 14)
+title_month_s = s.add_style left.merge(b: true, sz: 11)
+title_blank_s = s.add_style base
+gap_s         = s.add_style base.merge(border: { style: :thin, color: "FFFFFF" })
+head_s        = s.add_style center.merge(bg_color: "F8F9FA", b: true)
+day_s         = s.add_style center.merge(b: true)
+day_sat_s     = s.add_style center.merge(b: true, bg_color: "DBEAFE", fg_color: "1D4ED8")
+day_sun_s     = s.add_style center.merge(b: true, bg_color: "FEE2E2", fg_color: "DC2626")
+day_closed_s  = s.add_style center.merge(b: true, bg_color: "DEE2E6", fg_color: "6C757D")
+wday_s        = s.add_style center
+wday_sat_s    = s.add_style center.merge(fg_color: "1D4ED8")
+wday_sun_s    = s.add_style center.merge(fg_color: "DC2626")
+wday_closed_s = s.add_style center.merge(fg_color: "6C757D")
+cell_s        = s.add_style wrap
+cell_sat_s    = s.add_style wrap.merge(bg_color: "DBEAFE")
+cell_sun_s    = s.add_style wrap.merge(bg_color: "FEE2E2")
+cell_closed_s = s.add_style wrap.merge(bg_color: "DEE2E6")
+
+wday_names = %w[日 月 火 水 木 金 土]
+
+# 年度表記
+fiscal_year = @target_month.month >= 4 ? @target_month.year : @target_month.year - 1
+reiwa_year  = fiscal_year - 2018
+month_label = "令和#{reiwa_year}年（#{@target_month.year}年）#{@target_month.month}月分"
+sheet_name  = "R#{reiwa_year}.#{@target_month.month}月 行事予定"
+
+# 列構成：日・曜・個別スケジュール・移動図書館・（不定期移動図書館ごと）
+irregular_headers = @irregular_libraries.map(&:name)
+headers = ["日", "曜", "個別スケジュール", "移動図書館"] + irregular_headers
+block_col_count = headers.size
+col_count = block_col_count * 2 + 1 # 左ブロック + 区切り1列 + 右ブロック
+
+# A4横1枚に収めるため、1〜15日を左半分、16日以降を右半分に配置する
+left_dates  = @dates.select { |d| d.day <= 15 }
+right_dates = @dates.select { |d| d.day >= 16 }
+row_count   = [left_dates.size, right_dates.size].max
+
+# 1日分のセル値・スタイル・行数を組み立てる（dateがnilの場合は空行）
+build_cells = lambda do |date|
+  next [Array.new(block_col_count, ""), Array.new(block_col_count, title_blank_s), 0] if date.nil?
+
+  is_closed  = @closed_days.key?(date)
+  day_style  = is_closed ? day_closed_s  : (date.saturday? ? day_sat_s  : (date.sunday? ? day_sun_s  : day_s))
+  wday_style = is_closed ? wday_closed_s : (date.saturday? ? wday_sat_s : (date.sunday? ? wday_sun_s : wday_s))
+  cell_style = is_closed ? cell_closed_s : (date.saturday? ? cell_sat_s : (date.sunday? ? cell_sun_s : cell_s))
+
+  individual = @individual_lines[date]
+  mobile     = @mobile_lines[date]
+  irregular_cols = @irregular_libraries.map { |ml| @irregular_lines[ml.id][date] }
+
+  cells = [date.day, wday_names[date.wday], individual.join("\n"), mobile.join("\n")] +
+          irregular_cols.map { |lines| lines.join("\n") }
+  styles = [day_style, wday_style, cell_style, cell_style] + Array.new(irregular_cols.size, cell_style)
+  max_lines = [individual.size, mobile.size, *irregular_cols.map(&:size), 1].max
+
+  [cells, styles, max_lines]
+end
+
+wb.add_worksheet(name: sheet_name) do |sheet|
+  # ---- 印刷設定：A4横 1ページに収める ----
+  sheet.page_setup.paper_size = 9 # A4
+  sheet.page_setup.orientation = :landscape
+  sheet.page_setup.fit_to(width: 1, height: 1)
+  sheet.page_margins.set(left: 0.25, right: 0.25, top: 0.3, bottom: 0.3, header: 0.1, footer: 0.1)
+  sheet.print_options.set(horizontal_centered: true)
+
+  # --- 行1: タイトル ---
+  row1_data  = Array.new(col_count, "")
+  row1_style = Array.new(col_count, title_blank_s)
+  row1_data[0]  = "行事予定表"
+  row1_style[0] = title_main_s
+  row1_data[2]  = month_label
+  row1_style[2] = title_month_s
+  sheet.add_row row1_data, style: row1_style, height: 20
+  sheet.merge_cells "A1:B1"
+  sheet.merge_cells "C1:#{Axlsx.col_ref(block_col_count - 1)}1"
+
+  # --- 見出し行（左右ブロックとも同じ見出し） ---
+  header_row = headers + [""] + headers
+  header_style = Array.new(block_col_count, head_s) + [gap_s] + Array.new(block_col_count, head_s)
+  sheet.add_row header_row, style: header_style, height: 16
+
+  # --- 日ごとの行（左：1〜15日、右：16日以降） ---
+  row_count.times do |i|
+    left_cells,  left_styles,  left_max  = build_cells.call(left_dates[i])
+    right_cells, right_styles, right_max = build_cells.call(right_dates[i])
+
+    row_data  = left_cells  + [""]   + right_cells
+    row_style = left_styles + [gap_s] + right_styles
+    max_lines = [left_max, right_max].max
+
+    sheet.add_row row_data, style: row_style, height: [12, max_lines * 11].max
+  end
+
+  block_widths = [4, 4, 20, 16] + Array.new(irregular_headers.size, 16)
+  sheet.column_widths(*block_widths, 1.5, *block_widths)
+end

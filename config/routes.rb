@@ -50,7 +50,11 @@ Rails.application.routes.draw do
   end
   resources :employment_types, only: %i[create update destroy]
   resources :placement_rules
-  resources :special_dates
+  resources :special_dates do
+    collection do
+      get :export
+    end
+  end
   resources :temporary_closed_dates
   resources :temporary_open_dates
   resources :input_deadlines, only: [:index] do
