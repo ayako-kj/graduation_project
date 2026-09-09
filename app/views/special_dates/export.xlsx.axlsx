@@ -33,9 +33,9 @@ reiwa_year  = fiscal_year - 2018
 month_label = "令和#{reiwa_year}年（#{@target_month.year}年）#{@target_month.month}月分"
 sheet_name  = "R#{reiwa_year}.#{@target_month.month}月 行事予定"
 
-# 列構成：日・曜・個別スケジュール・移動図書館・（不定期移動図書館ごと）
+# 列構成：日・曜・個別スケジュール・移動図書館（定例）・（不定期移動図書館ごと）
 irregular_headers = @irregular_libraries.map(&:name)
-headers = ["日", "曜", "個別スケジュール", "移動図書館"] + irregular_headers
+headers = ["日", "曜", "個別スケジュール", @mobile_column_label] + irregular_headers
 block_col_count = headers.size
 col_count = block_col_count * 2 + 1 # 左ブロック + 区切り1列 + 右ブロック
 
@@ -101,6 +101,9 @@ wb.add_worksheet(name: sheet_name) do |sheet|
     sheet.add_row row_data, style: row_style, height: [12, max_lines * 11].max
   end
 
-  block_widths = [4, 4, 20, 16] + Array.new(irregular_headers.size, 16)
+  # 列幅はピクセル指定（日25px・曜25px・個別スケジュール250px・
+  # わかくさ号165px・あおばな号195px）を、Excelの文字幅単位に変換した値
+  # （(px - 5) / 7）
+  block_widths = [2.86, 2.86, 35.0, 22.86] + Array.new(irregular_headers.size, 27.14)
   sheet.column_widths(*block_widths, 1.5, *block_widths)
 end
