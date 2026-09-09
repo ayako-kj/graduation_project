@@ -1001,27 +1001,32 @@ class ShiftPostProcessor
     end
   end
 
+  # 超過している職員全員を1日ずつ順番に処理するラウンドロビン方式で削減する。
+  # 1人ずつ超過分を丸ごと処理してから次の人に移る方式だと、その月に削減
+  # できる枠（最低出勤人数や配置ルールで制約される）が限られている場合、
+  # 最初に処理された職員（＝超過が最も大きい職員）がその枠を独占してしまい、
+  # 他の超過している職員には全く枠が回らず、是正が翌月以降に持ち越されて
+  # しまう。全員を1日ずつ順番に処理し、かつ毎巡目で残り超過の大きい順に
+  # 並び替えることで、乖離が大きい職員を優先しつつ、限られた削減可能枠を
+  # 独占させずに複数人へ行き渡らせる
   def fix_excess_days
     return if @staff_target_days.empty?
 
     monthly_work_days = @shifts.each_with_object(Hash.new(0)) { |s, h| h[s[:staff_name]] += 1 if s[:is_working] }
 
-    # 超過が大きい職員を優先して削減
-    by_excess = @staff_target_days.filter_map do |name, target|
+    excess_state = @staff_target_days.filter_map do |name, target|
       diff = monthly_work_days[name] - target
-      diff > 0 ? [name, diff] : nil
-    end.sort_by { |_, diff| -diff }
+      next nil unless diff > 0
 
-    by_excess.each do |staff_name, excess|
       # 全員出勤日・閉館日を除いた出勤シフトを削減候補にする
       # 優先順：出勤者が多い日 → 削減後の連続休みが短い日（月初偏り防止）
-      staff_on = @shifts.select { |s| s[:staff_name] == staff_name && s[:is_working] }
+      staff_on = @shifts.select { |s| s[:staff_name] == name && s[:is_working] }
                         .map { |s| s[:date] }.to_set
-      working_shifts = @shifts.select { |s|
-        s[:staff_name] == staff_name && s[:is_working] &&
+      candidates = @shifts.select { |s|
+        s[:staff_name] == name && s[:is_working] &&
           !@closed_days.key?(s[:date]) && !@all_staff_dates.include?(s[:date]) &&
-          !@leave_set.include?([staff_name, s[:date]]) &&
-          !assignment_protected?(staff_name, s[:date])
+          !@leave_set.include?([name, s[:date]]) &&
+          !assignment_protected?(name, s[:date])
       }.sort_by { |s|
         day_count = @shifts.count { |sh| sh[:date] == s[:date] && sh[:is_working] }
         d = s[:date] - 1
@@ -1037,17 +1042,31 @@ class ShiftPostProcessor
         [-day_count, pre + post + 1]
       }
 
-      removed = 0
-      working_shifts.each do |shift|
-        break if removed >= excess
-        day_shifts = @shifts.select { |s| s[:date] == shift[:date] }
-        working = day_shifts.select { |s| s[:is_working] }
-        next if working.size <= @min_staff_count
-        next if essential_for_rules?(shift, working)
-        shift[:is_working] = false
-        monthly_work_days[staff_name] -= 1
-        removed += 1
+      { name: name, remaining: diff, candidates: candidates }
+    end
+    return if excess_state.empty?
+
+    loop do
+      progressed = false
+      # 各巡目は残り超過が大きい職員から順に、1日だけ削減を試みる
+      excess_state.sort_by { |st| -st[:remaining] }.each do |st|
+        next if st[:remaining] <= 0
+
+        until st[:candidates].empty?
+          shift = st[:candidates].shift
+          day_shifts = @shifts.select { |s| s[:date] == shift[:date] }
+          working = day_shifts.select { |s| s[:is_working] }
+          next if working.size <= @min_staff_count
+          next if essential_for_rules?(shift, working)
+
+          shift[:is_working] = false
+          monthly_work_days[st[:name]] -= 1
+          st[:remaining] -= 1
+          progressed = true
+          break
+        end
       end
+      break unless progressed
     end
   end
 
