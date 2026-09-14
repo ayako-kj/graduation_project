@@ -162,7 +162,7 @@
       <span><span class="badge me-1" style="background-color:#3b82f6;">p</span>ポスト当番</span>
       <span><span class="badge me-1" style="background-color:#ef4444;">P</span>祝日ポスト当番</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">休</span>公休</span>
-      <span><span class="badge me-1" style="background-color:#CCFBF1; color:#115e59; border:1px solid #0d9488;">振</span>振替休日</span>
+      <span><span class="badge me-1" style="background-color:#FCE7F3; color:#831843; border:1px solid #db2777;">振</span>振替休日</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">年</span>年休</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">夏</span>夏期休暇</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">病</span>病気休暇</span>
@@ -246,7 +246,7 @@
                   elsif is_holiday_post
                     "background-color:#FEE2E2;"
                   elsif is_leave && shift && !shift.is_working
-                    "background-color:#FEF3C7;"
+                    leave_reason == "振替休日" ? "background-color:#FCE7F3;" : "background-color:#FEF3C7;"
                   elsif is_mobile && shift&.is_working
                     "background-color:#E9D5FF;"
                   elsif (is_special || is_assignment) && shift&.is_working
@@ -259,7 +259,7 @@
                 %>
                 <%
                   cell_type_class = if is_leave && shift && !shift.is_working
-                    "cell-leave"
+                    leave_reason == "振替休日" ? "cell-substitute" : "cell-leave"
                   elsif is_mobile && shift&.is_working
                     "cell-mobile"
                   elsif (is_special || is_assignment) && shift&.is_working
@@ -309,7 +309,7 @@
                         <% elsif is_leave %>
                           <% leave_label = { "公休" => "休", "振替休日" => "振", "年休" => "年", "夏期休暇" => "夏", "病気休暇" => "病", "特別休暇" => "特" }[leave_reason] || "休" %>
                           <% substitute_date = leave_reason == "振替休日" ? @substitute_work_dates_map[[staff.id, date]] : nil %>
-                          <span class="fw-bold" style="color:#92400E;"
+                          <span class="fw-bold" style="color:<%= leave_reason == '振替休日' ? '#831843' : '#92400E' %>;"
                                 <% if substitute_date %>title="振替休日（<%= substitute_date.strftime('%-m/%-d') %>出勤分）" data-bs-toggle="tooltip" data-bs-placement="top"<% end %>>
                             <%= leave_label %>
                           </span>
