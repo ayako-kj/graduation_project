@@ -2,7 +2,7 @@ class LeaveRequestsController < ApplicationController
   before_action :authenticate_admin!
   before_action :set_leave_request, only: %i[edit update destroy]
 
-  LEAVE_TYPES = %w[公休 振替休日 年休 夏期休暇 病気休暇 特別休暇].freeze
+  LEAVE_TYPES = %w[公休 年休 振替休日 夏期休暇 病気休暇 特別休暇].freeze
 
   def index
     @target_month = params[:month].present? ? Date.parse("#{params[:month]}-01") : Date.today.beginning_of_month.next_month
@@ -10,8 +10,16 @@ class LeaveRequestsController < ApplicationController
                         .where(staff: current_library.staffs)
                         .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                         .order(:date, "staffs.sort_order", "staffs.id")
-    @leave_requests_by_staff = @leave_requests.group_by(&:staff)
-                                 .sort_by { |staff, _| [staff.sort_order, staff.id] }
+    hourly_leaves = HourlyLeave.includes(:staff)
+                       .where(staff: current_library.staffs)
+                       .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
+
+    # 希望休（終日）と時間休（部分休）は別モデルだが、一覧では同じ表に
+    # まとめて時系列・職員別に表示する
+    @items = (@leave_requests.to_a + hourly_leaves.to_a)
+               .sort_by { |item| [item.date, item.staff.sort_order, item.staff_id] }
+    @items_by_staff = @items.group_by(&:staff)
+                        .sort_by { |staff, _| [staff.sort_order, staff.id] }
   end
 
   # 職員向け希望休入力画面（休暇種別を選んでカレンダーの日付をタップする方式）
@@ -73,7 +81,7 @@ class LeaveRequestsController < ApplicationController
       end
     end
 
-    redirect_to leave_requests_path(month: target_month.strftime("%Y-%m")),
+    redirect_to new_leave_request_path(staff_id: staff.id, month: target_month.strftime("%Y-%m")),
                 notice: "#{staff.name}さんの#{target_month.strftime('%Y年%-m月')}の希望休を保存しました。"
   rescue ActiveRecord::RecordInvalid => e
     redirect_to new_leave_request_path(staff_id: staff.id, month: target_month.strftime("%Y-%m")),

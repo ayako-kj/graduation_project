@@ -14,3 +14,10 @@
 # ActiveSupport::Inflector.inflections(:en) do |inflect|
 #   inflect.acronym "RESTful"
 # end
+
+# Railsの標準の推測だと"hourly_leaves"の単数形が"hourly_leafe"になってしまう
+# （leaf/leavesのパターンと衝突するため）。ルーティングヘルパーが
+# hourly_leave_pathになるよう明示する。
+ActiveSupport::Inflector.inflections(:en) do |inflect|
+  inflect.irregular "hourly_leave", "hourly_leaves"
+end
