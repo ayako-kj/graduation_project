@@ -67,6 +67,7 @@ Rails.application.routes.draw do
       post :save
     end
   end
+  resources :hourly_leaves, only: [:destroy]
   resources :assignments do
     member do
       patch :move_up

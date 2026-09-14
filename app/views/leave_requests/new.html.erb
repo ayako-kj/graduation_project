@@ -69,16 +69,16 @@
             ● 公休（希望休）
           </button>
           <button type="button" class="btn btn-sm type-btn"
-                  data-type="振替休日"
-                  onclick="selectLeaveType('振替休日')"
-                  style="background-color:#FCE7F3; border-color:#db2777; color:#831843;">
-            ● 振替休日
-          </button>
-          <button type="button" class="btn btn-sm type-btn"
                   data-type="年休"
                   onclick="selectLeaveType('年休')"
                   style="background-color:#D1FAE5; border-color:#059669; color:#065f46;">
             ● 年休
+          </button>
+          <button type="button" class="btn btn-sm type-btn"
+                  data-type="振替休日"
+                  onclick="selectLeaveType('振替休日')"
+                  style="background-color:#FCE7F3; border-color:#db2777; color:#831843;">
+            ● 振替休日
           </button>
           <button type="button" class="btn btn-sm type-btn"
                   data-type="夏期休暇"
@@ -235,8 +235,8 @@
 <script>
   const TYPE_STYLES = {
     '公休':   { bg: '#FEF3C7', border: '#f59e0b', color: '#92400E' },
-    '振替休日': { bg: '#FCE7F3', border: '#db2777', color: '#831843' },
     '年休':   { bg: '#D1FAE5', border: '#059669', color: '#065f46' },
+    '振替休日': { bg: '#FCE7F3', border: '#db2777', color: '#831843' },
     '夏期休暇': { bg: '#DBEAFE', border: '#2563eb', color: '#1e3a8a' },
     '病気休暇': { bg: '#FEE2E2', border: '#dc2626', color: '#7f1d1d' },
     '特別休暇': { bg: '#EDE9FE', border: '#7c3aed', color: '#4c1d95' }

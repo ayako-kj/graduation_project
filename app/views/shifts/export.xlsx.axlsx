@@ -58,7 +58,7 @@ post_sun_s  = s.add_style center.merge(fg_color: "2563EB", b: true, bg_color: "F
 day_names = %w[日 月 火 水 木 金 土]
 
 # セルの値とスタイルを決定するヘルパー
-leave_reason_labels = { "公休" => "休", "振替休日" => "振", "年休" => "年", "夏期休暇" => "夏", "病気休暇" => "病", "特別休暇" => "特" }
+leave_reason_labels = { "公休" => "休", "年休" => "年", "振替休日" => "振", "夏期休暇" => "夏", "病気休暇" => "病", "特別休暇" => "特" }
 
 cell_val = lambda do |staff, date|
   shift = @shifts_map.dig(staff.id, date)
@@ -88,6 +88,8 @@ cell_val = lambda do |staff, date|
   elsif shift&.is_working
     scheduled = @schedule_map[[staff.id, date]]
     mobile    = @mobile_schedule_map[[staff.id, date]]
+    hourly    = @hourly_leaves_map.key?([staff.id, date])
+    work_mark = hourly ? "△" : "○"
     if shift.is_early
       mobile ? ["早", early_mobile_s] : (scheduled ? ["早", early_schedule_s] : ["早", weekend_style.call(early_sat_s, early_sun_s, early_s)])
     elsif shift.is_holiday_post_duty
@@ -95,11 +97,11 @@ cell_val = lambda do |staff, date|
     elsif shift.is_post_duty
       mobile ? ["ｐ", post_mobile_s] : (scheduled ? ["ｐ", post_schedule_s] : ["ｐ", weekend_style.call(post_sat_s, post_sun_s, post_s)])
     elsif mobile
-      ["○", mobile_s]
+      [work_mark, mobile_s]
     elsif scheduled
-      ["○", schedule_s]
+      [work_mark, schedule_s]
     else
-      ["○", weekend_style.call(work_sat_s, work_sun_s, work_s)]
+      [work_mark, weekend_style.call(work_sat_s, work_sun_s, work_s)]
     end
   elsif shift&.is_holiday_post_duty
     ["Ｐ", hol_post_s]

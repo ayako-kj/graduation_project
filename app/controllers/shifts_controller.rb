@@ -267,6 +267,7 @@ class ShiftsController < ApplicationController
     hourly_leaves_for_export = HourlyLeave
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .includes(:staff)
+    @hourly_leaves_map = hourly_leaves_for_export.each_with_object({}) { |hl, h| h[[hl.staff_id, hl.date]] = hl.time_range_label }
     @hourly_leave_items_for_export = hourly_leaves_for_export.sort_by { |hl| [hl.date, hl.staff.sort_order, hl.staff_id] }
       .map { |hl| "#{hl.staff.name}：#{hl.date.strftime('%-m/%-d')}（#{hl.time_range_label}）" }
 
