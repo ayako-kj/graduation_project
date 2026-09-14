@@ -25,6 +25,7 @@ wday_col_sat_s = s.add_style center.merge(sz: 8, fg_color: "1D4ED8")
 wday_col_sun_s = s.add_style center.merge(sz: 8, fg_color: "DC2626")
 off_s         = s.add_style center.merge(fg_color: "6C757D")
 leave_s       = s.add_style center.merge(bg_color: "FEF3C7", fg_color: "92400E", b: true)
+substitute_s  = s.add_style center.merge(bg_color: "FCE7F3", fg_color: "831843", b: true)
 work_s        = s.add_style center.merge(fg_color: "198754", b: true)
 schedule_s    = s.add_style center.merge(bg_color: "D1FAE5", fg_color: "065F46", b: true)
 early_s       = s.add_style center.merge(fg_color: "D97706", b: true)
@@ -83,7 +84,7 @@ cell_val = lambda do |staff, date|
   if leave
     [ActualLeave::LEAVE_TYPES[leave.leave_type], leave_s]
   elsif lr_reason && !shift&.is_working
-    [leave_reason_labels[lr_reason] || "休", leave_s]
+    [leave_reason_labels[lr_reason] || "休", lr_reason == "振替休日" ? substitute_s : leave_s]
   elsif shift&.is_working
     scheduled = @schedule_map[[staff.id, date]]
     mobile    = @mobile_schedule_map[[staff.id, date]]

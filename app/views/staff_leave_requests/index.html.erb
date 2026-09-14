@@ -1,4 +1,10 @@
 <% content_for :title, "希望休入力 | LibShift_Pitat" %>
+<%# 振替休日・時間休のタップ状態を未保存のままキャッシュから復元してしまう
+    と、実際には選択していない日まで表示されてしまうため、このページは
+    Turboのキャッシュ対象から除外し、常にサーバーから最新の状態を取得する %>
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
 
 <style>
   .date-card {
@@ -71,7 +77,7 @@
         <button type="button" class="btn btn-sm type-btn"
                 data-type="振替休日"
                 onclick="selectLeaveType('振替休日')"
-                style="background-color:#CCFBF1; border-color:#0d9488; color:#115e59;">
+                style="background-color:#FCE7F3; border-color:#db2777; color:#831843;">
           ● 振替休日
         </button>
         <button type="button" class="btn btn-sm type-btn"
@@ -147,12 +153,13 @@
       <div class="d-flex flex-column gap-2">
         <% @dates.each do |date| %>
           <% next if @closed_days.key?(date) %>
-          <div class="d-flex align-items-center gap-2 substitute-row" id="substitute-row-<%= date %>"
-               style="<%= @existing_leaves[date] == '振替休日' ? '' : 'display:none;' %>">
+          <div class="substitute-row" id="substitute-row-<%= date %>"
+               style="align-items:center; gap:0.5rem; <%= @existing_leaves[date] == '振替休日' ? 'display:flex;' : 'display:none;' %>">
             <label class="small text-muted mb-0" style="min-width:110px;"><%= date.strftime("%-m/%-d（#{wday_names[date.wday]}）") %>の振替：</label>
             <input type="date" class="form-control form-control-sm" style="max-width:160px;"
                    name="substitute_work_dates[<%= date %>]"
-                   value="<%= @existing_substitute_work_dates[date]&.strftime('%Y-%m-%d') %>">
+                   value="<%= @existing_substitute_work_dates[date]&.strftime('%Y-%m-%d') %>"
+                   <%= @existing_leaves[date] == '振替休日' ? "required" : "" %>>
           </div>
         <% end %>
       </div>
@@ -233,7 +240,7 @@
 <script>
   const TYPE_STYLES = {
     '公休':   { bg: '#FEF3C7', border: '#f59e0b', color: '#92400E' },
-    '振替休日': { bg: '#CCFBF1', border: '#0d9488', color: '#115e59' },
+    '振替休日': { bg: '#FCE7F3', border: '#db2777', color: '#831843' },
     '年休':   { bg: '#D1FAE5', border: '#059669', color: '#065f46' },
     '夏期休暇': { bg: '#DBEAFE', border: '#2563eb', color: '#1e3a8a' },
     '病気休暇': { bg: '#FEE2E2', border: '#dc2626', color: '#7f1d1d' },
@@ -296,8 +303,10 @@
   function updateSubstituteRow(dateStr, type) {
     const row = document.getElementById('substitute-row-' + dateStr);
     if (!row) return;
-    row.style.display = type === '振替休日' ? '' : 'none';
-    if (type !== '振替休日') row.querySelector('input[type="date"]').value = '';
+    row.style.display = type === '振替休日' ? 'flex' : 'none';
+    const dateInput = row.querySelector('input[type="date"]');
+    dateInput.required = type === '振替休日';
+    if (type !== '振替休日') dateInput.value = '';
 
     const section = document.getElementById('substitute-section');
     const anyVisible = Array.from(document.querySelectorAll('.substitute-row'))

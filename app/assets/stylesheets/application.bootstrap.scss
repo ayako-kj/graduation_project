@@ -98,6 +98,12 @@ $pitat-cream: #FAF6F0;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+  // 振替休日セル：画面より濃いピンク（年休等の希望休と差別化）
+  .cell-substitute {
+    background-color: #f9a8d4 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   // スケジュール・定例会議セル：画面より濃いグリーン
   .cell-schedule {
     background-color: #6ee7b7 !important;
