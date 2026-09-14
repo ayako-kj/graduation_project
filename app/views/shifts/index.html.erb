@@ -117,6 +117,16 @@
           </div>
         </div>
       <% end %>
+      <% if @hourly_leave_items.any? %>
+        <div>
+          <div class="text-muted small fw-semibold mb-1"><i class="bi bi-clock me-1" style="color:#0d9488;"></i>時間休（<%= @hourly_leave_items.size %>件）</div>
+          <div class="small">
+            <% @hourly_leave_items.each do |item| %>
+              <span class="badge rounded-pill me-1 mb-1" style="background-color:#fff; color:#0d9488; border:1px solid #0d9488; font-weight:normal;"><%= item %></span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
     </div>
   </div>
 
@@ -152,12 +162,14 @@
       <span><span class="badge me-1" style="background-color:#3b82f6;">p</span>ポスト当番</span>
       <span><span class="badge me-1" style="background-color:#ef4444;">P</span>祝日ポスト当番</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">休</span>公休</span>
+      <span><span class="badge me-1" style="background-color:#CCFBF1; color:#115e59; border:1px solid #0d9488;">振</span>振替休日</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">年</span>年休</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">夏</span>夏期休暇</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">病</span>病気休暇</span>
       <span><span class="badge me-1" style="background-color:#FEF3C7; color:#92400E; border:1px solid #fbbf24;">特</span>特別休暇</span>
       <span><span class="badge me-1" style="background-color:#D1FAE5; color:#065F46; border:1px solid #6ee7b7;">○</span>スケジュール・定例会議</span>
       <span><span class="badge me-1" style="background-color:#E9D5FF; color:#6D28D9; border:1px solid #c084fc;">○</span>移動図書館</span>
+      <span><span class="badge me-1" style="background-color:#fff; color:#0d9488; border:1px solid #0d9488;">時</span>時間休あり</span>
       <% if @shift_group&.suppress_all_errors? %>
         <%= button_to restore_errors_shifts_path(month: @target_month.strftime("%Y-%m")),
             method: :post,
@@ -223,6 +235,8 @@
                 <% sp = @special_dates_map[date]; is_special = sp == :all || sp&.include?(staff.id) %>
                 <% is_mobile = @mobile_library_map[date]&.include?(staff.id) %>
                 <% is_assignment = @assignment_map[date]&.include?(staff.id) %>
+                <% hourly_leave_label = @hourly_leaves_map[[staff.id, date]] %>
+                <% has_hourly_leave = @hourly_leaves_map.key?([staff.id, date]) %>
                 <%
                   show_closed = is_closed && !is_holiday_post && !shift&.is_working
                   cell_bg = if show_closed
@@ -262,7 +276,7 @@
                   <% if shift.nil? %>
                     <span class="text-muted" style="font-size:0.75rem;"><%= is_closed ? '閉' : '－' %></span>
                   <% else %>
-                    <div class="shift-cell w-100 d-flex align-items-center justify-content-center"
+                    <div class="shift-cell w-100 d-flex align-items-center justify-content-center position-relative"
                          style="min-height:32px; cursor:pointer;"
                          data-shift-id="<%= shift.id %>"
                          data-clickable="true"
@@ -293,11 +307,20 @@
                         <% if actual_leave_type %>
                           <span class="fw-bold" style="color:#92400E;"><%= ActualLeave::LEAVE_TYPES[actual_leave_type] %></span>
                         <% elsif is_leave %>
-                          <% leave_label = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏", "病気休暇" => "病", "特別休暇" => "特" }[leave_reason] || "休" %>
-                          <span class="fw-bold" style="color:#92400E;"><%= leave_label %></span>
+                          <% leave_label = { "公休" => "休", "振替休日" => "振", "年休" => "年", "夏期休暇" => "夏", "病気休暇" => "病", "特別休暇" => "特" }[leave_reason] || "休" %>
+                          <% substitute_date = leave_reason == "振替休日" ? @substitute_work_dates_map[[staff.id, date]] : nil %>
+                          <span class="fw-bold" style="color:#92400E;"
+                                <% if substitute_date %>title="振替休日（<%= substitute_date.strftime('%-m/%-d') %>出勤分）" data-bs-toggle="tooltip" data-bs-placement="top"<% end %>>
+                            <%= leave_label %>
+                          </span>
                         <% else %>
                           <span class="text-muted">－</span>
                         <% end %>
+                      <% end %>
+                      <% if has_hourly_leave %>
+                        <span class="position-absolute" style="top:1px; right:2px; font-size:0.55rem; line-height:1; color:#0d9488;"
+                              title="時間休<%= "（#{hourly_leave_label}）" if hourly_leave_label.present? %>"
+                              data-bs-toggle="tooltip" data-bs-placement="top">時</span>
                       <% end %>
                     </div>
                   <% end %>

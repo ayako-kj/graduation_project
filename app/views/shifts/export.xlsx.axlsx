@@ -57,7 +57,7 @@ post_sun_s  = s.add_style center.merge(fg_color: "2563EB", b: true, bg_color: "F
 day_names = %w[日 月 火 水 木 金 土]
 
 # セルの値とスタイルを決定するヘルパー
-leave_reason_labels = { "公休" => "休", "年休" => "年", "夏期休暇" => "夏", "病気休暇" => "病", "特別休暇" => "特" }
+leave_reason_labels = { "公休" => "休", "振替休日" => "振", "年休" => "年", "夏期休暇" => "夏", "病気休暇" => "病", "特別休暇" => "特" }
 
 cell_val = lambda do |staff, date|
   shift = @shifts_map.dig(staff.id, date)
@@ -156,7 +156,7 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   # 件数がどれだけ増えても取りこぼさないよう、labelは初回行だけに付け、
   # itemsをper_line件ずつ複数行に分けて出力する（1行の固定高さに収めようと
   # せず行数側を増やすことで、はみ出て読めなくなることを防ぐ）
-  add_info_rows = lambda do |label, items, per_line|
+  add_info_rows = lambda do |label, items, per_line, separator: "　"|
     slices = items.each_slice(per_line).to_a
     slices = [[]] if slices.empty?
     slices.each_with_index do |slice, i|
@@ -164,7 +164,7 @@ wb.add_worksheet(name: sheet_name) do |sheet|
       row_style = Array.new(col_count, title_blank_s)
       row_data[0]  = i.zero? ? label : ""
       row_style[0] = info_label_s
-      row_data[2]  = slice.join("　")
+      row_data[2]  = slice.join(separator)
       row_style[2] = info_value_s
       sheet.add_row row_data, style: row_style, height: 14
       r = sheet.rows.size
@@ -187,6 +187,11 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   # --- スケジュール（登録がある場合のみ／詳細は別シート「スケジュール」を参照） ---
   if @special_date_labels.any?
     add_info_rows.call("スケジュール", ["詳細は「スケジュール」シートを参照してください"], 1)
+  end
+
+  # --- 時間休（登録がある場合のみ） ---
+  if @hourly_leave_items_for_export.any?
+    add_info_rows.call("時間休（#{@hourly_leave_items_for_export.size}件）", @hourly_leave_items_for_export, 4, separator: "、")
   end
 
   # --- 空白行 ---

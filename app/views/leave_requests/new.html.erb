@@ -63,6 +63,12 @@
             ● 公休（希望休）
           </button>
           <button type="button" class="btn btn-sm type-btn"
+                  data-type="振替休日"
+                  onclick="selectLeaveType('振替休日')"
+                  style="background-color:#CCFBF1; border-color:#0d9488; color:#115e59;">
+            ● 振替休日
+          </button>
+          <button type="button" class="btn btn-sm type-btn"
                   data-type="年休"
                   onclick="selectLeaveType('年休')"
                   style="background-color:#D1FAE5; border-color:#059669; color:#065f46;">
@@ -129,6 +135,57 @@
         </div>
       </div>
 
+      <%# 振替休日の対象日（振替休日を選んだ日のみ表示） %>
+      <div class="pitat-card p-3 mb-3" id="substitute-section" style="<%= @existing_leaves.value?('振替休日') ? '' : 'display:none;' %>">
+        <div class="small fw-semibold mb-2 text-muted">振替休日の内訳（出勤した日を入力してください）</div>
+        <div class="d-flex flex-column gap-2">
+          <% @dates.each do |date| %>
+            <% next if @closed_days.key?(date) %>
+            <div class="d-flex align-items-center gap-2 substitute-row" id="substitute-row-<%= date %>"
+                 style="<%= @existing_leaves[date] == '振替休日' ? '' : 'display:none;' %>">
+              <label class="small text-muted mb-0" style="min-width:110px;"><%= date.strftime("%-m/%-d（#{wday_names[date.wday]}）") %>の振替：</label>
+              <input type="date" class="form-control form-control-sm" style="max-width:160px;"
+                     name="substitute_work_dates[<%= date %>]"
+                     value="<%= @existing_substitute_work_dates[date]&.strftime('%Y-%m-%d') %>">
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%# 時間休 %>
+      <div class="pitat-card p-3 mb-3">
+        <div class="small fw-semibold mb-2 text-muted">③ 時間休を取得する日があれば選ぶ（任意）</div>
+        <div class="text-muted small mb-2">
+          通常通り出勤し、数時間だけ休むための登録です。その日は早番・ポスト当番の割当対象から外れます。
+        </div>
+        <div class="d-flex flex-column gap-2" style="max-height: 240px; overflow-y: auto;">
+          <% @dates.each do |date| %>
+            <% next if @closed_days.key?(date) %>
+            <% existing_label = @existing_hourly_leaves[date] %>
+            <div class="d-flex align-items-center gap-2">
+              <div class="form-check mb-0" style="min-width:110px;">
+                <input type="checkbox" class="form-check-input"
+                       id="hourly-check-<%= date %>"
+                       name="hourly_leave_dates[]"
+                       value="<%= date %>"
+                       <%= @existing_hourly_leaves.key?(date) ? "checked" : "" %>
+                       onclick="toggleHourlyLabel('<%= date %>')">
+                <label class="form-check-label small" for="hourly-check-<%= date %>">
+                  <%= date.strftime("%-m/%-d（#{wday_names[date.wday]}）") %>
+                </label>
+              </div>
+              <input type="text" class="form-control form-control-sm"
+                     id="hourly-label-<%= date %>"
+                     name="hourly_leave_labels[<%= date %>]"
+                     placeholder="時間帯（必須・例：15:00〜17:00）"
+                     value="<%= existing_label %>"
+                     <%= @existing_hourly_leaves.key?(date) ? "required" : "" %>
+                     style="max-width:260px; flex:1 1 auto; min-width:200px; <%= @existing_hourly_leaves.key?(date) ? '' : 'display:none;' %>">
+            </div>
+          <% end %>
+        </div>
+      </div>
+
       <%# 選択サマリー %>
       <div class="pitat-card p-3 mb-4 small">
         <div class="fw-semibold text-muted mb-1">現在の希望休：</div>
@@ -136,9 +193,24 @@
           <% @existing_leaves.group_by { |_, v| v }.sort.each do |type, pairs| %>
             <div>
               <span class="fw-semibold"><%= type %>：</span>
-              <%= pairs.sort_by { |d, _| d }.map { |d, _| "#{d.month}/#{d.day}" }.join("、") %>
+              <% if type == "振替休日" %>
+                <%= pairs.sort_by { |d, _| d }.map { |d, _|
+                      sub = @existing_substitute_work_dates[d]
+                      "#{d.month}/#{d.day}#{"（#{sub.month}/#{sub.day}出勤分）" if sub}"
+                    }.join("、") %>
+              <% else %>
+                <%= pairs.sort_by { |d, _| d }.map { |d, _| "#{d.month}/#{d.day}" }.join("、") %>
+              <% end %>
             </div>
           <% end %>
+        <% else %>
+          <span class="text-muted">なし</span>
+        <% end %>
+        <div class="fw-semibold text-muted mb-1 mt-2">現在の時間休：</div>
+        <% if @existing_hourly_leaves.any? %>
+          <div>
+            <%= @existing_hourly_leaves.sort_by { |d, _| d }.map { |d, label| "#{d.month}/#{d.day}#{"（#{label}）" if label.present?}" }.join("、") %>
+          </div>
         <% else %>
           <span class="text-muted">なし</span>
         <% end %>
@@ -156,6 +228,7 @@
 <script>
   const TYPE_STYLES = {
     '公休':   { bg: '#FEF3C7', border: '#f59e0b', color: '#92400E' },
+    '振替休日': { bg: '#CCFBF1', border: '#0d9488', color: '#115e59' },
     '年休':   { bg: '#D1FAE5', border: '#059669', color: '#065f46' },
     '夏期休暇': { bg: '#DBEAFE', border: '#2563eb', color: '#1e3a8a' },
     '病気休暇': { bg: '#FEE2E2', border: '#dc2626', color: '#7f1d1d' },
@@ -191,8 +264,19 @@
     const typeInput = document.getElementById('type-'  + dateStr);
     const card      = document.getElementById('card-'  + dateStr);
     const label     = card.querySelector('.leave-label');
+    const isRemoving = checkbox.checked && typeInput.value === currentType;
 
-    if (checkbox.checked && typeInput.value === currentType) {
+    // 時間休が既に設定されている日には、終日休みを追加で設定できない
+    // （出勤している前提の時間休と、終日休みの希望休は矛盾するため）
+    if (!isRemoving) {
+      const hourlyCheckbox = document.getElementById('hourly-check-' + dateStr);
+      if (hourlyCheckbox && hourlyCheckbox.checked) {
+        alert(dateStr + "は時間休が設定されているため、" + currentType + "として登録できません。\n先に時間休を解除してください。");
+        return;
+      }
+    }
+
+    if (isRemoving) {
       checkbox.checked = false;
       typeInput.value  = '';
       applyCardStyle(card, label, null);
@@ -201,6 +285,39 @@
       typeInput.value  = currentType;
       applyCardStyle(card, label, currentType);
     }
+    updateSubstituteRow(dateStr, typeInput.value);
+  }
+
+  function updateSubstituteRow(dateStr, type) {
+    const row = document.getElementById('substitute-row-' + dateStr);
+    if (!row) return;
+    row.style.display = type === '振替休日' ? '' : 'none';
+    if (type !== '振替休日') row.querySelector('input[type="date"]').value = '';
+
+    const section = document.getElementById('substitute-section');
+    const anyVisible = Array.from(document.querySelectorAll('.substitute-row'))
+      .some(r => r.style.display !== 'none');
+    section.style.display = anyVisible ? '' : 'none';
+  }
+
+  function toggleHourlyLabel(dateStr) {
+    const checkbox = document.getElementById('hourly-check-' + dateStr);
+    const input    = document.getElementById('hourly-label-' + dateStr);
+
+    // 終日休みが既に設定されている日には、時間休を追加で設定できない
+    if (checkbox.checked) {
+      const leaveCheckbox = document.getElementById('check-' + dateStr);
+      if (leaveCheckbox && leaveCheckbox.checked) {
+        const typeInput = document.getElementById('type-' + dateStr);
+        checkbox.checked = false;
+        alert(dateStr + "は希望休（" + typeInput.value + "）が設定されているため、時間休を登録できません。\n先に希望休を解除してください。");
+        return;
+      }
+    }
+
+    input.style.display = checkbox.checked ? '' : 'none';
+    input.required = checkbox.checked;
+    if (!checkbox.checked) input.value = '';
   }
 
   // ページ読み込み時に既存データのカードに色を適用（Turbo対応）

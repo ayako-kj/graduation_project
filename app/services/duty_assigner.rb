@@ -11,6 +11,10 @@ class DutyAssigner
     @mobile_library_staff_by_date = (constraints[:mobile_library_constraints] || []).each_with_object(Hash.new { |h, k| h[k] = [] }) do |mc, h|
       h[Date.parse(mc[:date])].concat(mc[:staff_names])
     end
+    # 時間休の日: {date => [staff_name, ...]}（出勤扱いのまま、早番・当番の対象からのみ外す）
+    @hourly_leave_staff_by_date = (constraints[:hourly_leave_constraints] || []).each_with_object(Hash.new { |h, k| h[k] = [] }) do |hl, h|
+      h[Date.parse(hl[:date])] << hl[:staff_name]
+    end
   end
 
   def assign
@@ -28,8 +32,9 @@ class DutyAssigner
 
     counts = historical_counts(eligible, :is_early, :early_count)
     (@dc[:early_shift_dates] || []).each do |date|
-      # 移動図書館の巡回担当は、巡回後の作業ができなくなるため早番にしない
-      working = working_eligible(eligible, date) - @mobile_library_staff_by_date[date]
+      # 移動図書館の巡回担当は、巡回後の作業ができなくなるため早番にしない。
+      # 時間休の職員も、時間帯が重なる可能性があるため早番にしない
+      working = working_eligible(eligible, date) - @mobile_library_staff_by_date[date] - @hourly_leave_staff_by_date[date]
       next if working.empty?
 
       assignee = working.shuffle.min_by { |name| counts[name] }
@@ -44,7 +49,8 @@ class DutyAssigner
 
     counts = historical_counts(eligible, :is_post_duty, :post_duty_count)
     (@dc[:post_duty_dates] || []).each do |date|
-      working = working_eligible(eligible, date)
+      # 時間休の職員は、時間帯が重なる可能性があるためポスト当番にしない
+      working = working_eligible(eligible, date) - @hourly_leave_staff_by_date[date]
       next if working.empty?
 
       assignee = working.shuffle.min_by { |name| counts[name] }
@@ -59,9 +65,13 @@ class DutyAssigner
 
     counts = historical_counts(eligible, :is_holiday_post_duty, :holiday_post_duty_count)
     (@dc[:holiday_post_duty_dates] || {}).each_key do |date|
+      # 時間休の職員は、時間帯が重なる可能性があるため祝日ポスト当番にしない
+      eligible_today = eligible - @hourly_leave_staff_by_date[date]
+      next if eligible_today.empty?
+
       # 連続勤務違反を引き起こさない人を優先して選ぶ
-      safe = eligible.reject { |name| would_cause_consecutive_violation?(name, date) }
-      candidates = safe.any? ? safe : eligible
+      safe = eligible_today.reject { |name| would_cause_consecutive_violation?(name, date) }
+      candidates = safe.any? ? safe : eligible_today
       assignee = candidates.shuffle.min_by { |name| counts[name] }
       set_field(assignee, date, :is_holiday_post_duty, true)
       set_field(assignee, date, :is_working, true)

@@ -33,11 +33,24 @@ class ShiftsController < ApplicationController
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .each_with_object({}) { |lr, h| h[[lr.staff_id, lr.date]] = lr.reason.presence || "公休" }
 
+    # 振替休日の出勤日マップ：[staff_id, date] => substitute_work_date
+    @substitute_work_dates_map = LeaveRequest
+      .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month, reason: "振替休日")
+      .each_with_object({}) { |lr, h| h[[lr.staff_id, lr.date]] = lr.substitute_work_date }
+
     # 年休・夏休・特別・病気休暇マップ：[staff_id, date] => leave_type（出勤日数にカウント）
     @actual_leave_map = ActualLeave
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .each_with_object({}) { |al, h| h[[al.staff_id, al.date]] = al.leave_type }
     @actual_leave_set = @actual_leave_map.keys.to_set
+
+    # 時間休マップ：[staff_id, date] => time_range_label（出勤扱いのまま、早番等の対象外にするための表示用）
+    hourly_leaves = HourlyLeave
+      .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
+      .includes(:staff)
+    @hourly_leaves_map = hourly_leaves.each_with_object({}) { |hl, h| h[[hl.staff_id, hl.date]] = hl.time_range_label }
+    @hourly_leave_items = hourly_leaves.sort_by { |hl| [hl.date, hl.staff.sort_order, hl.staff_id] }
+      .map { |hl| "#{hl.staff.name}　#{hl.date.strftime('%-m/%-d')}（#{hl.time_range_label}）" }
 
     # スケジュールマップ：date => Set of staff_id（または :all）＋ラベル（複数対応）
     # 移動図書館マップ：date => Set of staff_id
@@ -250,6 +263,12 @@ class ShiftsController < ApplicationController
     @leave_requests_map = LeaveRequest
       .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .each_with_object({}) { |lr, h| h[[lr.staff_id, lr.date]] = lr.reason.presence || "公休" }
+
+    hourly_leaves_for_export = HourlyLeave
+      .where(staff: @staffs, date: @target_month.beginning_of_month..@target_month.end_of_month)
+      .includes(:staff)
+    @hourly_leave_items_for_export = hourly_leaves_for_export.sort_by { |hl| [hl.date, hl.staff.sort_order, hl.staff_id] }
+      .map { |hl| "#{hl.staff.name}：#{hl.date.strftime('%-m/%-d')}（#{hl.time_range_label}）" }
 
     @special_date_labels = {}
     @special_dates_for_export = SpecialDate

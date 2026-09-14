@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_08_091839) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_053005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -57,6 +57,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_08_091839) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "hourly_leaves", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "date", null: false
+    t.bigint "staff_id", null: false
+    t.string "time_range_label"
+    t.datetime "updated_at", null: false
+    t.index ["staff_id", "date"], name: "index_hourly_leaves_on_staff_id_and_date", unique: true
+    t.index ["staff_id"], name: "index_hourly_leaves_on_staff_id"
+  end
+
   create_table "input_deadlines", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.date "deadline_on"
@@ -73,6 +83,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_08_091839) do
     t.string "note"
     t.string "reason"
     t.bigint "staff_id", null: false
+    t.date "substitute_work_date"
     t.datetime "updated_at", null: false
     t.index ["staff_id"], name: "index_leave_requests_on_staff_id"
   end
@@ -289,6 +300,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_08_091839) do
   add_foreign_key "actual_leaves", "staffs"
   add_foreign_key "admins", "libraries"
   add_foreign_key "assignments", "libraries"
+  add_foreign_key "hourly_leaves", "staffs"
   add_foreign_key "input_deadlines", "libraries"
   add_foreign_key "leave_requests", "staffs"
   add_foreign_key "mobile_libraries", "libraries"
