@@ -44,6 +44,7 @@ class ConstraintExtractor
       duty_constraints: duty_constraints_data,
       assignment_constraints: assignment_constraints_data,
       mobile_library_constraints: mobile_library_constraints_data,
+      hourly_leave_constraints: hourly_leave_constraints_data,
       prior_trailing_work_days: prior_trailing_work_days_data
     }
   end
@@ -346,6 +347,19 @@ class ConstraintExtractor
         staff_name: lr.staff.name,
         date: lr.date.strftime("%Y-%m-%d"),
         reason: lr.reason
+      }
+    end
+  end
+
+  # 時間休（1日の一部だけ休む）の日: {date => [staff_name, ...]}
+  # 出勤扱いのまま、早番・ポスト当番等の割当対象からのみ除外するために使う
+  def hourly_leave_constraints_data
+    HourlyLeave.includes(:staff)
+               .where(staff: @library.staffs, date: @start_date..@end_date)
+               .map do |hl|
+      {
+        staff_name: hl.staff.name,
+        date: hl.date.strftime("%Y-%m-%d")
       }
     end
   end

@@ -2,7 +2,7 @@ class LeaveRequestsController < ApplicationController
   before_action :authenticate_admin!
   before_action :set_leave_request, only: %i[edit update destroy]
 
-  LEAVE_TYPES = %w[公休 年休 夏期休暇 病気休暇 特別休暇].freeze
+  LEAVE_TYPES = %w[公休 振替休日 年休 夏期休暇 病気休暇 特別休暇].freeze
 
   def index
     @target_month = params[:month].present? ? Date.parse("#{params[:month]}-01") : Date.today.beginning_of_month.next_month
@@ -31,6 +31,12 @@ class LeaveRequestsController < ApplicationController
     @existing_leaves = LeaveRequest
       .where(staff: @staff, date: @target_month.beginning_of_month..@target_month.end_of_month)
       .each_with_object({}) { |lr, h| h[lr.date] = lr.reason.presence || "公休" }
+    @existing_substitute_work_dates = LeaveRequest
+      .where(staff: @staff, date: @target_month.beginning_of_month..@target_month.end_of_month, reason: "振替休日")
+      .each_with_object({}) { |lr, h| h[lr.date] = lr.substitute_work_date }
+    @existing_hourly_leaves = HourlyLeave
+      .where(staff: @staff, date: @target_month.beginning_of_month..@target_month.end_of_month)
+      .each_with_object({}) { |hl, h| h[hl.date] = hl.time_range_label }
   end
 
   # new画面のカレンダーで選んだ内容を一括保存する（対象月の希望休を一旦全て
@@ -44,17 +50,34 @@ class LeaveRequestsController < ApplicationController
 
     leave_types = params[:leave_types]&.to_unsafe_h || {}
     selected_dates = Array(params[:leave_dates]).filter_map { |d| Date.parse(d) rescue nil }
+    substitute_work_dates = params[:substitute_work_dates]&.to_unsafe_h || {}
+    hourly_leave_labels = params[:hourly_leave_labels]&.to_unsafe_h || {}
+    hourly_leave_dates = Array(params[:hourly_leave_dates]).filter_map { |d| Date.parse(d) rescue nil }
 
-    LeaveRequest.where(staff: staff, date: target_month.beginning_of_month..target_month.end_of_month).destroy_all
+    ActiveRecord::Base.transaction do
+      LeaveRequest.where(staff: staff, date: target_month.beginning_of_month..target_month.end_of_month).destroy_all
 
-    selected_dates.each do |date|
-      leave_type = leave_types[date.to_s].presence
-      leave_type = "公休" unless LEAVE_TYPES.include?(leave_type)
-      LeaveRequest.create!(staff: staff, date: date, reason: leave_type)
+      selected_dates.each do |date|
+        leave_type = leave_types[date.to_s].presence
+        leave_type = "公休" unless LEAVE_TYPES.include?(leave_type)
+        substitute_date = leave_type == "振替休日" ? (Date.parse(substitute_work_dates[date.to_s]) rescue nil) : nil
+        LeaveRequest.create!(staff: staff, date: date, reason: leave_type, substitute_work_date: substitute_date)
+      end
+
+      HourlyLeave.where(staff: staff, date: target_month.beginning_of_month..target_month.end_of_month).destroy_all
+
+      # 同じ日に終日休みと時間休が両方送信された場合は、終日休みを優先し
+      # 時間休は登録しない（画面側のJSで通常は起こらないが、安全策として）
+      (hourly_leave_dates - selected_dates).each do |date|
+        HourlyLeave.create!(staff: staff, date: date, time_range_label: hourly_leave_labels[date.to_s].presence)
+      end
     end
 
     redirect_to leave_requests_path(month: target_month.strftime("%Y-%m")),
                 notice: "#{staff.name}さんの#{target_month.strftime('%Y年%-m月')}の希望休を保存しました。"
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to new_leave_request_path(staff_id: staff.id, month: target_month.strftime("%Y-%m")),
+                alert: "保存に失敗しました：#{e.record.errors.full_messages.join('、')}"
   end
 
   def edit
@@ -94,6 +117,6 @@ class LeaveRequestsController < ApplicationController
   end
 
   def leave_request_params
-    params.require(:leave_request).permit(:staff_id, :date, :reason, :note)
+    params.require(:leave_request).permit(:staff_id, :date, :reason, :note, :substitute_work_date)
   end
 end

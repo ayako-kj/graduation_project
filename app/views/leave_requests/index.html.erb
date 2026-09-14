@@ -54,12 +54,18 @@
             <tbody>
               <% @leave_requests.each do |leave_request| %>
                 <tr>
-                  <% lr_type = %w[公休 年休 夏期休暇 病気休暇 特別休暇].include?(leave_request.reason) ? leave_request.reason : "公休" %>
-                  <% badge_color = { "公休" => "bg-warning text-dark", "年休" => "bg-success", "夏期休暇" => "bg-primary", "病気休暇" => "bg-danger", "特別休暇" => "bg-secondary" }[lr_type] %>
+                  <% lr_type = %w[公休 振替休日 年休 夏期休暇 病気休暇 特別休暇].include?(leave_request.reason) ? leave_request.reason : "公休" %>
+                  <% badge_color = { "公休" => "bg-warning text-dark", "振替休日" => "bg-info text-dark", "年休" => "bg-success", "夏期休暇" => "bg-primary", "病気休暇" => "bg-danger", "特別休暇" => "bg-secondary" }[lr_type] %>
                   <td class="ps-4 py-3 fw-semibold"><%= leave_request.date.strftime("%Y年%m月%d日") %></td>
                   <td class="py-3"><%= leave_request.staff.name %></td>
                   <td class="py-3"><span class="badge <%= badge_color %>"><%= lr_type %></span></td>
-                  <td class="py-3"><%= leave_request.note.presence || "－" %></td>
+                  <td class="py-3">
+                    <% if lr_type == "振替休日" && leave_request.substitute_work_date %>
+                      <%= leave_request.substitute_work_date.strftime('%-m/%-d') %>出勤分
+                    <% else %>
+                      <%= leave_request.note.presence || "－" %>
+                    <% end %>
+                  </td>
                   <td class="py-3 pe-4 text-end">
                     <%= link_to "編集", edit_leave_request_path(leave_request), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
                     <%= link_to "削除", leave_request_path(leave_request),
@@ -94,11 +100,17 @@
               <tbody>
                 <% leaves.sort_by(&:date).each do |leave_request| %>
                   <tr>
-                    <% lr_type = %w[公休 年休 夏期休暇 病気休暇 特別休暇].include?(leave_request.reason) ? leave_request.reason : "公休" %>
-                    <% badge_color = { "公休" => "bg-warning text-dark", "年休" => "bg-success", "夏期休暇" => "bg-primary", "病気休暇" => "bg-danger", "特別休暇" => "bg-secondary" }[lr_type] %>
+                    <% lr_type = %w[公休 振替休日 年休 夏期休暇 病気休暇 特別休暇].include?(leave_request.reason) ? leave_request.reason : "公休" %>
+                    <% badge_color = { "公休" => "bg-warning text-dark", "振替休日" => "bg-info text-dark", "年休" => "bg-success", "夏期休暇" => "bg-primary", "病気休暇" => "bg-danger", "特別休暇" => "bg-secondary" }[lr_type] %>
                     <td class="ps-4 py-2 fw-semibold"><%= leave_request.date.strftime("%m月%d日（#{%w[日 月 火 水 木 金 土][leave_request.date.wday]}）") %></td>
                     <td class="py-2"><span class="badge <%= badge_color %>"><%= lr_type %></span></td>
-                    <td class="py-2"><%= leave_request.note.presence || "－" %></td>
+                    <td class="py-2">
+                      <% if lr_type == "振替休日" && leave_request.substitute_work_date %>
+                        <%= leave_request.substitute_work_date.strftime('%-m/%-d') %>出勤分
+                      <% else %>
+                        <%= leave_request.note.presence || "－" %>
+                      <% end %>
+                    </td>
                     <td class="py-2 pe-4 text-end">
                       <%= link_to "編集", edit_leave_request_path(leave_request, from: "by-staff"), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
                       <%= link_to "削除", leave_request_path(leave_request, from: "by-staff"),

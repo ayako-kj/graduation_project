@@ -59,6 +59,11 @@ ja:
         staff_id: "職員"
         date: "日付"
         reason: "理由"
+      hourly_leave:
+        staff: "職員"
+        staff_id: "職員"
+        date: "日付"
+        time_range_label: "時間帯"
       mobile_library_exception:
         target_month: "対象月"
         date: "巡回日"
