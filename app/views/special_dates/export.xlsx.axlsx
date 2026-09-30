@@ -9,7 +9,6 @@ wrap   = base.merge(alignment: { horizontal: :left,   vertical: :top, wrap_text:
 
 title_main_s  = s.add_style left.merge(b: true, sz: 14)
 title_blank_s = s.add_style base
-gap_s         = s.add_style base.merge(border: { style: :thin, color: "FFFFFF" })
 head_s        = s.add_style center.merge(bg_color: "F8F9FA", b: true)
 day_s         = s.add_style center.merge(b: true)
 day_sat_s     = s.add_style center.merge(b: true, bg_color: "DBEAFE", fg_color: "1D4ED8")
@@ -30,26 +29,14 @@ wday_names = %w[日 月 火 水 木 金 土]
 fiscal_year = @target_month.month >= 4 ? @target_month.year : @target_month.year - 1
 reiwa_year  = fiscal_year - 2018
 month_label = "令和#{reiwa_year}年（#{@target_month.year}年）#{@target_month.month}月分"
-sheet_name  = "R#{reiwa_year}.#{@target_month.month}月 行事予定"
 
 # 列構成：日・曜・個別スケジュール・移動図書館（定例）・（不定期移動図書館ごと）
 irregular_headers = @irregular_libraries.map(&:name)
 headers = ["日", "曜", "個別スケジュール", @mobile_column_label] + irregular_headers
-block_col_count = headers.size
-col_count = block_col_count * 3 + 2 # 3ブロック + 区切り2列
+col_count = headers.size
 
-# 文字が小さくなりすぎないよう、1〜10日・11〜20日・21〜31日の3列に分けて配置する
-block_dates = [
-  @dates.select { |d| d.day <= 10 },
-  @dates.select { |d| d.day >= 11 && d.day <= 20 },
-  @dates.select { |d| d.day >= 21 }
-]
-row_count = block_dates.map(&:size).max
-
-# 1日分のセル値・スタイル・行数を組み立てる（dateがnilの場合は空行）
+# 1日分のセル値・スタイル・行数を組み立てる
 build_cells = lambda do |date|
-  next [Array.new(block_col_count, ""), Array.new(block_col_count, title_blank_s), 0] if date.nil?
-
   is_closed  = @closed_days.key?(date)
   day_style  = is_closed ? day_closed_s  : (date.saturday? ? day_sat_s  : (date.sunday? ? day_sun_s  : day_s))
   wday_style = is_closed ? wday_closed_s : (date.saturday? ? wday_sat_s : (date.sunday? ? wday_sun_s : wday_s))
@@ -67,45 +54,46 @@ build_cells = lambda do |date|
   [cells, styles, max_lines]
 end
 
-wb.add_worksheet(name: sheet_name) do |sheet|
-  # ---- 印刷設定：A4横 1ページに収める ----
-  sheet.page_setup.paper_size = 9 # A4
-  sheet.page_setup.orientation = :landscape
-  sheet.page_setup.fit_to(width: 1, height: 1)
-  sheet.page_margins.set(left: 0.25, right: 0.25, top: 0.3, bottom: 0.3, header: 0.1, footer: 0.1)
-  sheet.print_options.set(horizontal_centered: true)
+# 列幅はピクセル指定（日25px・曜25px・個別スケジュール250px・
+# わかくさ号165px・あおばな号195px）を、Excelの文字幅単位に変換した値
+# （(px - 5) / 7）
+column_widths = [2.86, 2.86, 35.0, 22.86] + Array.new(irregular_headers.size, 27.14)
 
-  # --- 行1: タイトル（A〜C列を結合し「行事予定表○年○月分」を1つの文字列にする） ---
-  row1_data  = Array.new(col_count, "")
-  row1_style = Array.new(col_count, title_blank_s)
-  row1_data[0]  = "行事予定表#{month_label}"
-  row1_style[0] = title_main_s
-  sheet.add_row row1_data, style: row1_style, height: 20
-  sheet.merge_cells "A1:C1"
-  sheet.merge_cells "D1:#{Axlsx.col_ref(col_count - 1)}1"
+# 1〜15日・16日以降で別々のシート（＝別ページ）に分け、1シートに
+# つき1ブロックだけをフル幅で配置することで、2〜3列に並べていた
+# ときより文字を大きく印刷できるようにする（A4横・長辺とじで2枚）
+[
+  ["1〜15日", @dates.select { |d| d.day <= 15 }],
+  ["16〜#{@dates.last.day}日", @dates.select { |d| d.day >= 16 }]
+].each do |range_label, dates|
+  sheet_name = "R#{reiwa_year}.#{@target_month.month}月 行事予定(#{range_label})"
 
-  # --- 見出し行（3ブロックとも同じ見出し） ---
-  header_row = headers + [""] + headers + [""] + headers
-  header_style = Array.new(block_col_count, head_s) + [gap_s] +
-                  Array.new(block_col_count, head_s) + [gap_s] +
-                  Array.new(block_col_count, head_s)
-  sheet.add_row header_row, style: header_style, height: 16
+  wb.add_worksheet(name: sheet_name) do |sheet|
+    # ---- 印刷設定：A4横 1ページに収める ----
+    sheet.page_setup.paper_size = 9 # A4
+    sheet.page_setup.orientation = :landscape
+    sheet.page_setup.fit_to(width: 1, height: 1)
+    sheet.page_margins.set(left: 0.25, right: 0.25, top: 0.3, bottom: 0.3, header: 0.1, footer: 0.1)
+    sheet.print_options.set(horizontal_centered: true)
 
-  # --- 日ごとの行（1〜10日・11〜20日・21〜31日の3ブロック） ---
-  row_count.times do |i|
-    blocks = block_dates.map { |dates| build_cells.call(dates[i]) }
+    # --- 行1: タイトル ---
+    row1_data  = Array.new(col_count, "")
+    row1_style = Array.new(col_count, title_blank_s)
+    row1_data[0]  = "行事予定表#{month_label}（#{range_label}）"
+    row1_style[0] = title_main_s
+    sheet.add_row row1_data, style: row1_style, height: 20
+    sheet.merge_cells "A1:C1"
+    sheet.merge_cells "D1:#{Axlsx.col_ref(col_count - 1)}1"
 
-    row_data  = blocks.map { |cells, _, _| cells }.reduce { |a, b| a + [""] + b }
-    row_style = blocks.map { |_, styles, _| styles }.reduce { |a, b| a + [gap_s] + b }
-    max_lines = blocks.map { |_, _, max_lines| max_lines }.max
+    # --- 見出し行 ---
+    sheet.add_row headers, style: Array.new(col_count, head_s), height: 16
 
-    sheet.add_row row_data, style: row_style, height: [12, max_lines * 11].max
+    # --- 日ごとの行 ---
+    dates.each do |date|
+      cells, styles, max_lines = build_cells.call(date)
+      sheet.add_row cells, style: styles, height: [12, max_lines * 11].max
+    end
+
+    sheet.column_widths(*column_widths)
   end
-
-  # 列幅はピクセル指定（日25px・曜25px・個別スケジュール250px・
-  # わかくさ号165px・あおばな号195px）を、Excelの文字幅単位に変換した値
-  # （(px - 5) / 7）。3列にする分、日・曜以外は横幅を2/3に詰めて
-  # 全体の横幅が広がりすぎないようにする
-  block_widths = [2.86, 2.86, 23.33, 15.24] + Array.new(irregular_headers.size, 18.09)
-  sheet.column_widths(*block_widths, 1.5, *block_widths, 1.5, *block_widths)
 end
