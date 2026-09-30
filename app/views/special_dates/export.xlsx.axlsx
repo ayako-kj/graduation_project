@@ -36,12 +36,15 @@ sheet_name  = "R#{reiwa_year}.#{@target_month.month}月 行事予定"
 irregular_headers = @irregular_libraries.map(&:name)
 headers = ["日", "曜", "個別スケジュール", @mobile_column_label] + irregular_headers
 block_col_count = headers.size
-col_count = block_col_count * 2 + 1 # 左ブロック + 区切り1列 + 右ブロック
+col_count = block_col_count * 3 + 2 # 3ブロック + 区切り2列
 
-# A4横1枚に収めるため、1〜15日を左半分、16日以降を右半分に配置する
-left_dates  = @dates.select { |d| d.day <= 15 }
-right_dates = @dates.select { |d| d.day >= 16 }
-row_count   = [left_dates.size, right_dates.size].max
+# 文字が小さくなりすぎないよう、1〜10日・11〜20日・21〜31日の3列に分けて配置する
+block_dates = [
+  @dates.select { |d| d.day <= 10 },
+  @dates.select { |d| d.day >= 11 && d.day <= 20 },
+  @dates.select { |d| d.day >= 21 }
+]
+row_count = block_dates.map(&:size).max
 
 # 1日分のセル値・スタイル・行数を組み立てる（dateがnilの場合は空行）
 build_cells = lambda do |date|
@@ -81,26 +84,28 @@ wb.add_worksheet(name: sheet_name) do |sheet|
   sheet.merge_cells "A1:C1"
   sheet.merge_cells "D1:#{Axlsx.col_ref(col_count - 1)}1"
 
-  # --- 見出し行（左右ブロックとも同じ見出し） ---
-  header_row = headers + [""] + headers
-  header_style = Array.new(block_col_count, head_s) + [gap_s] + Array.new(block_col_count, head_s)
+  # --- 見出し行（3ブロックとも同じ見出し） ---
+  header_row = headers + [""] + headers + [""] + headers
+  header_style = Array.new(block_col_count, head_s) + [gap_s] +
+                  Array.new(block_col_count, head_s) + [gap_s] +
+                  Array.new(block_col_count, head_s)
   sheet.add_row header_row, style: header_style, height: 16
 
-  # --- 日ごとの行（左：1〜15日、右：16日以降） ---
+  # --- 日ごとの行（1〜10日・11〜20日・21〜31日の3ブロック） ---
   row_count.times do |i|
-    left_cells,  left_styles,  left_max  = build_cells.call(left_dates[i])
-    right_cells, right_styles, right_max = build_cells.call(right_dates[i])
+    blocks = block_dates.map { |dates| build_cells.call(dates[i]) }
 
-    row_data  = left_cells  + [""]   + right_cells
-    row_style = left_styles + [gap_s] + right_styles
-    max_lines = [left_max, right_max].max
+    row_data  = blocks.map { |cells, _, _| cells }.reduce { |a, b| a + [""] + b }
+    row_style = blocks.map { |_, styles, _| styles }.reduce { |a, b| a + [gap_s] + b }
+    max_lines = blocks.map { |_, _, max_lines| max_lines }.max
 
     sheet.add_row row_data, style: row_style, height: [12, max_lines * 11].max
   end
 
   # 列幅はピクセル指定（日25px・曜25px・個別スケジュール250px・
   # わかくさ号165px・あおばな号195px）を、Excelの文字幅単位に変換した値
-  # （(px - 5) / 7）
-  block_widths = [2.86, 2.86, 35.0, 22.86] + Array.new(irregular_headers.size, 27.14)
-  sheet.column_widths(*block_widths, 1.5, *block_widths)
+  # （(px - 5) / 7）。3列にする分、日・曜以外は横幅を2/3に詰めて
+  # 全体の横幅が広がりすぎないようにする
+  block_widths = [2.86, 2.86, 23.33, 15.24] + Array.new(irregular_headers.size, 18.09)
+  sheet.column_widths(*block_widths, 1.5, *block_widths, 1.5, *block_widths)
 end
