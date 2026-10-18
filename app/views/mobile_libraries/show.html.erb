@@ -33,10 +33,11 @@
               <td class="ps-4 align-middle fw-semibold small"><%= route.name %></td>
               <td class="align-middle small"><%= route.schedule_label %></td>
               <td class="align-middle small">
-                <% if route.staffs.empty? %>
+                <% active_route_staffs = route.staffs.reject(&:retired?) %>
+                <% if active_route_staffs.empty? %>
                   <span class="text-muted">未設定</span>
                 <% else %>
-                  <%= route.staffs.map(&:name).join("・") %>
+                  <%= active_route_staffs.map(&:name).join("・") %>
                 <% end %>
               </td>
               <td class="align-middle text-end pe-3">
@@ -57,7 +58,8 @@
                   <i class="bi bi-arrow-return-right me-1"></i>例外（<%= exception.target_month.strftime("%Y年%-m月") %>）：
                   <% parts = [] %>
                   <% parts << "#{exception.date.strftime('%-m/%-d')}に変更" if exception.date.present? %>
-                  <% parts << "担当者を#{exception.staffs.map(&:name).join('・')}に変更" if exception.staffs.any? %>
+                  <% active_exception_staffs = exception.staffs.reject(&:retired?) %>
+                  <% parts << "担当者を#{active_exception_staffs.map(&:name).join('・')}に変更" if active_exception_staffs.any? %>
                   <%= parts.join("、") %>
                 </td>
                 <td class="align-middle"></td>

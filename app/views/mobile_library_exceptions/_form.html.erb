@@ -82,7 +82,7 @@
       <% end %>
     </div>
     <div class="form-text text-muted">
-      通常の担当者（<%= route.staffs.map(&:name).join("・").presence || "未設定" %>）を変更しない場合は選択しないでください
+      通常の担当者（<%= route.staffs.reject(&:retired?).map(&:name).join("・").presence || "未設定" %>）を変更しない場合は選択しないでください
     </div>
   </div>
 

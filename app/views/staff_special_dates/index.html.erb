@@ -184,11 +184,12 @@
                 <% end %>
               </td>
               <td class="py-2 text-muted">
+                <% active_designated_staffs = sd.designated_staffs.reject(&:retired?) %>
                 <%= sd.target_group.presence %>
-                <% if sd.designated_staffs.any? %>
-                  <span class="<%= sd.target_group.present? ? 'ms-1' : '' %>"><%= sd.designated_staffs.map(&:name).join("・") %></span>
+                <% if active_designated_staffs.any? %>
+                  <span class="<%= sd.target_group.present? ? 'ms-1' : '' %>"><%= active_designated_staffs.map(&:name).join("・") %></span>
                 <% end %>
-                <% if sd.target_group.blank? && sd.designated_staffs.empty? %>
+                <% if sd.target_group.blank? && active_designated_staffs.empty? %>
                   <span class="text-muted">－</span>
                 <% end %>
               </td>

@@ -67,8 +67,9 @@
                   </td>
                   <td class="py-3"><%= special_date.target_group.presence || "－" %></td>
                   <td class="py-3">
-                    <% if special_date.designated_staffs.any? %>
-                      <%= special_date.designated_staffs.map(&:name).join("・") %>
+                    <% active_designated_staffs = special_date.designated_staffs.reject(&:retired?) %>
+                    <% if active_designated_staffs.any? %>
+                      <%= active_designated_staffs.map(&:name).join("・") %>
                     <% else %>
                       <span class="text-muted">－</span>
                     <% end %>
