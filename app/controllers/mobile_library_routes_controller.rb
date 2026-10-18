@@ -50,7 +50,7 @@ class MobileLibraryRoutesController < ApplicationController
   end
 
   def set_form_options
-    @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
+    @staffs = current_library.staffs.active_on(Date.today).includes(:staff_type).order(:sort_order, :id)
   end
 
   def update_staffs(route)

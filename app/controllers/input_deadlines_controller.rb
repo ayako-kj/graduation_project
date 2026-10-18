@@ -5,7 +5,8 @@ class InputDeadlinesController < ApplicationController
     @target_month = parse_target_month
     @input_deadline = current_library.input_deadlines.find_or_initialize_by(target_month: @target_month)
 
-    @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
+    @staffs = current_library.staffs.active_during(@target_month.beginning_of_month, @target_month.end_of_month)
+                .includes(:staff_type).order(:sort_order, :id)
     @submissions = MonthlySubmission
       .where(staff_id: @staffs.map(&:id), target_month: @target_month.beginning_of_month)
       .index_by(&:staff_id)

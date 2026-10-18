@@ -6,12 +6,13 @@ class LeaveRequestsController < ApplicationController
 
   def index
     @target_month = params[:month].present? ? Date.parse("#{params[:month]}-01") : Date.today.beginning_of_month.next_month
+    staffs_in_month = current_library.staffs.active_during(@target_month.beginning_of_month, @target_month.end_of_month)
     @leave_requests = LeaveRequest.includes(:staff)
-                        .where(staff: current_library.staffs)
+                        .where(staff: staffs_in_month)
                         .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
                         .order(:date, "staffs.sort_order", "staffs.id")
     hourly_leaves = HourlyLeave.includes(:staff)
-                       .where(staff: current_library.staffs)
+                       .where(staff: staffs_in_month)
                        .where(date: @target_month.beginning_of_month..@target_month.end_of_month)
 
     # 希望休（終日）と時間休（部分休）は別モデルだが、一覧では同じ表に
@@ -25,8 +26,8 @@ class LeaveRequestsController < ApplicationController
   # 職員向け希望休入力画面（休暇種別を選んでカレンダーの日付をタップする方式）
   # と同じ操作感で、管理者が対象の職員を選んで登録できるようにする
   def new
-    set_form_options
     @target_month = parse_target_month
+    set_form_options
     @staff = @staffs.find_by(id: params[:staff_id])
     return unless @staff
 
@@ -115,7 +116,8 @@ class LeaveRequestsController < ApplicationController
   end
 
   def set_form_options
-    @staffs = current_library.staffs.order(:sort_order, :id)
+    month = @target_month || @leave_request&.date&.beginning_of_month || Date.today.beginning_of_month.next_month
+    @staffs = current_library.staffs.active_during(month.beginning_of_month, month.end_of_month).order(:sort_order, :id)
   end
 
   def parse_target_month

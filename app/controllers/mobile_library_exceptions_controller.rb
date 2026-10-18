@@ -56,7 +56,9 @@ class MobileLibraryExceptionsController < ApplicationController
   end
 
   def set_form_options
-    @staffs = current_library.staffs.includes(:staff_type).order(:sort_order, :id)
+    month = @exception.target_month || Date.today.beginning_of_month.next_month
+    @staffs = current_library.staffs.active_during(month.beginning_of_month, month.end_of_month)
+                .includes(:staff_type).order(:sort_order, :id)
   end
 
   def sync_staffs
