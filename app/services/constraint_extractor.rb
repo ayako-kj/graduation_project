@@ -126,7 +126,7 @@ class ConstraintExtractor
                     (1..3).map { |m| Date.new(fiscal_year + 1, m, 1) }
     past_months = fiscal_months.select { |m| m < @target_month.beginning_of_month }
 
-    staffs = @library.staffs.includes(:staff_type, :employment_type)
+    staffs = @library.staffs.active_during(@start_date, @end_date).includes(:staff_type, :employment_type)
     actual_data = past_months.any? ? preload_past_actual_data(staffs, past_months) : {}
     wc_debt = past_months.any? ? weekend_consecutive_debt_data(staffs, past_months) : {}
 

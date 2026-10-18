@@ -93,7 +93,7 @@
     </div>
   </div>
 
-  <div class="mb-4">
+  <div class="mb-3">
     <%= f.label :daily_work_hours, class: "form-label fw-semibold small" do %>
       1日の勤務時間<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
     <% end %>
@@ -104,6 +104,22 @@
             EmploymentType.find_by(id: staff.employment_type_id)&.daily_work_hours.to_s : "例：7.5" %>
       <span class="input-group-text">時間</span>
     </div>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :hired_on, class: "form-label fw-semibold small" do %>
+      入社日<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+    <% end %>
+    <div class="form-text mb-1">空白の場合は以前から在籍しているものとして扱います。年度途中で採用した職員のみ入力してください。</div>
+    <%= f.date_field :hired_on, class: "form-control", style: "max-width: 220px;" %>
+  </div>
+
+  <div class="mb-4">
+    <%= f.label :retired_on, class: "form-label fw-semibold small" do %>
+      退職日<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">任意</span>
+    <% end %>
+    <div class="form-text mb-1">退職が決まったらここに日付を入力してください。過去のシフト等の記録は残ったまま、以降のシフト作成・各種一覧の対象から外れます。</div>
+    <%= f.date_field :retired_on, class: "form-control", style: "max-width: 220px;" %>
   </div>
 
   <%= f.submit staff.new_record? ? "登録する" : "更新する", class: "btn btn-pitat w-100 rounded-pill py-2 fw-semibold" %>

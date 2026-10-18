@@ -4,10 +4,13 @@ class WorkingDaySummariesController < ApplicationController
 
   def index
     @fiscal_year = params[:fiscal_year]&.to_i || default_fiscal_year
-    @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
     @active_tab = %w[staff duty].include?(params[:tab]) ? params[:tab] : "monthly"
 
     months = fiscal_year_months(@fiscal_year)
+    # その年度のどこかで一度でも在籍していれば表示する（退職済み・
+    # 年度途中入社の職員も、在籍していた月の実績は引き続き確認したいため）
+    @staffs = current_library.staffs.active_during(months.first, months.last.end_of_month)
+                .includes(:staff_type, :employment_type).order(:sort_order, :id)
     holidays = HolidayFetcher.fetch(@fiscal_year).merge(HolidayFetcher.fetch(@fiscal_year + 1))
     # 市役所換算の比較基準は「平日 - 祝日」（図書館の定休曜日は除かない）
     @n_by_month = months.index_with { |m| WorkingDayCalculator.new(m, holidays, closed_wdays: []).city_hall_days }

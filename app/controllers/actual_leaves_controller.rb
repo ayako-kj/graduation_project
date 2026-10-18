@@ -3,7 +3,8 @@ class ActualLeavesController < ApplicationController
 
   def index
     @target_month = parse_target_month
-    @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
+    @staffs = current_library.staffs.active_during(@target_month.beginning_of_month, @target_month.end_of_month)
+                .includes(:staff_type, :employment_type).order(:sort_order, :id)
 
     holidays = HolidayFetcher.fetch(@target_month.year)
     extra = temporary_closed_dates_map(current_library, @target_month)

@@ -3,7 +3,8 @@ class WorkdayManualEntriesController < ApplicationController
 
   def index
     @target_month = parse_target_month
-    @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
+    @staffs = current_library.staffs.active_during(@target_month.beginning_of_month, @target_month.end_of_month)
+                .includes(:staff_type, :employment_type).order(:sort_order, :id)
     @entries_map = WorkdayManualEntry
       .where(staff: @staffs, year_month: @target_month)
       .index_by(&:staff_id)

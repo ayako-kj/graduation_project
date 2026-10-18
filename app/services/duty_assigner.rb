@@ -97,24 +97,71 @@ class DutyAssigner
   end
 
   # Pitat導入前の実績（WorkdayManualEntry）を含めないと、既に偏った実績のある
-  # 職員を「実績0人」と誤認して割り当ててしまい、偏りを助長するため合算する
+  # 職員を「実績0人」と誤認して割り当ててしまい、偏りを助長するため合算する。
+  # シフト表は年度（4月始まり）ごとに作成する運用のため、実績は今年度分のみを集計する
   def historical_counts(staff_names, duty_field, manual_field)
+    fiscal_year_start = fiscal_year_start_for(@target_month)
+    fiscal_months_so_far = fiscal_months_before_target(fiscal_year_start)
+
     counts = Hash.new(0)
+    hired_on_by_name = {}
+
     staff_names.each do |name|
       staff = @library.staffs.find_by(name: name)
       next unless staff
 
       auto_count = Shift.joins(:shift_group)
                         .where(staff: staff, duty_field => true)
-                        .where("shift_groups.target_month < ?", @target_month.beginning_of_month)
+                        .where("shift_groups.target_month >= ? AND shift_groups.target_month < ?",
+                               fiscal_year_start, @target_month.beginning_of_month)
                         .count
       manual_count = WorkdayManualEntry
                         .where(staff: staff)
-                        .where("year_month < ?", @target_month.beginning_of_month)
+                        .where("year_month >= ? AND year_month < ?", fiscal_year_start, @target_month.beginning_of_month)
                         .sum(manual_field)
       counts[name] = auto_count + manual_count
+      hired_on_by_name[name] = staff.hired_on
     end
+
+    # 年度途中で入社した職員は、在籍していなかった月の分だけ実績が
+    # 少なくなるのが当然で「出遅れている」わけではない。放置すると常に
+    # 最優先で割り当てられて早番・当番が偏って集中してしまうため、
+    # 4月から在籍していた場合に見込まれたであろう実績（既存職員の
+    # 月平均実績×不在月数）をあらかじめ加算し、公平な比較に揃える
+    established_names = staff_names.select do |name|
+      hired_on = hired_on_by_name[name]
+      hired_on.nil? || hired_on <= fiscal_year_start
+    end
+
+    if established_names.any? && fiscal_months_so_far.any?
+      established_avg = established_names.sum { |name| counts[name] }.to_f / established_names.size
+      monthly_rate = established_avg / fiscal_months_so_far.size
+
+      (staff_names - established_names).each do |name|
+        hired_on = hired_on_by_name[name]
+        next unless hired_on
+
+        months_absent = fiscal_months_so_far.count { |m| hired_on >= m.next_month }
+        counts[name] += (monthly_rate * months_absent).round
+      end
+    end
+
     counts
+  end
+
+  def fiscal_year_start_for(month)
+    fiscal_year = month.month >= 4 ? month.year : month.year - 1
+    Date.new(fiscal_year, 4, 1)
+  end
+
+  def fiscal_months_before_target(fiscal_year_start)
+    months = []
+    m = fiscal_year_start
+    while m < @target_month.beginning_of_month
+      months << m
+      m = m.next_month
+    end
+    months
   end
 
   def set_field(staff_name, date, field, value)

@@ -20,6 +20,22 @@ class Staff < ApplicationRecord
 
   WDAY_NAMES = %w[日 月 火 水 木 金 土].freeze
 
+  # 指定した期間（start_date〜end_date）のいずれかの日に在籍していた
+  # 職員を絞り込む。hired_on/retired_onが未設定の場合はそれぞれ
+  # 「ずっと前から在籍」「まだ在籍中」とみなす
+  scope :active_during, lambda { |start_date, end_date|
+    where("hired_on IS NULL OR hired_on <= ?", end_date)
+      .where("retired_on IS NULL OR retired_on >= ?", start_date)
+  }
+
+  # 指定した1日時点で在籍していた職員を絞り込む（担当者選択など、
+  # 月をまたがず「今現在」を基準にする画面で使う）
+  scope :active_on, ->(date) { active_during(date, date) }
+
+  def retired?
+    retired_on.present? && retired_on < Date.today
+  end
+
   def unavailable_wdays_array
     JSON.parse(unavailable_wdays || "[]")
   rescue JSON::ParserError
