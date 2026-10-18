@@ -1,5 +1,25 @@
 <% content_for :title, "職員一覧 | LibShift_Pitat" %>
 
+<style>
+  .drag-handle {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+    background-color: #fff;
+    cursor: grab;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .drag-handle:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    color: #495057;
+  }
+  #staff-sortable-body tr.dragging .drag-handle {
+    cursor: grabbing;
+  }
+</style>
+
 <div class="container py-5">
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <h1 class="fs-4 fw-bold mb-0">職員一覧</h1>
@@ -22,13 +42,13 @@
             <th class="py-3 text-muted small fw-semibold">雇用形態</th>
             <th class="py-3 text-muted small fw-semibold">週勤務日数</th>
             <th class="py-3 text-muted small fw-semibold">在籍状況</th>
-            <th class="py-3 text-muted small fw-semibold text-center">並び替え</th>
+            <th class="py-3 text-muted small fw-semibold text-center" style="width:48px;">並び替え</th>
             <th class="py-3"></th>
           </tr>
         </thead>
-        <tbody>
-          <% @staffs.each_with_index do |staff, i| %>
-            <tr class="<%= "text-muted" if staff.retired? %>">
+        <tbody id="staff-sortable-body">
+          <% @staffs.each do |staff| %>
+            <tr class="<%= "text-muted" if staff.retired? %>" data-staff-id="<%= staff.id %>" draggable="true">
               <td class="ps-4 py-3 fw-semibold"><%= staff.name %></td>
               <td class="py-3"><%= staff.staff_type.name %></td>
               <td class="py-3"><%= staff.employment_type.name %></td>
@@ -42,11 +62,11 @@
                   <span class="badge bg-success">在籍中</span>
                 <% end %>
               </td>
-              <td class="py-3 text-center text-nowrap">
-                <%= i == 0 ? tag.span("↑", class: "btn btn-sm btn-outline-secondary px-2 py-0 me-1 disabled opacity-25") :
-                    button_to("↑", move_up_staff_path(staff), method: :patch, class: "btn btn-sm btn-outline-secondary px-2 py-0 me-1", form: { style: "display:inline" }) %>
-                <%= i == @staffs.size - 1 ? tag.span("↓", class: "btn btn-sm btn-outline-secondary px-2 py-0 disabled opacity-25") :
-                    button_to("↓", move_down_staff_path(staff), method: :patch, class: "btn btn-sm btn-outline-secondary px-2 py-0", form: { style: "display:inline" }) %>
+              <td class="py-3 text-center">
+                <span class="drag-handle d-inline-flex align-items-center justify-content-center rounded-circle"
+                      title="ドラッグして並び替え">
+                  <i class="bi bi-list"></i>
+                </span>
               </td>
               <td class="py-3 pe-4 text-end">
                 <%= link_to "編集", edit_staff_path(staff), class: "btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" %>
@@ -61,3 +81,58 @@
     </div>
   <% end %>
 </div>
+
+<script>
+  (function () {
+    function initStaffSortable() {
+      const tbody = document.getElementById("staff-sortable-body");
+      if (!tbody) return;
+
+      let draggingRow = null;
+
+      function handleDragStart(e) {
+        draggingRow = e.currentTarget;
+        e.dataTransfer.effectAllowed = "move";
+        draggingRow.classList.add("opacity-50", "dragging");
+      }
+
+      function handleDragEnd() {
+        if (draggingRow) draggingRow.classList.remove("opacity-50", "dragging");
+        draggingRow = null;
+        saveOrder();
+      }
+
+      function handleDragOver(e) {
+        e.preventDefault();
+        const targetRow = e.currentTarget;
+        if (!draggingRow || targetRow === draggingRow) return;
+
+        const rect = targetRow.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height / 2;
+        tbody.insertBefore(draggingRow, before ? targetRow : targetRow.nextSibling);
+      }
+
+      function saveOrder() {
+        const ids = Array.from(tbody.querySelectorAll("tr")).map((row) => row.dataset.staffId);
+        const token = document.querySelector('meta[name="csrf-token"]').content;
+        fetch("<%= reorder_staffs_path %>", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": token
+          },
+          body: JSON.stringify({ ordered_ids: ids })
+        });
+      }
+
+      tbody.querySelectorAll("tr").forEach((row) => {
+        row.addEventListener("dragstart", handleDragStart);
+        row.addEventListener("dragend", handleDragEnd);
+        row.addEventListener("dragover", handleDragOver);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", initStaffSortable);
+    document.addEventListener("turbo:load", initStaffSortable);
+  }());
+</script>

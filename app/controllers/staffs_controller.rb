@@ -1,6 +1,6 @@
 class StaffsController < ApplicationController
   before_action :authenticate_admin!
-  before_action :set_staff, only: %i[edit update destroy move_up move_down regenerate_token]
+  before_action :set_staff, only: %i[edit update destroy regenerate_token]
 
   def index
     @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
@@ -42,16 +42,15 @@ class StaffsController < ApplicationController
     redirect_to staffs_path, notice: "#{@staff.name}を削除しました。"
   end
 
-  def move_up
-    above = current_library.staffs.where("sort_order < ?", @staff.sort_order).order(sort_order: :desc).first
-    swap_sort_order(@staff, above) if above
-    redirect_to staffs_path
-  end
-
-  def move_down
-    below = current_library.staffs.where("sort_order > ?", @staff.sort_order).order(sort_order: :asc).first
-    swap_sort_order(@staff, below) if below
-    redirect_to staffs_path
+  # 職員一覧のドラッグ&ドロップ並び替え。ドロップ後の全件分の職員IDを
+  # 並び順どおりに受け取り、その順番でsort_orderを振り直す
+  def reorder
+    ids = Array(params[:ordered_ids]).map(&:to_i)
+    staffs_by_id = current_library.staffs.where(id: ids).index_by(&:id)
+    ids.each_with_index do |id, index|
+      staffs_by_id[id]&.update_column(:sort_order, index)
+    end
+    head :ok
   end
 
   def hope_urls
@@ -104,12 +103,6 @@ class StaffsController < ApplicationController
   end
 
   private
-
-  def swap_sort_order(a, b)
-    a_order = a.sort_order
-    a.update_column(:sort_order, b.sort_order)
-    b.update_column(:sort_order, a_order)
-  end
 
   def build_qr_svg(url)
     offset      = 16
