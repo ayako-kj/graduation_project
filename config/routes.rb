@@ -18,8 +18,6 @@ Rails.application.routes.draw do
   end
   resources :staffs do
     member do
-      patch :move_up
-      patch :move_down
       post :regenerate_token
     end
     collection do
@@ -28,6 +26,7 @@ Rails.application.routes.draw do
       get :special_date_urls
       get :special_date_qrcodes
       get :combined_qrcodes
+      patch :reorder
     end
   end
 
