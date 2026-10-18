@@ -22,6 +22,13 @@ class DesignatedStaffValidator
     @shifts_map[[staff_name, date]] == true
   end
 
+  # 入社日より前・退職日より後は、その職員にとって担当でも出勤対象でも
+  # ないため、休みになっていてもエラーとして扱わない
+  def active?(staff, date)
+    (staff.hired_on.nil? || staff.hired_on <= date) &&
+      (staff.retired_on.nil? || staff.retired_on >= date)
+  end
+
   def check_special_dates
     violations = []
     SpecialDate.includes(:designated_staffs)
@@ -30,6 +37,7 @@ class DesignatedStaffValidator
       next if sd.designated_staffs.empty?
       next if @closed_days.key?(sd.date)
       sd.designated_staffs.each do |staff|
+        next unless active?(staff, sd.date)
         next if working?(staff.name, sd.date)
         violations << {
           staff_name: staff.name,
@@ -52,6 +60,7 @@ class DesignatedStaffValidator
         occurrence = route.occurrence_for(@start_date, closed_days: @closed_days)
         next if occurrence.nil?
         occurrence.staffs.each do |staff|
+          next unless active?(staff, occurrence.date)
           next if working?(staff.name, occurrence.date)
           violations << {
             staff_name: staff.name,
@@ -74,6 +83,7 @@ class DesignatedStaffValidator
       (@start_date..@end_date).select { |d| d.wday == assignment.meeting_wday }.each do |date|
         next if @closed_days.key?(date)
         assignment.staffs.each do |staff|
+          next unless active?(staff, date)
           next if working?(staff.name, date)
           violations << {
             staff_name: staff.name,
