@@ -36,8 +36,9 @@
                 <% end %>
               </td>
               <td class="py-3">
-                <% if assignment.staffs.any? %>
-                  <%= assignment.staffs.map(&:name).join("・") %>
+                <% active_staffs = assignment.staffs.reject(&:retired?) %>
+                <% if active_staffs.any? %>
+                  <%= active_staffs.map(&:name).join("・") %>
                 <% else %>
                   <span class="text-muted small">未設定</span>
                 <% end %>
