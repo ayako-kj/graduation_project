@@ -45,7 +45,8 @@ class ConstraintExtractor
       assignment_constraints: assignment_constraints_data,
       mobile_library_constraints: mobile_library_constraints_data,
       hourly_leave_constraints: hourly_leave_constraints_data,
-      prior_trailing_work_days: prior_trailing_work_days_data
+      prior_trailing_work_days: prior_trailing_work_days_data,
+      prior_saturday_worked: prior_saturday_worked_data
     }
   end
 
@@ -174,18 +175,21 @@ class ConstraintExtractor
     end_date = past_months.last.end_of_month
     staff_ids = staffs.map(&:id)
 
+    # shift_groupごとに集計すると、月末の土曜日と翌月初の日曜日にまたがる
+    # ペアを見逃してしまう（別々のshift_groupに分かれているため）。
+    # 対象期間の全shift_groupの出勤日をまとめてから判定することで、
+    # 月をまたぐペアも正しくカウントする
     work_count = Hash.new(0)
-    @library.shift_groups.where(target_month: past_months.first..past_months.last).each do |sg|
-      dates_by_staff = Shift.where(shift_group: sg, is_working: true)
-        .group_by(&:staff_id)
-        .transform_values { |list| list.map(&:date).to_set }
-      dates_by_staff.each do |staff_id, dates|
+    shift_groups = @library.shift_groups.where(target_month: past_months.first..past_months.last)
+    Shift.where(shift_group: shift_groups, is_working: true)
+      .group_by(&:staff_id)
+      .transform_values { |list| list.map(&:date).to_set }
+      .each do |staff_id, dates|
         dates.each do |d|
           next unless d.saturday? && dates.include?(d + 1)
           work_count[staff_id] += 1
         end
       end
-    end
 
     off_count = Hash.new(0)
     LeaveRequest.where(staff_id: staff_ids, date: start_date..end_date)
@@ -337,6 +341,22 @@ class ConstraintExtractor
       end
       result[name] = count if count > 0
     end
+  end
+
+  # 当月が日曜始まりの場合、その前日（前月末の土曜日）に出勤していたかを
+  # {staff_name => true/false} で返す。シフトは月ごとに独立して生成される
+  # ため、これが無いと月をまたぐ土日（前月末の土曜＋当月頭の日曜）の
+  # 連続出勤回避・「どちらかは出勤」の判定ができない。当月が日曜始まり
+  # でない場合や、前月のShiftGroupが無い場合は空のハッシュを返す
+  def prior_saturday_worked_data
+    return {} unless @start_date.sunday?
+
+    prev_saturday = @start_date - 1
+    sg = @library.shift_groups.find_by(target_month: prev_saturday.beginning_of_month)
+    return {} unless sg
+
+    Shift.where(shift_group: sg, date: prev_saturday).includes(:staff)
+      .each_with_object({}) { |s, h| h[s.staff.name] = s.is_working }
   end
 
   def leave_requests_data
