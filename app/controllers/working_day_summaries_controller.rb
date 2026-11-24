@@ -84,6 +84,15 @@ class WorkingDaySummariesController < ApplicationController
     @shift_group_months = Set.new(shift_groups.map(&:target_month))
   end
 
+  # 指定した月の時点でその職員が在籍していたか（入社日・退職日基準）。
+  # 退職した月の翌月からは年間サマリー・当番回数集計に表示しないために使う
+  def staff_active_in_month?(staff, month)
+    start_date = month.beginning_of_month
+    end_date = month.end_of_month
+    (staff.hired_on.nil? || staff.hired_on <= end_date) &&
+      (staff.retired_on.nil? || staff.retired_on >= start_date)
+  end
+
   def actual_data_for(staff_id, month)
     key = [staff_id, month.beginning_of_month]
     manual = @manual_entries_map[key]
@@ -108,7 +117,8 @@ class WorkingDaySummariesController < ApplicationController
 
     cumulative_diff = 0.0
     cumulative_valid = true
-    @summary = @fiscal_months.map do |month|
+    applicable_months = @fiscal_months.select { |m| staff_active_in_month?(@selected_staff, m) }
+    @summary = applicable_months.map do |month|
       n = @n_by_month[month]
       actual_info = actual_data_for(@selected_staff.id, month)
       actual_days = actual_info[:days]
@@ -136,8 +146,9 @@ class WorkingDaySummariesController < ApplicationController
 
   def build_monthly_all_staff_summary(months)
     months_up_to = months.select { |m| m <= @view_month }
+    active_staffs = @staffs.select { |s| staff_active_in_month?(s, @view_month) }
 
-    @staff_summaries = @staffs.map do |staff|
+    @staff_summaries = active_staffs.map do |staff|
       daily_hours = staff.effective_daily_work_hours
       city_hall_daily = staff.employment_type.city_hall_daily_hours
       regular = staff.employment_type.is_regular
@@ -208,7 +219,9 @@ class WorkingDaySummariesController < ApplicationController
     manual_by_key = WorkdayManualEntry.where(staff: @staffs, year_month: months.first..months.last)
                                        .index_by { |e| [e.staff_id, e.year_month.beginning_of_month] }
 
-    @duty_summaries = @staffs.map do |staff|
+    active_staffs = @staffs.select { |s| staff_active_in_month?(s, @view_month) }
+
+    @duty_summaries = active_staffs.map do |staff|
       early_eligible = !staff.employment_type.is_regular && DutyAssigner::EARLY_STAFF_TYPES.include?(staff.staff_type.name)
       post_eligible  = staff.employment_type.is_regular && staff.staff_type.name == "司書"
       # 土日とも勤務不可（unavailable_wdays）の職員は、そもそも土日連続勤務・
