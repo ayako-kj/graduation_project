@@ -1,5 +1,5 @@
 class ShiftPostProcessor
-  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [], staff_target_days = {}, assignment_constraints = [], mobile_library_constraints = [], weekend_consecutive_debt = {}, prior_trailing_work_days = {})
+  def initialize(parsed_shifts, closed_days, leave_requests = [], special_dates = [], staff_target_days = {}, assignment_constraints = [], mobile_library_constraints = [], weekend_consecutive_debt = {}, prior_trailing_work_days = {}, prior_saturday_worked = {})
     @shifts = parsed_shifts
     @closed_days = closed_days
     @staff_target_days = staff_target_days
@@ -7,6 +7,10 @@ class ShiftPostProcessor
     # 出勤していたか（{staff_name => 日数}）を受け取り、月をまたいだ
     # 連勤（例：9/27〜10/3の7連勤）も検知・回避できるようにする
     @prior_trailing_work_days = prior_trailing_work_days
+    # 当月が日曜始まりの場合のみ使う。前月末の土曜日に出勤していたかを
+    # {staff_name => true/false} で受け取り、月をまたぐ土日の連続出勤回避・
+    # 「どちらかは出勤」の判定に使う
+    @prior_saturday_worked = prior_saturday_worked
     @month_start = parsed_shifts.map { |s| s[:date] }.min
     # 今年度これまでの「土日連続休み回数 − 土日連続勤務回数」。値が大きい
     # 職員ほど、次に土日連続勤務が避けられない場面で割り当てるのが公平。
@@ -63,6 +67,7 @@ class ShiftPostProcessor
     fix_special_dates
     fix_assignment_dates
     fix_mobile_library_dates
+    fix_prior_month_weekend_boundary
     fix_excess_staff
     5.times do
       snapshot = @shifts.map { |s| s[:is_working] }
@@ -230,6 +235,41 @@ class ShiftPostProcessor
       next if @closed_days.key?(date)
       @shifts.select { |s| s[:date] == date && staff_names.include?(s[:staff_name]) }.each do |shift|
         shift[:is_working] = true unless @leave_set.include?([shift[:staff_name], date])
+      end
+    end
+  end
+
+  # 当月が日曜始まりの場合、その日曜日は前月末の土曜日とペアになる。
+  # 前月はシフトが確定済みのため変更できないが、前月の実績
+  # （@prior_saturday_worked）を踏まえて当月側の日曜日を調整することで、
+  # 月をまたぐ土日連続出勤の回避と「土日のどちらかは出勤」を両立させる
+  def fix_prior_month_weekend_boundary
+    return unless @month_start&.sunday?
+    return if @closed_days.key?(@month_start)
+
+    @shifts.select { |s| s[:date] == @month_start }.each do |shift|
+      staff_name = shift[:staff_name]
+      worked_prior_saturday = @prior_saturday_worked[staff_name]
+      next if worked_prior_saturday.nil?
+
+      if worked_prior_saturday
+        # 前月末の土曜に出勤済みなら、今月最初の日曜は出勤させない
+        # （希望休・全員出勤日等で動かせない場合は月またぎの連続出勤を許容する）
+        next unless shift[:is_working]
+        next if fixed_and_unmovable?(staff_name, shift[:date])
+        cancel_and_backfill(shift, staff_name)
+      else
+        # 前月末の土曜が休みだったのに今月最初の日曜も休みだと
+        # 「土日とも休み」になってしまうため、できれば出勤にする
+        next if shift[:is_working]
+        next if fixed_and_unmovable?(staff_name, shift[:date])
+        next if would_cause_consecutive_violation?(staff_name, shift[:date])
+        next if (@staff_info.dig(staff_name, :unavailable_wdays) || []).include?(0)
+
+        shift[:is_working] = true
+        make_room_for_weekly_cap(staff_name, shift[:date])
+        make_room_for_monthly_target(staff_name, shift[:date])
+        @extra_protected_dates << [staff_name, shift[:date]]
       end
     end
   end
@@ -1096,6 +1136,11 @@ class ShiftPostProcessor
   # 指定日に出勤させると、その職員の土日連続出勤（fix_weekend_consecutiveが
   # 回避しようとしているもの）を新たに作ってしまわないかを判定する
   def would_cause_weekend_consecutive?(staff_name, date)
+    # 当月最初の日曜（前月末の土曜とペアになる、月をまたぐケース）は
+    # @shifts内に前月側のデータが無いため、@prior_saturday_workedで判定する
+    if date == @month_start && @month_start.sunday?
+      return @prior_saturday_worked[staff_name] == true
+    end
     return false unless date.saturday? || date.sunday?
     pair_date = date.saturday? ? date + 1 : date - 1
     pair_shift = @shifts.find { |s| s[:staff_name] == staff_name && s[:date] == pair_date }
