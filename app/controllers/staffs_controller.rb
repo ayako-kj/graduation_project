@@ -3,7 +3,10 @@ class StaffsController < ApplicationController
   before_action :set_staff, only: %i[edit update destroy regenerate_token]
 
   def index
-    @staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
+    staffs = current_library.staffs.includes(:staff_type, :employment_type).order(:sort_order, :id)
+    # 退職済みの職員は並び替え（sort_order）には影響させず、表示上だけ
+    # 常に一覧の末尾にまとめる
+    @staffs = staffs.sort_by { |s| [s.retired? ? 1 : 0, s.sort_order, s.id] }
   end
 
   def new
